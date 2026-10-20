@@ -1,6 +1,6 @@
 # Canchería — Arquitectura base
 
-> Esquema completo: [`db/schema.sql`](../db/schema.sql) · Prueba de concurrencia: [`db/tests/concurrencia.sh`](../db/tests/concurrencia.sh)
+> Esquema completo: [`packages/db/migrations/0001_init.sql`](../packages/db/migrations/0001_init.sql) · Pruebas: [`packages/db/test/concurrencia.test.ts`](../packages/db/test/concurrencia.test.ts)
 
 ## 1. Stack tecnológico
 
@@ -27,7 +27,7 @@ apps/
   api/        Fastify — REST + SSE + webhooks
   worker/     pg-boss — expiraciones, outbox, turnos fijos, lista de espera
 packages/
-  db/         esquema Drizzle, migraciones, cliente
+  db/         migraciones SQL (fuente de verdad) + esquema Drizzle tipado, migrador, seed
   core/       dominio puro: reglas de precio, seña, expiración, puntos (testeable sin DB)
   shared/     esquemas Zod + tipos compartidos front/back
 ```
@@ -100,7 +100,7 @@ CONSTRAINT turnos_sin_solapamiento EXCLUDE USING gist (
 
 Postgres valida la constraint de forma atómica con el índice: si dos transacciones insertan turnos solapados en la misma cancha en el mismo milisegundo, la segunda espera a que termine la primera y, si esta hace COMMIT, falla con `23P01`. No hay ventana de carrera, no hace falta ningún lock en la app, y se cumple aunque haya N instancias de la API, un bug en el código o un `INSERT` manual.
 
-**Verificado:** `db/tests/concurrencia.sh` lanza 50 conexiones simultáneas por el mismo horario → **1 éxito, 49 rechazos por `turnos_sin_solapamiento`**, y un solo turno vivo.
+**Verificado:** `packages/db/test/concurrencia.test.ts` lanza 50 transacciones simultáneas por el mismo horario → **1 éxito, 49 rechazos por `turnos_sin_solapamiento`**, y un solo turno vivo.
 
 > ¿Por qué no un "SELECT para ver si está libre y después INSERT"? Porque entre el SELECT y el INSERT otra transacción puede colarse (*check-then-act*). Con `SELECT … FOR UPDATE` sobre la fila de la cancha también funciona (lock pesimista), pero serializa todas las reservas de esa cancha. La exclusion constraint solo hace esperar a quien realmente compite por el mismo rango.
 
@@ -234,7 +234,7 @@ Cuando un turno pasa a `CANCELADO` o `EXPIRADO`, el worker busca la primera insc
 
 ## 6. Próximos pasos sugeridos
 
-1. Scaffolding del monorepo + `packages/db` (Drizzle sobre este esquema) + Docker Compose con Postgres.
+1. ~~Scaffolding del monorepo + `packages/db` (Drizzle sobre este esquema) + Docker Compose con Postgres.~~ ✅
 2. Módulo público de disponibilidad y reserva (grilla + endpoint transaccional + SSE).
 3. Pagos (Mercado Pago + transferencia) y worker de expiración.
 4. Panel admin: agenda, carga manual, check-in QR.
