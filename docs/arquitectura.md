@@ -255,12 +255,13 @@ Cada tarea corre cada N segundos, contados desde que terminó la corrida anterio
 | `notificaciones` | 5 s | Outbox → WhatsApp Cloud API; backoff exponencial, `FALLIDA` a los 6 intentos |
 | `reembolsos` | 30 s | Reembolsos de MP pendientes (§4.4) |
 | `vencer-lista-espera` | 15 min | Inscripciones cuya franja ya pasó → `VENCIDA` |
+| `purgar-sesiones` | 6 h | Borra las sesiones vencidas del panel |
+| `materializar-turnos-fijos` | 1 h | Inserta turnos `CONFIRMADO/FIJO` hasta 8 semanas adelante. Cada fijo en su transacción (`FOR UPDATE SKIP LOCKED`) y cada fecha en un savepoint: un `23P01` contra una reserva existente no la pisa, se registra en `turnos_fijos_omitidos` para el panel. |
 
 Pendientes para próximos pasos:
 
 | Tarea | Frecuencia | Qué hace |
 |---|---|---|
-| `materializar-turnos-fijos` | diario | Inserta turnos `CONFIRMADO/FIJO` hasta 8 semanas adelante. Si da `23P01` contra una reserva existente, se lo informa al admin en vez de pisarla. |
 | `marcar-ausentes` | cada 15 min | `CONFIRMADO` con `fin + tolerancia < now()` y sin check-in → `AUSENTE` (alimenta la métrica de ausentismo). |
 | `recordatorios` | cada 15 min | WhatsApp X horas antes del partido con link para cancelar. |
 
@@ -272,7 +273,8 @@ Pendientes para próximos pasos:
 4. ~~API del panel admin: sesiones y roles, agenda en tiempo real, carga manual y bloqueos, cancelaciones, check-in QR, cobros en el club, transferencias, reembolsos, medios de cobro.~~ ✅ Ver [api-admin.md](api-admin.md).
 5. ~~**Front (`apps/web`, Next.js):** página pública del club (grilla, reserva, pago, comprobante con QR, lista de espera) y panel (agenda, check-in con la cámara, revisión de transferencias).~~ ✅ Ver §7.
 6. ~~Configuración del club desde el panel: canchas, tarifas, horarios, días especiales, reglas de seña y usuarios.~~ ✅ Ver [api-admin.md](api-admin.md#configuración-del-club--adminclubsclubidconfig).
-7. Turnos fijos, cantina, fidelización (puntos y canjes), reportes.
+7. ~~Turnos fijos.~~ ✅ Ver [api-admin.md](api-admin.md#turnos-fijos--adminclubsclubidturnos-fijos-recepcion).
+8. Cantina, fidelización (puntos y canjes), reportes.
 
 ## 7. Front (`apps/web`)
 

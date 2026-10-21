@@ -12,6 +12,7 @@ import {
   ServicioListaEspera,
   ServicioPagos,
   ServicioReembolsos,
+  ServicioTurnosFijos,
 } from '@cancheria/servicios';
 import pino from 'pino';
 import { cargarConfig } from './config.ts';
@@ -44,6 +45,7 @@ const reembolsos = new ServicioReembolsos({ ...entorno, pasarela, cifrador });
 const canal = config.whatsapp ? new CanalWhatsApp(config.whatsapp) : new CanalConsola((l) => log.info(l));
 const despachador = new Despachador(db, reloj, canal);
 const auth = new ServicioAuth(entorno);
+const turnosFijos = new ServicioTurnosFijos({ ...entorno, clubs, listaEspera });
 
 const programador = new Programador(
   [
@@ -63,6 +65,13 @@ const programador = new Programador(
       nombre: 'purgar-sesiones',
       cadaMs: config.intervalos.sesionesMs,
       ejecutar: () => auth.purgarVencidas(),
+    },
+    {
+      // Cada hora: el horizonte avanza de a un día, y si un turno fijo choca con algo el
+      // club se entera con tiempo.
+      nombre: 'materializar-turnos-fijos',
+      cadaMs: config.intervalos.turnosFijosMs,
+      ejecutar: () => turnosFijos.materializarPendientes(),
     },
   ],
   log,

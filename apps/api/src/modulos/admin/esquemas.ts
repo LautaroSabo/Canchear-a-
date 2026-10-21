@@ -168,3 +168,34 @@ export const paramsTarifa = z.object({ clubId: z.uuid(), tarifaId: z.uuid() });
 export const paramsRegla = z.object({ clubId: z.uuid(), reglaId: z.uuid() });
 export const paramsUsuario = z.object({ clubId: z.uuid(), usuarioId: z.uuid() });
 export const paramsFecha = z.object({ clubId: z.uuid(), fecha: z.iso.date() });
+
+// --- Turnos fijos ----------------------------------------------------------------
+
+export const cuerpoTurnoFijo = z.object({
+  canchaId: z.uuid(),
+  cliente: cuerpoReserva.shape.cliente,
+  diaSemana: dia,
+  horaInicio: hora,
+  duracionMin: z.number().int().min(15).max(360).optional(),
+  frecuenciaSemanas: z.union([z.literal(1), z.literal(2), z.literal(4)]),
+  vigenteDesde: z.iso.date(),
+  vigenteHasta: z.iso.date().nullable().optional(),
+  precioPactado: centavos.nullable().optional(),
+  nota: textoOpcional(500).optional(),
+  notificar: z.boolean().optional(),
+});
+
+export const cuerpoPreviaFijo = cuerpoTurnoFijo.omit({ cliente: true, nota: true, notificar: true });
+
+export const cuerpoModificarFijo = z.object({
+  precioPactado: centavos.nullable().optional(),
+  nota: textoOpcional(500).optional(),
+});
+
+export const cuerpoBajaFijo = z.object({
+  desde: z.iso.date(),
+  motivo: z.string().trim().max(300).optional(),
+});
+
+export const paramsFijo = z.object({ clubId: z.uuid(), fijoId: z.uuid() });
+export const paramsOmitido = z.object({ clubId: z.uuid(), fijoId: z.uuid(), fecha: z.iso.date() });

@@ -13,6 +13,7 @@ import {
   ServicioOperacion,
   ServicioPagos,
   ServicioReembolsos,
+  ServicioTurnosFijos,
   TAMANO_MAXIMO_COMPROBANTE,
 } from '@cancheria/servicios';
 import cookie from '@fastify/cookie';
@@ -108,6 +109,7 @@ export async function construirApp({
   const operacion = new ServicioOperacion({ ...entorno, clubs, listaEspera });
   const reembolsos = new ServicioReembolsos({ ...entorno, pasarela, cifrador });
   const configuracion = new ServicioConfiguracion({ ...entorno, clubs });
+  const turnosFijos = new ServicioTurnosFijos({ ...entorno, clubs, listaEspera });
   const consultas = new ConsultasAdmin(db, reloj);
 
   app.get('/health', async () => {
@@ -137,6 +139,7 @@ export async function construirApp({
     operacion,
     pagos,
     reembolsos,
+    turnosFijos,
     pasarela,
     cifrador,
     almacen,

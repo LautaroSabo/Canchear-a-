@@ -11,6 +11,7 @@ import { alcanza, useClubActual, useSesion } from './sesion';
 const SECCIONES: { ruta: string; nombre: string; rol: Rol }[] = [
   { ruta: 'agenda', nombre: 'Agenda', rol: 'RECEPCION' },
   { ruta: 'checkin', nombre: 'Check-in', rol: 'RECEPCION' },
+  { ruta: 'turnos-fijos', nombre: 'Turnos fijos', rol: 'RECEPCION' },
   { ruta: 'transferencias', nombre: 'Transferencias', rol: 'RECEPCION' },
   { ruta: 'reembolsos', nombre: 'Reembolsos', rol: 'RECEPCION' },
   { ruta: 'configuracion', nombre: 'Configuración', rol: 'ADMIN' },
@@ -29,6 +30,11 @@ export function BarraLateral() {
     queryKey: ['transferencias', clubId, 'EN_REVISION'],
     queryFn: () => panel.get<Transferencia[]>(`/clubs/${clubId}/transferencias`),
     refetchInterval: 60_000,
+  });
+  const omitidos = useQuery({
+    queryKey: ['turnos-fijos', clubId, 'pendientes'],
+    queryFn: () => panel.get<{ omitidos: number }>(`/clubs/${clubId}/turnos-fijos/pendientes`),
+    refetchInterval: 5 * 60_000,
   });
   const salir = useMutation({
     mutationFn: () => panel.post('/auth/logout'),
@@ -58,7 +64,12 @@ export function BarraLateral() {
         {SECCIONES.filter((s) => alcanza(rol, s.rol)).map((s) => {
           const href = `/panel/${clubId}/${s.ruta}`;
           const actual = ruta.startsWith(href);
-          const badge = s.ruta === 'transferencias' ? (pendientes.data?.length ?? 0) : 0;
+          const badge =
+            s.ruta === 'transferencias'
+              ? (pendientes.data?.length ?? 0)
+              : s.ruta === 'turnos-fijos'
+                ? (omitidos.data?.omitidos ?? 0)
+                : 0;
           return (
             <Link
               key={s.ruta}

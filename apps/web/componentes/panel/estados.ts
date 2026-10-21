@@ -61,6 +61,7 @@ export function actorLegible(actor: string) {
   if (actor === 'webhook:mp') return 'Mercado Pago';
   if (actor === 'worker') return 'Sistema (vencimiento)';
   if (actor === 'worker:lista-espera') return 'Lista de espera';
+  if (actor === 'worker:turnos-fijos') return 'Turno fijo';
   if (actor.startsWith('usuario:')) return 'Club';
   return actor;
 }

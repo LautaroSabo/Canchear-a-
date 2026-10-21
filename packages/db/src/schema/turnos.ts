@@ -6,6 +6,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   smallint,
   text,
   time,
@@ -32,7 +33,25 @@ export const turnosFijos = pgTable('turnos_fijos', {
   precioPactado: bigint({ mode: 'number' }),
   materializadoHasta: date({ mode: 'string' }),
   activo: boolean().notNull().default(true),
+  nota: text(),
+  creadoPor: uuid(),
+  creadoEn: ts().notNull().defaultNow(),
 });
+
+/** Fechas de un turno fijo que no se pudieron generar (cancha tomada, club cerrado, sin precio). */
+export const turnosFijosOmitidos = pgTable(
+  'turnos_fijos_omitidos',
+  {
+    turnoFijoId: uuid().notNull(),
+    fecha: date({ mode: 'string' }).notNull(),
+    clubId: uuid().notNull(),
+    motivo: text().$type<'OCUPADO' | 'CERRADO' | 'SIN_TARIFA'>().notNull(),
+    turnoConflictoId: uuid(),
+    creadoEn: ts().notNull().defaultNow(),
+    revisadoEn: ts(),
+  },
+  (t) => [primaryKey({ columns: [t.turnoFijoId, t.fecha] })],
+);
 
 /**
  * Turnos. La anti-sobrerreserva la garantiza la constraint `turnos_sin_solapamiento`

@@ -64,6 +64,23 @@ pnpm --filter @cancheria/api admin:crear-usuario recepcion@club.com "Recepción"
 | PUT | `/transferencia` | ADMIN | `{ alias?, cbu?, titular }`. Alias o CBU/CVU (22 dígitos) obligatorio. |
 | DELETE | `/transferencia` | ADMIN | Deja de aceptar transferencias |
 
+## Turnos fijos — `/admin/clubs/:clubId/turnos-fijos` (RECEPCION)
+
+El mismo cliente, cancha y horario cada 1, 2 o 4 semanas. Se guarda como plantilla y se materializa en turnos `CONFIRMADO` con origen `FIJO` (sin seña) hasta **8 semanas** adelante: al crearlo y después el worker cada hora. Una fecha que choca con otro turno **nunca lo pisa**: queda como *omitida* (`OCUPADO`, `CERRADO` por feriado u horario, `SIN_TARIFA`) para que el club la resuelva.
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `` | `[{ id, cancha, cliente, diaSemana, horaInicio, duracionMin, frecuenciaSemanas, vigenteDesde, vigenteHasta, precioPactado, nota, activo, proximo, omitidos: [{ fecha, motivo, conflicto }] }]` |
+| GET | `/pendientes` | `{ omitidos }`: fechas omitidas sin revisar (para el aviso del menú) |
+| POST | `/previsualizar` | `{ canchaId, diaSemana, horaInicio, duracionMin?, frecuenciaSemanas, vigenteDesde, vigenteHasta?, precioPactado? }` → `{ vigenteDesde, duracionMin, ocurrencias: [{ fecha, inicio, fin, estado, precio, conflicto }] }`. No escribe nada. |
+| POST | `` | Lo mismo + `cliente: { nombre, telefono }`, `nota?`, `notificar?` → `201 { id, creados, omitidos }`. `vigenteDesde` se corre al primer día que coincide. Por defecto le avisa al cliente por WhatsApp (plantilla `turno_fijo_creado`). |
+| PATCH | `/:fijoId` | `{ precioPactado?: centavos \| null, nota? }` → `{ actualizados }`. `null` = la tarifa de cada fecha. El precio nuevo se aplica a los turnos ya generados sin pagos. |
+| POST | `/:fijoId/baja` | `{ desde, motivo? }` → `{ cancelados, conPagos }`. La última fecha pasa a ser la anterior a `desde`; los turnos generados desde ahí se cancelan y se ofrecen a la lista de espera, salvo los que tienen pagos (`conPagos`), que quedan para decidir desde la agenda. |
+| POST | `/:fijoId/omitidos/:fecha/reintentar` | `{ creado, motivo }`: vuelve a intentar una fecha omitida (por ejemplo, después de mover el turno que chocaba) |
+| DELETE | `/:fijoId/omitidos/:fecha` | El club ya la resolvió (le avisó al cliente, etc.) |
+
+Para saltear una sola semana se cancela ese turno desde la agenda: no se vuelve a generar (índice único `(turno_fijo_id, inicio)`).
+
 ## Configuración del club — `/admin/clubs/:clubId/config/…`
 
 Cada cambio se hace en una transacción que bloquea la fila del club (dos admins editando a la vez no pueden dejar dos tarifas superpuestas) y al terminar invalida la caché de configuración: la grilla pública lo refleja en la siguiente consulta. Las horas van como `HH:MM` en la zona del club; los precios y montos fijos, en centavos.

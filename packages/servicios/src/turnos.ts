@@ -162,6 +162,7 @@ export interface NuevoTurno {
   idempotencyKey?: string | undefined;
   creadoPor?: string | undefined;
   nota?: string | undefined;
+  turnoFijoId?: string | undefined;
 }
 
 /**
@@ -206,6 +207,7 @@ export async function insertarTurno(tx: Tx, t: NuevoTurno, ahora: Date, urlWeb: 
       idempotencyKey: t.idempotencyKey ?? null,
       creadoPor: t.creadoPor ?? null,
       nota: t.nota ?? null,
+      turnoFijoId: t.turnoFijoId ?? null,
     })
     .returning();
   if (!turno) throw new Error('insert de turno sin filas');

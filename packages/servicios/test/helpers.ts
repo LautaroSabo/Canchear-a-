@@ -19,6 +19,7 @@ import { Despachador } from '../src/notificaciones/despachador.ts';
 import { ServicioOperacion } from '../src/operacion.ts';
 import { ServicioPagos } from '../src/pagos.ts';
 import { ServicioReembolsos } from '../src/reembolsos.ts';
+import { ServicioTurnosFijos } from '../src/turnos-fijos.ts';
 
 /** Viernes 2030-01-04 12:00 en Buenos Aires. */
 export const AHORA = new Date('2030-01-04T12:00:00-03:00');
@@ -60,6 +61,7 @@ export async function crearContexto({ conMp = true, pool = 10 } = {}) {
   const operacion = new ServicioOperacion({ ...entorno, clubs, listaEspera });
   const auth = new ServicioAuth(entorno);
   const configuracion = new ServicioConfiguracion({ ...entorno, clubs });
+  const turnosFijos = new ServicioTurnosFijos({ ...entorno, clubs, listaEspera });
   const despachador = new Despachador(db, reloj, canal);
 
   const slug = `club-${randomUUID().slice(0, 8)}`;
@@ -95,6 +97,7 @@ export async function crearContexto({ conMp = true, pool = 10 } = {}) {
     operacion,
     auth,
     configuracion,
+    turnosFijos,
     ahora: () => ahora,
     setAhora: (d: Date) => {
       ahora = d;

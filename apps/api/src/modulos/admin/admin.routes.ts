@@ -15,6 +15,7 @@ import {
   type ServicioOperacion,
   type ServicioPagos,
   type ServicioReembolsos,
+  type ServicioTurnosFijos,
 } from '@cancheria/servicios';
 import { eq } from 'drizzle-orm';
 import type { FastifyPluginAsync } from 'fastify';
@@ -22,6 +23,7 @@ import type { Config } from '../../config.ts';
 import type { StreamsSse } from '../../plugins/eventos.ts';
 import type { ConsultasAdmin } from './consultas.ts';
 import {
+  cuerpoBajaFijo,
   cuerpoBloqueo,
   cuerpoCancelar,
   cuerpoCancha,
@@ -33,15 +35,20 @@ import {
   cuerpoInvitar,
   cuerpoLogin,
   cuerpoMercadoPago,
+  cuerpoModificarFijo,
   cuerpoPago,
+  cuerpoPreviaFijo,
   cuerpoRechazo,
   cuerpoRegla,
   cuerpoRol,
   cuerpoTarifa,
   cuerpoTransferencia,
+  cuerpoTurnoFijo,
   cuerpoTurnoManual,
   paramsCancha,
   paramsFecha,
+  paramsFijo,
+  paramsOmitido,
   paramsPago,
   paramsReembolso,
   paramsRegla,
@@ -72,6 +79,7 @@ interface Opciones {
   operacion: ServicioOperacion;
   pagos: ServicioPagos;
   reembolsos: ServicioReembolsos;
+  turnosFijos: ServicioTurnosFijos;
   pasarela: PasarelaMp;
   cifrador: Cifrador;
   almacen: AlmacenArchivos;
@@ -185,6 +193,50 @@ export const rutasAdmin: FastifyPluginAsync<Opciones> = async (app, o) => {
       club.post('/checkin', async (req) => {
         const { qr, forzar } = cuerpoCheckin.parse(req.body);
         return o.operacion.checkin(clubIdDe(req), usuarioDe(req).id, qr, { forzar: forzar ?? false });
+      });
+
+      // --- Turnos fijos -----------------------------------------------------------
+
+      club.get('/turnos-fijos', async (req) => o.turnosFijos.listar(clubIdDe(req)));
+
+      club.get('/turnos-fijos/pendientes', async (req) => ({
+        omitidos: await o.turnosFijos.pendientes(clubIdDe(req)),
+      }));
+
+      club.post('/turnos-fijos/previsualizar', async (req) =>
+        o.turnosFijos.previsualizar(clubIdDe(req), cuerpoPreviaFijo.parse(req.body)),
+      );
+
+      club.post('/turnos-fijos', async (req, reply) =>
+        reply
+          .status(201)
+          .send(await o.turnosFijos.crear(clubIdDe(req), usuarioDe(req).id, cuerpoTurnoFijo.parse(req.body))),
+      );
+
+      club.patch('/turnos-fijos/:fijoId', async (req) => {
+        const { clubId, fijoId } = paramsFijo.parse(req.params);
+        return o.turnosFijos.modificar(
+          clubId,
+          usuarioDe(req).id,
+          fijoId,
+          cuerpoModificarFijo.parse(req.body),
+        );
+      });
+
+      club.post('/turnos-fijos/:fijoId/baja', async (req) => {
+        const { clubId, fijoId } = paramsFijo.parse(req.params);
+        return o.turnosFijos.darDeBaja(clubId, usuarioDe(req).id, fijoId, cuerpoBajaFijo.parse(req.body));
+      });
+
+      club.post('/turnos-fijos/:fijoId/omitidos/:fecha/reintentar', async (req) => {
+        const { clubId, fijoId, fecha } = paramsOmitido.parse(req.params);
+        return o.turnosFijos.reintentar(clubId, usuarioDe(req).id, fijoId, fecha);
+      });
+
+      club.delete('/turnos-fijos/:fijoId/omitidos/:fecha', async (req, reply) => {
+        const { clubId, fijoId, fecha } = paramsOmitido.parse(req.params);
+        await o.turnosFijos.descartarOmitido(clubId, fijoId, fecha);
+        return reply.status(204).send();
       });
 
       // --- Transferencias y reembolsos -------------------------------------------

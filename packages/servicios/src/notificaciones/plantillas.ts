@@ -35,6 +35,11 @@ export const PLANTILLAS = {
     texto: (p: Record<string, string>) =>
       `🎉 ${p.club}: se liberó ${p.cancha} el ${p.fecha} a las ${p.hora}. Te lo guardamos hasta las ${p.vence}: ${p.link}`,
   },
+  turno_fijo_creado: {
+    parametros: ['club', 'cancha', 'dia', 'hora', 'desde'],
+    texto: (p: Record<string, string>) =>
+      `📅 ${p.club}: quedó agendado tu turno fijo en ${p.cancha}, ${p.dia} a las ${p.hora}, desde el ${p.desde}. Si una semana no pueden venir, avisanos.`,
+  },
 } as const;
 
 export type Plantilla = keyof typeof PLANTILLAS;

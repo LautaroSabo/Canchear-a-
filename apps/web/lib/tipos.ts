@@ -242,3 +242,40 @@ export interface UsuarioClub {
   activo: boolean;
   rol: Rol;
 }
+
+// --- Turnos fijos ------------------------------------------------------------------
+
+export type MotivoOmision = 'OCUPADO' | 'CERRADO' | 'SIN_TARIFA';
+
+export interface TurnoFijo {
+  id: string;
+  canchaId: string;
+  cancha: string;
+  cliente: { id: string; nombre: string; telefono: string };
+  diaSemana: number;
+  horaInicio: string;
+  duracionMin: number;
+  frecuenciaSemanas: 1 | 2 | 4;
+  vigenteDesde: string;
+  vigenteHasta: string | null;
+  precioPactado: number | null;
+  nota: string | null;
+  activo: boolean;
+  proximo: string | null;
+  omitidos: { fecha: string; motivo: MotivoOmision; conflicto: string | null }[];
+}
+
+export interface OcurrenciaFijo {
+  fecha: string;
+  inicio: string;
+  fin: string;
+  estado: 'LIBRE' | MotivoOmision;
+  precio: number | null;
+  conflicto: { turnoId: string; cliente: string | null; origen: string } | null;
+}
+
+export interface ResultadoFijo {
+  id: string;
+  creados: number;
+  omitidos: { fecha: string; motivo: MotivoOmision }[];
+}

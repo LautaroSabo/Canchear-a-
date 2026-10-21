@@ -32,6 +32,7 @@ export function cargarConfig(env: NodeJS.ProcessEnv = process.env) {
       reembolsosMs: 30_000,
       listaEsperaMs: 15 * 60_000,
       sesionesMs: 6 * 60 * 60_000,
+      turnosFijosMs: 60 * 60_000,
     },
   };
 }

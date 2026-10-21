@@ -67,7 +67,13 @@ export function DetalleTurno({
           {TEXTOS[a]}
           {a === 'pendiente' && t.expiraEn ? ` · vence ${hora(t.expiraEn, zona)}` : ''}
         </span>
-        <span className="text-xs text-suave">{ORIGENES[t.origen]}</span>
+        {t.origen === 'FIJO' ? (
+          <Link href={`/panel/${clubId}/turnos-fijos`} className="text-xs font-semibold text-cancha">
+            {ORIGENES[t.origen]}
+          </Link>
+        ) : (
+          <span className="text-xs text-suave">{ORIGENES[t.origen]}</span>
+        )}
       </div>
       <h2 className="mt-2.5 text-xl font-bold">{t.cliente?.nombre ?? 'Cancha bloqueada'}</h2>
       <p className="text-sm text-medio">

@@ -20,3 +20,4 @@ export * from './operacion.ts';
 export * from './pagos.ts';
 export * from './reembolsos.ts';
 export * from './turnos.ts';
+export * from './turnos-fijos.ts';
