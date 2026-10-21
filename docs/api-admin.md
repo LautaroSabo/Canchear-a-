@@ -27,6 +27,7 @@ pnpm --filter @cancheria/api admin:crear-usuario recepcion@club.com "Recepción"
 | POST | `/admin/auth/login` | `{ email, contrasena }` → `{ usuario, clubs: [{ id, slug, nombre, zonaHoraria, rol }] }` + cookie |
 | POST | `/admin/auth/logout` | 204; borra la sesión |
 | GET | `/admin/auth/yo` | Usuario actual y sus clubs |
+| POST | `/admin/auth/contrasena` | `{ actual, nueva }` (≥ 10 caracteres) → 204. Cierra las otras sesiones del usuario. `422 CONTRASENA_ACTUAL_INCORRECTA` |
 
 ## Operación diaria — `/admin/clubs/:clubId/…` (RECEPCION)
 
@@ -62,3 +63,31 @@ pnpm --filter @cancheria/api admin:crear-usuario recepcion@club.com "Recepción"
 | DELETE | `/mercadopago` | OWNER | Deja de cobrar con MP |
 | PUT | `/transferencia` | ADMIN | `{ alias?, cbu?, titular }`. Alias o CBU/CVU (22 dígitos) obligatorio. |
 | DELETE | `/transferencia` | ADMIN | Deja de aceptar transferencias |
+
+## Configuración del club — `/admin/clubs/:clubId/config/…`
+
+Cada cambio se hace en una transacción que bloquea la fila del club (dos admins editando a la vez no pueden dejar dos tarifas superpuestas) y al terminar invalida la caché de configuración: la grilla pública lo refleja en la siguiente consulta. Las horas van como `HH:MM` en la zona del club; los precios y montos fijos, en centavos.
+
+| Método | Ruta | Rol | Descripción |
+|---|---|---|---|
+| GET | `` | ADMIN | `{ club, canchas, tarifas, horarios, diasEspeciales, reglas, avisos }`. `avisos` lista problemas de configuración: sin canchas, sin horarios, horarios sin tarifa (por cancha y día, con los rangos), seña sin medio de pago, club sin teléfono. |
+| PATCH | `/club` | ADMIN | `{ nombre?, telefono?, direccion?, minutosRevisionTransferencia? }` → 204 |
+| POST | `/canchas` | ADMIN | `{ nombre, jugadoresPorLado, superficie, techada, iluminacion, duracionTurnoMin (30/60/90/120), orden, activa }` → `{ id }`. `409 NOMBRE_EN_USO` |
+| PATCH | `/canchas/:canchaId` | ADMIN | Cualquier subconjunto de lo anterior. Las canchas no se borran: se desactivan (`activa: false`) y dejan de verse en el público. |
+| POST | `/tarifas` | ADMIN | `{ canchaId \| null, diaSemana \| null, horaDesde, horaHasta, precio, etiqueta, vigenteDesde, vigenteHasta \| null }` → `{ id }` |
+| PUT · DELETE | `/tarifas/:tarifaId` | ADMIN | Reemplaza o borra |
+| PUT | `/horarios` | ADMIN | Array `[{ diaSemana, abre, cierra }]`: reemplaza la semana entera. `cierra` < `abre` = cierra después de medianoche. `422 HORARIOS_SUPERPUESTOS` |
+| PUT · DELETE | `/dias-especiales/:fecha` | ADMIN | `{ cerrado, abre, cierra, motivo }` (upsert por fecha). `422 HORARIO_INCOMPLETO` |
+| POST | `/reglas` | ADMIN | Regla de seña: `{ nombre, canchaId, diaSemana, horaDesde, horaHasta, requiereSena, tipoSena (PORCENTAJE/MONTO_FIJO), valorSena, minutosExpiracion, margenMinAntesInicio, prioridad, activa }` → `{ id }` |
+| PUT · DELETE | `/reglas/:reglaId` | ADMIN | Reemplaza o borra |
+| GET | `/usuarios` | OWNER | `[{ id, email, nombre, activo, rol }]` |
+| POST | `/usuarios` | OWNER | `{ email, nombre, rol }` → `{ usuarioId, contrasenaGenerada }`. Si el email ya tiene cuenta (de otro club) solo se le suma el rol y `contrasenaGenerada` es `null`. `409 YA_ES_MIEMBRO` |
+| PATCH | `/usuarios/:usuarioId` | OWNER | `{ rol }` |
+| DELETE | `/usuarios/:usuarioId` | OWNER | Le saca el acceso; si no le quedan clubs, se cierran sus sesiones |
+
+Reglas de las tarifas:
+
+- **Superposición:** dos tarifas con el mismo alcance (misma cancha o ambas generales, mismo día o ambas de todos los días) no pueden pisarse en horario y vigencia a la vez → `409 TARIFA_SUPERPUESTA`, con la tarifa con la que choca en el mensaje. Con distinto alcance sí pueden convivir: gana la más específica.
+- **Medianoche:** una tarifa termina como mucho a las `00:00`; lo que sigue va en otra desde las `00:00` (`422 FRANJA_INVALIDA`).
+- **Aumentos programados:** se carga la tarifa nueva con `vigenteDesde` y se le pone `vigenteHasta` a la anterior.
+- **Último dueño:** el club siempre conserva al menos un `OWNER` (`409 ULTIMO_DUENO` al bajarle el rol o quitarlo).

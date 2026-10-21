@@ -156,3 +156,89 @@ export interface Reembolso {
   cliente: { nombre: string; telefono: string } | null;
   manual: boolean;
 }
+
+// --- Configuración del club (panel) ---------------------------------------------
+
+export type Superficie = 'SINTETICO' | 'CESPED_NATURAL' | 'CEMENTO' | 'PARQUET' | 'OTRO';
+
+export interface CanchaConfig {
+  id: string;
+  nombre: string;
+  jugadoresPorLado: number;
+  superficie: Superficie;
+  techada: boolean;
+  iluminacion: boolean;
+  duracionTurnoMin: 30 | 60 | 90 | 120;
+  orden: number;
+  activa: boolean;
+}
+
+export interface TarifaConfig {
+  id: string;
+  canchaId: string | null;
+  diaSemana: number | null;
+  horaDesde: string;
+  horaHasta: string;
+  /** Centavos por turno. */
+  precio: number;
+  etiqueta: string | null;
+  vigenteDesde: string;
+  vigenteHasta: string | null;
+}
+
+export interface FranjaHorario {
+  diaSemana: number;
+  abre: string;
+  cierra: string;
+}
+
+export interface DiaEspecial {
+  fecha: string;
+  cerrado: boolean;
+  abre: string | null;
+  cierra: string | null;
+  motivo: string | null;
+}
+
+export interface ReglaSena {
+  id: string;
+  nombre: string;
+  canchaId: string | null;
+  diaSemana: number | null;
+  horaDesde: string | null;
+  horaHasta: string | null;
+  requiereSena: boolean;
+  tipoSena: 'PORCENTAJE' | 'MONTO_FIJO';
+  /** Porcentaje o centavos, según el tipo. */
+  valorSena: number;
+  minutosExpiracion: number;
+  margenMinAntesInicio: number;
+  prioridad: number;
+  activa: boolean;
+}
+
+export interface ConfigClub {
+  club: {
+    id: string;
+    slug: string;
+    nombre: string;
+    telefono: string | null;
+    direccion: string | null;
+    zonaHoraria: string;
+    minutosRevisionTransferencia: number;
+  };
+  canchas: CanchaConfig[];
+  tarifas: TarifaConfig[];
+  horarios: FranjaHorario[];
+  diasEspeciales: DiaEspecial[];
+  reglas: ReglaSena[];
+  avisos: { nivel: 'error' | 'advertencia'; mensaje: string }[];
+}
+
+export interface UsuarioClub {
+  id: string;
+  email: string;
+  nombre: string;
+  activo: boolean;
+  rol: Rol;
+}

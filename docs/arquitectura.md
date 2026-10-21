@@ -271,7 +271,7 @@ Pendientes para próximos pasos:
 3. ~~Pagos (Mercado Pago + transferencia) y worker de expiración.~~ ✅ Ver §4.4, §4.5 y §5.
 4. ~~API del panel admin: sesiones y roles, agenda en tiempo real, carga manual y bloqueos, cancelaciones, check-in QR, cobros en el club, transferencias, reembolsos, medios de cobro.~~ ✅ Ver [api-admin.md](api-admin.md).
 5. ~~**Front (`apps/web`, Next.js):** página pública del club (grilla, reserva, pago, comprobante con QR, lista de espera) y panel (agenda, check-in con la cámara, revisión de transferencias).~~ ✅ Ver §7.
-6. Configuración del club desde el panel: CRUD de canchas, tarifas, horarios, días especiales, reglas de seña y usuarios.
+6. ~~Configuración del club desde el panel: canchas, tarifas, horarios, días especiales, reglas de seña y usuarios.~~ ✅ Ver [api-admin.md](api-admin.md#configuración-del-club--adminclubsclubidconfig).
 7. Turnos fijos, cantina, fidelización (puntos y canjes), reportes.
 
 ## 7. Front (`apps/web`)
@@ -283,4 +283,4 @@ Pendientes para próximos pasos:
 - **Check-in con la cámara:** `jsQR` sobre cuadros del video (funciona también en Safari de iPhone, donde no existe `BarcodeDetector`), con ingreso manual del código como alternativa.
 - **Fuentes empaquetadas** (`@fontsource`): el build no depende de Google Fonts.
 - **TypeScript 6 en `apps/web`:** el paquete de TypeScript 7 no trae la API de JavaScript que usa Next.js; el resto del monorepo usa la 7.
-- **E2E (Playwright):** `apps/api/src/e2e.ts` levanta una API con base temporal, el club demo, un usuario dueño y Mercado Pago falso (con un endpoint que simula el pago y dispara el webhook firmado real). Cubre reserva y pago con MP, celular con transferencia, actualización en vivo entre dos clientes, y en el panel aprobación de transferencias, check-in, cobro, carga manual y cancelación.
+- **E2E (Playwright):** `apps/api/src/e2e.ts` levanta una API con base temporal, el club demo, un usuario dueño y Mercado Pago falso (con un endpoint que simula el pago y dispara el webhook firmado real). Cubre reserva y pago con MP, celular con transferencia, actualización en vivo entre dos clientes, en el panel aprobación de transferencias, check-in, cobro, carga manual y cancelación, y en la configuración una tarifa nueva que cambia el precio en la página pública, horarios superpuestos y alta de usuarios.

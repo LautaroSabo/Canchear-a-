@@ -14,7 +14,7 @@ export class ErrorApi extends Error {
 }
 
 interface Opciones {
-  metodo?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  metodo?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   json?: unknown;
   cuerpo?: FormData;
   /** Rutas del panel: cookie de sesión + header CSRF en lo que modifica. */
@@ -62,6 +62,8 @@ export const panel = {
   get: <T>(ruta: string) => pedir<T>(`/admin${ruta}`, { panel: true }),
   post: <T>(ruta: string, json?: unknown) => pedir<T>(`/admin${ruta}`, { panel: true, metodo: 'POST', json }),
   put: <T>(ruta: string, json?: unknown) => pedir<T>(`/admin${ruta}`, { panel: true, metodo: 'PUT', json }),
+  patch: <T>(ruta: string, json?: unknown) =>
+    pedir<T>(`/admin${ruta}`, { panel: true, metodo: 'PATCH', json }),
   borrar: <T>(ruta: string) => pedir<T>(`/admin${ruta}`, { panel: true, metodo: 'DELETE' }),
 };
 

@@ -1,4 +1,10 @@
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react';
+import {
+  type ButtonHTMLAttributes,
+  type InputHTMLAttributes,
+  type ReactNode,
+  type SelectHTMLAttributes,
+  useId,
+} from 'react';
 
 type Variante = 'primario' | 'secundario' | 'peligro' | 'fantasma' | 'mp';
 
@@ -32,14 +38,62 @@ export function Campo({
   ayuda,
   ...props
 }: InputHTMLAttributes<HTMLInputElement> & { etiqueta: ReactNode; ayuda?: ReactNode }) {
+  const idAyuda = useId();
   return (
-    <label className="flex flex-col gap-1.5 text-sm font-semibold">
+    <div className="flex flex-col gap-1.5">
+      <label className="flex flex-col gap-1.5 text-sm font-semibold">
+        {etiqueta}
+        <input
+          {...props}
+          aria-describedby={ayuda ? idAyuda : undefined}
+          className="min-h-11 rounded-xl border border-[#c9d1cb] bg-white px-3 text-base font-normal placeholder:text-[#8a948e]"
+        />
+      </label>
+      {ayuda ? (
+        <span id={idAyuda} className="text-[13px] text-suave">
+          {ayuda}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+export function Selector({
+  etiqueta,
+  ayuda,
+  children,
+  ...props
+}: SelectHTMLAttributes<HTMLSelectElement> & { etiqueta: ReactNode; ayuda?: ReactNode }) {
+  const idAyuda = useId();
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="flex flex-col gap-1.5 text-sm font-semibold">
+        {etiqueta}
+        <select
+          {...props}
+          aria-describedby={ayuda ? idAyuda : undefined}
+          className="min-h-11 rounded-xl border border-[#c9d1cb] bg-white px-3 text-base font-normal"
+        >
+          {children}
+        </select>
+      </label>
+      {ayuda ? (
+        <span id={idAyuda} className="text-[13px] text-suave">
+          {ayuda}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+export function Casilla({
+  etiqueta,
+  ...props
+}: Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> & { etiqueta: ReactNode }) {
+  return (
+    <label className="flex min-h-11 items-center gap-2.5 text-sm font-semibold">
+      <input type="checkbox" {...props} className="size-5 accent-cancha" />
       {etiqueta}
-      <input
-        {...props}
-        className="min-h-11 rounded-xl border border-[#c9d1cb] bg-white px-3 text-base font-normal placeholder:text-[#8a948e]"
-      />
-      {ayuda ? <span className="text-[13px] font-normal text-suave">{ayuda}</span> : null}
     </label>
   );
 }

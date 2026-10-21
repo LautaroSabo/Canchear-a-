@@ -11,6 +11,7 @@ import {
   type PasarelaMp,
   type RepoClubs,
   type ServicioAuth,
+  type ServicioConfiguracion,
   type ServicioOperacion,
   type ServicioPagos,
   type ServicioReembolsos,
@@ -23,16 +24,30 @@ import type { ConsultasAdmin } from './consultas.ts';
 import {
   cuerpoBloqueo,
   cuerpoCancelar,
+  cuerpoCancha,
   cuerpoCheckin,
+  cuerpoClub,
+  cuerpoContrasena,
+  cuerpoDiaEspecial,
+  cuerpoHorarios,
+  cuerpoInvitar,
   cuerpoLogin,
   cuerpoMercadoPago,
   cuerpoPago,
   cuerpoRechazo,
+  cuerpoRegla,
+  cuerpoRol,
+  cuerpoTarifa,
   cuerpoTransferencia,
   cuerpoTurnoManual,
+  paramsCancha,
+  paramsFecha,
   paramsPago,
   paramsReembolso,
+  paramsRegla,
+  paramsTarifa,
   paramsTurno,
+  paramsUsuario,
   queryAgenda,
   queryReembolsos,
   queryTransferencias,
@@ -53,6 +68,7 @@ interface Opciones {
   auth: ServicioAuth;
   clubs: RepoClubs;
   consultas: ConsultasAdmin;
+  configuracion: ServicioConfiguracion;
   operacion: ServicioOperacion;
   pagos: ServicioPagos;
   reembolsos: ServicioReembolsos;
@@ -90,6 +106,13 @@ export const rutasAdmin: FastifyPluginAsync<Opciones> = async (app, o) => {
   app.get('/auth/yo', { preHandler: exigirSesion(o.auth) }, async (req) => {
     const u = usuarioDe(req);
     return { usuario: { id: u.id, email: u.email, nombre: u.nombre }, clubs: await o.auth.clubsDe(u.id) };
+  });
+
+  app.post('/auth/contrasena', { preHandler: exigirSesion(o.auth) }, async (req, reply) => {
+    const { actual, nueva } = cuerpoContrasena.parse(req.body);
+    const u = usuarioDe(req);
+    await o.auth.cambiarContrasena(u.id, u.sesionId, actual, nueva);
+    return reply.status(204).send();
   });
 
   // --- Todo lo del club: sesión + miembro del club + rol mínimo de la ruta -------
@@ -275,6 +298,96 @@ export const rutasAdmin: FastifyPluginAsync<Opciones> = async (app, o) => {
           .set({ datosTransferencia: null })
           .where(eq(tablaClubs.id, clubIdDe(req)));
         o.clubs.invalidar();
+        return reply.status(204).send();
+      });
+
+      // --- Configuración del club --------------------------------------------------
+
+      const admin = { config: { rolMinimo: 'ADMIN' as const } };
+      const owner = { config: { rolMinimo: 'OWNER' as const } };
+      const c = o.configuracion;
+
+      club.get('/config', admin, async (req) => c.leer(clubIdDe(req)));
+
+      club.patch('/config/club', admin, async (req, reply) => {
+        await c.actualizarClub(clubIdDe(req), cuerpoClub.parse(req.body));
+        return reply.status(204).send();
+      });
+
+      club.post('/config/canchas', admin, async (req, reply) =>
+        reply.status(201).send(await c.crearCancha(clubIdDe(req), cuerpoCancha.parse(req.body))),
+      );
+
+      club.patch('/config/canchas/:canchaId', admin, async (req, reply) => {
+        const { clubId, canchaId } = paramsCancha.parse(req.params);
+        await c.actualizarCancha(clubId, canchaId, cuerpoCancha.partial().parse(req.body));
+        return reply.status(204).send();
+      });
+
+      club.post('/config/tarifas', admin, async (req, reply) =>
+        reply.status(201).send(await c.crearTarifa(clubIdDe(req), cuerpoTarifa.parse(req.body))),
+      );
+
+      club.put('/config/tarifas/:tarifaId', admin, async (req, reply) => {
+        const { clubId, tarifaId } = paramsTarifa.parse(req.params);
+        await c.actualizarTarifa(clubId, tarifaId, cuerpoTarifa.parse(req.body));
+        return reply.status(204).send();
+      });
+
+      club.delete('/config/tarifas/:tarifaId', admin, async (req, reply) => {
+        const { clubId, tarifaId } = paramsTarifa.parse(req.params);
+        await c.borrarTarifa(clubId, tarifaId);
+        return reply.status(204).send();
+      });
+
+      club.put('/config/horarios', admin, async (req, reply) => {
+        await c.reemplazarHorarios(clubIdDe(req), cuerpoHorarios.parse(req.body));
+        return reply.status(204).send();
+      });
+
+      club.put('/config/dias-especiales/:fecha', admin, async (req, reply) => {
+        const { clubId, fecha } = paramsFecha.parse(req.params);
+        await c.guardarDiaEspecial(clubId, fecha, cuerpoDiaEspecial.parse(req.body));
+        return reply.status(204).send();
+      });
+
+      club.delete('/config/dias-especiales/:fecha', admin, async (req, reply) => {
+        const { clubId, fecha } = paramsFecha.parse(req.params);
+        await c.borrarDiaEspecial(clubId, fecha);
+        return reply.status(204).send();
+      });
+
+      club.post('/config/reglas', admin, async (req, reply) =>
+        reply.status(201).send(await c.crearRegla(clubIdDe(req), cuerpoRegla.parse(req.body))),
+      );
+
+      club.put('/config/reglas/:reglaId', admin, async (req, reply) => {
+        const { clubId, reglaId } = paramsRegla.parse(req.params);
+        await c.actualizarRegla(clubId, reglaId, cuerpoRegla.parse(req.body));
+        return reply.status(204).send();
+      });
+
+      club.delete('/config/reglas/:reglaId', admin, async (req, reply) => {
+        const { clubId, reglaId } = paramsRegla.parse(req.params);
+        await c.borrarRegla(clubId, reglaId);
+        return reply.status(204).send();
+      });
+
+      club.get('/config/usuarios', owner, async (req) => c.usuarios(clubIdDe(req)));
+
+      club.post('/config/usuarios', owner, async (req, reply) =>
+        reply.status(201).send(await c.invitar(clubIdDe(req), cuerpoInvitar.parse(req.body))),
+      );
+
+      club.patch('/config/usuarios/:usuarioId', owner, async (req, reply) => {
+        const { clubId, usuarioId } = paramsUsuario.parse(req.params);
+        await c.cambiarRol(clubId, usuarioId, cuerpoRol.parse(req.body).rol);
+        return reply.status(204).send();
+      });
+
+      club.delete('/config/usuarios/:usuarioId', owner, async (req, reply) => {
+        const { clubId, usuarioId } = paramsUsuario.parse(req.params);
+        await c.quitar(clubId, usuarioId);
         return reply.status(204).send();
       });
     },

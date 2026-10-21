@@ -8,6 +8,7 @@ import {
   type Reloj,
   RepoClubs,
   ServicioAuth,
+  ServicioConfiguracion,
   ServicioListaEspera,
   ServicioOperacion,
   ServicioPagos,
@@ -80,7 +81,12 @@ export async function construirApp({
     }
   });
   // credentials: el panel usa cookie de sesión desde el origen del front.
-  await app.register(cors, { origin: config.origenesWeb, credentials: true });
+  await app.register(cors, {
+    origin: config.origenesWeb,
+    credentials: true,
+    // El default de @fastify/cors es GET,HEAD,POST: sin esto el panel no puede editar nada.
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'],
+  });
   await app.register(cookie);
   await app.register(rateLimit, { global: false });
   await app.register(multipart, { limits: { fileSize: TAMANO_MAXIMO_COMPROBANTE, files: 1, fields: 0 } });
@@ -101,6 +107,7 @@ export async function construirApp({
   const auth = new ServicioAuth(entorno);
   const operacion = new ServicioOperacion({ ...entorno, clubs, listaEspera });
   const reembolsos = new ServicioReembolsos({ ...entorno, pasarela, cifrador });
+  const configuracion = new ServicioConfiguracion({ ...entorno, clubs });
   const consultas = new ConsultasAdmin(db, reloj);
 
   app.get('/health', async () => {
@@ -126,6 +133,7 @@ export async function construirApp({
     auth,
     clubs,
     consultas,
+    configuracion,
     operacion,
     pagos,
     reembolsos,

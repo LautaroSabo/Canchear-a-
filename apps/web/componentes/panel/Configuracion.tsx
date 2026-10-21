@@ -1,226 +1,104 @@
 'use client';
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
-import { mensajeDe, panel, pedir } from '@/lib/api';
-import type { ClubPublico } from '@/lib/tipos';
-import { Aviso, Boton, Campo, Cargando, Tarjeta } from '../ui';
+import { useEffect, useState } from 'react';
+import { hoyEn } from '@/lib/formato';
+import { Aviso, Cargando } from '../ui';
+import { Canchas } from './config/Canchas';
+import { Cobros } from './config/Cobros';
+import { useConfig } from './config/comunes';
+import { DiasEspeciales } from './config/DiasEspeciales';
+import { General } from './config/General';
+import { Horarios } from './config/Horarios';
+import { Sena } from './config/Sena';
+import { Tarifas } from './config/Tarifas';
+import { Usuarios } from './config/Usuarios';
 import { alcanza, useClubActual } from './sesion';
 
-interface EstadoMp {
-  configurado: boolean;
-  conWebhookSecret: boolean;
-  urlWebhook: string;
-}
+const SECCIONES = [
+  { id: 'canchas', nombre: 'Canchas' },
+  { id: 'horarios', nombre: 'Horarios' },
+  { id: 'tarifas', nombre: 'Tarifas' },
+  { id: 'sena', nombre: 'Seña' },
+  { id: 'dias', nombre: 'Feriados' },
+  { id: 'cobros', nombre: 'Cobros' },
+  { id: 'club', nombre: 'Club' },
+  { id: 'usuarios', nombre: 'Usuarios', soloDueno: true },
+] as const;
+type Seccion = (typeof SECCIONES)[number]['id'];
 
 export function Configuracion() {
+  const { rol, zona } = useClubActual();
+  const config = useConfig();
+  const esDueno = alcanza(rol, 'OWNER');
+  const visibles = SECCIONES.filter((s) => !('soloDueno' in s) || esDueno);
+  const [seccion, setSeccion] = useState<Seccion>('canchas');
+  // La sección va en el hash para que un recargar o un link la mantenga.
+  useEffect(() => {
+    const h = window.location.hash.slice(1);
+    if (SECCIONES.some((s) => s.id === h) && (h !== 'usuarios' || esDueno)) setSeccion(h as Seccion);
+  }, [esDueno]);
+  const ir = (s: Seccion) => {
+    setSeccion(s);
+    history.replaceState(null, '', `#${s}`);
+  };
+
   return (
     <div className="flex max-w-3xl flex-col gap-4">
       <h1 className="font-display text-[30px] font-bold">Configuración</h1>
-      <MercadoPago />
-      <DatosTransferencia />
-      <p className="text-sm text-suave">
-        Canchas, tarifas, horarios y reglas de seña se van a poder editar desde acá próximamente.
-      </p>
+      {config.data?.avisos.length ? (
+        <section className="flex flex-col gap-2" aria-label="Avisos de configuración">
+          {config.data.avisos.map((a) => (
+            <Aviso key={a.mensaje} tipo={a.nivel === 'error' ? 'error' : 'ambar'}>
+              {a.mensaje}
+            </Aviso>
+          ))}
+        </section>
+      ) : null}
+      <div
+        role="tablist"
+        aria-label="Secciones de configuración"
+        className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1"
+      >
+        {visibles.map((s) => (
+          <button
+            key={s.id}
+            type="button"
+            role="tab"
+            aria-selected={seccion === s.id}
+            onClick={() => ir(s.id)}
+            className={`min-h-11 shrink-0 rounded-xl px-3.5 text-sm font-semibold ${
+              seccion === s.id
+                ? 'bg-noche text-white'
+                : 'bg-white text-medio border border-linea hover:text-tinta'
+            }`}
+          >
+            {s.nombre}
+          </button>
+        ))}
+      </div>
+      <div role="tabpanel" className="flex flex-col gap-4">
+        {seccion === 'cobros' ? (
+          <Cobros />
+        ) : seccion === 'usuarios' ? (
+          <Usuarios />
+        ) : config.isPending ? (
+          <Cargando />
+        ) : config.isError ? (
+          <Aviso>{config.error.message}</Aviso>
+        ) : seccion === 'canchas' ? (
+          <Canchas canchas={config.data.canchas} />
+        ) : seccion === 'horarios' ? (
+          <Horarios key={JSON.stringify(config.data.horarios)} horarios={config.data.horarios} />
+        ) : seccion === 'tarifas' ? (
+          <Tarifas tarifas={config.data.tarifas} canchas={config.data.canchas} hoy={hoyEn(zona)} />
+        ) : seccion === 'sena' ? (
+          <Sena reglas={config.data.reglas} canchas={config.data.canchas} />
+        ) : seccion === 'dias' ? (
+          <DiasEspeciales dias={config.data.diasEspeciales} />
+        ) : (
+          <General key={JSON.stringify(config.data.club)} club={config.data.club} />
+        )}
+      </div>
     </div>
-  );
-}
-
-function MercadoPago() {
-  const { clubId, rol } = useClubActual();
-  const qc = useQueryClient();
-  const esDueno = alcanza(rol, 'OWNER');
-  const [token, setToken] = useState('');
-  const [secreto, setSecreto] = useState('');
-  const estado = useQuery({
-    queryKey: ['mp', clubId],
-    queryFn: () => panel.get<EstadoMp>(`/clubs/${clubId}/mercadopago`),
-  });
-  const guardar = useMutation({
-    mutationFn: () =>
-      panel.put<{ cuenta: { nickname: string } }>(`/clubs/${clubId}/mercadopago`, {
-        accessToken: token.trim(),
-        ...(secreto.trim() ? { webhookSecret: secreto.trim() } : {}),
-      }),
-    onSuccess: () => {
-      setToken('');
-      setSecreto('');
-      qc.invalidateQueries({ queryKey: ['mp', clubId] });
-    },
-  });
-  const quitar = useMutation({
-    mutationFn: () => panel.borrar(`/clubs/${clubId}/mercadopago`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['mp', clubId] }),
-  });
-
-  return (
-    <Tarjeta className="flex flex-col gap-3">
-      <h2 className="text-lg font-bold">Mercado Pago</h2>
-      {estado.isPending ? (
-        <Cargando />
-      ) : estado.isError ? (
-        <Aviso>{estado.error.message}</Aviso>
-      ) : (
-        <>
-          <p className="text-sm">
-            {estado.data.configurado ? (
-              <>
-                <strong className="text-cancha-oscuro">Conectado.</strong> Los clientes pueden pagar la seña
-                con Mercado Pago.
-                {!estado.data.conWebhookSecret ? ' Falta cargar la clave secreta de webhooks.' : ''}
-              </>
-            ) : (
-              'Sin conectar: los clientes solo pueden pagar por transferencia.'
-            )}
-          </p>
-          <div className="rounded-xl bg-fondo px-4 py-3 text-sm">
-            <div className="font-semibold">
-              URL de notificaciones (cargala en Mercado Pago → Webhooks → Pagos):
-            </div>
-            <code className="break-all text-[13px]">{estado.data.urlWebhook}</code>
-          </div>
-          {guardar.data ? (
-            <Aviso tipo="ok">Listo: cuenta {guardar.data.cuenta.nickname} conectada.</Aviso>
-          ) : null}
-          {esDueno ? (
-            <form
-              className="flex flex-col gap-3"
-              onSubmit={(e) => {
-                e.preventDefault();
-                guardar.mutate();
-              }}
-            >
-              <Campo
-                etiqueta="Access token de producción"
-                type="password"
-                autoComplete="off"
-                placeholder="APP_USR-…"
-                value={token}
-                onChange={(e) => setToken(e.target.value)}
-                required
-                ayuda="Lo validamos con Mercado Pago y lo guardamos cifrado. Nunca se vuelve a mostrar."
-              />
-              <Campo
-                etiqueta="Clave secreta de webhooks (opcional)"
-                type="password"
-                autoComplete="off"
-                value={secreto}
-                onChange={(e) => setSecreto(e.target.value)}
-              />
-              {guardar.error ? <Aviso>{mensajeDe(guardar.error)}</Aviso> : null}
-              <div className="flex flex-wrap gap-2">
-                <Boton type="submit" disabled={guardar.isPending}>
-                  {guardar.isPending
-                    ? 'Validando…'
-                    : estado.data.configurado
-                      ? 'Reemplazar credenciales'
-                      : 'Conectar Mercado Pago'}
-                </Boton>
-                {estado.data.configurado ? (
-                  <Boton variante="peligro" disabled={quitar.isPending} onClick={() => quitar.mutate()}>
-                    Desconectar
-                  </Boton>
-                ) : null}
-              </div>
-            </form>
-          ) : (
-            <p className="text-sm text-suave">Solo el dueño del club puede cambiar las credenciales.</p>
-          )}
-        </>
-      )}
-    </Tarjeta>
-  );
-}
-
-function DatosTransferencia() {
-  const { clubId, club } = useClubActual();
-  const qc = useQueryClient();
-  const publico = useQuery({
-    queryKey: ['club', club?.slug],
-    queryFn: () => pedir<ClubPublico>(`/public/clubs/${club?.slug}`),
-    enabled: Boolean(club?.slug),
-  });
-  const actuales = publico.data?.mediosPago.transferencia;
-  const [f, setF] = useState<{ alias: string; cbu: string; titular: string } | null>(null);
-  const valores = f ?? {
-    alias: actuales?.alias ?? '',
-    cbu: actuales?.cbu ?? '',
-    titular: actuales?.titular ?? '',
-  };
-  const guardar = useMutation({
-    mutationFn: () =>
-      panel.put(`/clubs/${clubId}/transferencia`, {
-        titular: valores.titular.trim(),
-        ...(valores.alias.trim() ? { alias: valores.alias.trim() } : {}),
-        ...(valores.cbu.trim() ? { cbu: valores.cbu.trim() } : {}),
-      }),
-    onSuccess: () => {
-      setF(null);
-      qc.invalidateQueries({ queryKey: ['club', club?.slug] });
-    },
-  });
-  const quitar = useMutation({
-    mutationFn: () => panel.borrar(`/clubs/${clubId}/transferencia`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['club', club?.slug] }),
-  });
-
-  return (
-    <Tarjeta className="flex flex-col gap-3">
-      <h2 className="text-lg font-bold">Transferencia</h2>
-      <p className="text-sm text-suave">
-        Se muestran al cliente para que pague la seña y suba el comprobante.
-      </p>
-      {publico.isPending ? (
-        <Cargando />
-      ) : (
-        <form
-          className="grid gap-3 sm:grid-cols-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            guardar.mutate();
-          }}
-        >
-          <Campo
-            etiqueta="Alias"
-            value={valores.alias}
-            onChange={(e) => setF({ ...valores, alias: e.target.value })}
-          />
-          <Campo
-            etiqueta="CBU / CVU"
-            inputMode="numeric"
-            value={valores.cbu}
-            onChange={(e) => setF({ ...valores, cbu: e.target.value })}
-          />
-          <div className="sm:col-span-2">
-            <Campo
-              etiqueta="Titular"
-              value={valores.titular}
-              onChange={(e) => setF({ ...valores, titular: e.target.value })}
-              required
-            />
-          </div>
-          {guardar.error || quitar.error ? (
-            <div className="sm:col-span-2">
-              <Aviso>{mensajeDe(guardar.error ?? quitar.error)}</Aviso>
-            </div>
-          ) : null}
-          {guardar.isSuccess && !f ? (
-            <div className="sm:col-span-2">
-              <Aviso tipo="ok">Guardado.</Aviso>
-            </div>
-          ) : null}
-          <div className="flex flex-wrap gap-2 sm:col-span-2">
-            <Boton type="submit" disabled={guardar.isPending}>
-              Guardar
-            </Boton>
-            {actuales ? (
-              <Boton variante="peligro" disabled={quitar.isPending} onClick={() => quitar.mutate()}>
-                No aceptar transferencias
-              </Boton>
-            ) : null}
-          </div>
-        </form>
-      )}
-    </Tarjeta>
   );
 }

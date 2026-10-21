@@ -86,3 +86,85 @@ export const cuerpoTransferencia = z
     titular: z.string().trim().min(2).max(120),
   })
   .refine((d) => d.alias || d.cbu, 'Indicá alias o CBU/CVU');
+
+// --- Configuración del club ----------------------------------------------------
+
+const hora = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'hora inválida (HH:MM)');
+const dia = z.number().int().min(0).max(6);
+const texto = (max: number) => z.string().trim().min(1).max(max);
+const textoOpcional = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .nullable()
+    .transform((v) => (v ? v : null));
+
+export const cuerpoClub = z.object({
+  nombre: texto(120).optional(),
+  telefono: textoOpcional(40).optional(),
+  direccion: textoOpcional(200).optional(),
+  minutosRevisionTransferencia: z.number().int().min(5).max(1440).optional(),
+});
+
+export const cuerpoCancha = z.object({
+  nombre: texto(60),
+  jugadoresPorLado: z.number().int().min(3).max(11),
+  superficie: z.enum(['SINTETICO', 'CESPED_NATURAL', 'CEMENTO', 'PARQUET', 'OTRO']),
+  techada: z.boolean(),
+  iluminacion: z.boolean(),
+  duracionTurnoMin: z.union([z.literal(30), z.literal(60), z.literal(90), z.literal(120)]),
+  orden: z.number().int().min(0).max(1000),
+  activa: z.boolean(),
+});
+
+export const cuerpoTarifa = z.object({
+  canchaId: z.uuid().nullable(),
+  diaSemana: dia.nullable(),
+  horaDesde: hora,
+  horaHasta: hora,
+  precio: centavos,
+  etiqueta: textoOpcional(40),
+  vigenteDesde: z.iso.date(),
+  vigenteHasta: z.iso.date().nullable(),
+});
+
+export const cuerpoHorarios = z.array(z.object({ diaSemana: dia, abre: hora, cierra: hora })).max(21);
+
+export const cuerpoDiaEspecial = z.object({
+  cerrado: z.boolean(),
+  abre: hora.nullable(),
+  cierra: hora.nullable(),
+  motivo: textoOpcional(120),
+});
+
+export const cuerpoRegla = z.object({
+  nombre: texto(60),
+  canchaId: z.uuid().nullable(),
+  diaSemana: dia.nullable(),
+  horaDesde: hora.nullable(),
+  horaHasta: hora.nullable(),
+  requiereSena: z.boolean(),
+  tipoSena: z.enum(['PORCENTAJE', 'MONTO_FIJO']),
+  /** Porcentaje (0–100) o centavos, según el tipo. */
+  valorSena: centavos,
+  minutosExpiracion: z.number().int().min(3).max(2880),
+  margenMinAntesInicio: z.number().int().min(0).max(1440),
+  prioridad: z.number().int().min(0).max(1000),
+  activa: z.boolean(),
+});
+
+const rol = z.enum(['RECEPCION', 'ADMIN', 'OWNER']);
+export const cuerpoInvitar = z.object({ email: z.email().max(120), nombre: texto(80), rol });
+export const cuerpoRol = z.object({ rol });
+
+export const cuerpoContrasena = z.object({
+  actual: z.string().min(1).max(200),
+  nueva: z.string().min(10, 'La contraseña nueva tiene que tener al menos 10 caracteres').max(200),
+});
+
+export const paramsCancha = z.object({ clubId: z.uuid(), canchaId: z.uuid() });
+export const paramsTarifa = z.object({ clubId: z.uuid(), tarifaId: z.uuid() });
+export const paramsRegla = z.object({ clubId: z.uuid(), reglaId: z.uuid() });
+export const paramsUsuario = z.object({ clubId: z.uuid(), usuarioId: z.uuid() });
+export const paramsFecha = z.object({ clubId: z.uuid(), fecha: z.iso.date() });

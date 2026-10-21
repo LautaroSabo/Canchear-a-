@@ -14,6 +14,7 @@ const SECCIONES: { ruta: string; nombre: string; rol: Rol }[] = [
   { ruta: 'transferencias', nombre: 'Transferencias', rol: 'RECEPCION' },
   { ruta: 'reembolsos', nombre: 'Reembolsos', rol: 'RECEPCION' },
   { ruta: 'configuracion', nombre: 'Configuración', rol: 'ADMIN' },
+  { ruta: 'cuenta', nombre: 'Mi cuenta', rol: 'RECEPCION' },
 ];
 
 const ROLES: Record<Rol, string> = { OWNER: 'Dueño', ADMIN: 'Administración', RECEPCION: 'Recepción' };

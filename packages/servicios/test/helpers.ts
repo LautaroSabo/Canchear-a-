@@ -8,6 +8,7 @@ import { AlmacenMemoria } from '../src/almacen.ts';
 import { ServicioAuth } from '../src/auth.ts';
 import { Cifrador } from '../src/cifrado.ts';
 import { RepoClubs } from '../src/config-club.ts';
+import { ServicioConfiguracion } from '../src/configuracion.ts';
 import { cotizarTurno } from '../src/cotizacion.ts';
 import { guardarCredencialesMp } from '../src/credenciales.ts';
 import { ServicioExpiracion } from '../src/expiracion.ts';
@@ -58,6 +59,7 @@ export async function crearContexto({ conMp = true, pool = 10 } = {}) {
   const servicioReembolsos = new ServicioReembolsos({ ...entorno, pasarela, cifrador });
   const operacion = new ServicioOperacion({ ...entorno, clubs, listaEspera });
   const auth = new ServicioAuth(entorno);
+  const configuracion = new ServicioConfiguracion({ ...entorno, clubs });
   const despachador = new Despachador(db, reloj, canal);
 
   const slug = `club-${randomUUID().slice(0, 8)}`;
@@ -92,6 +94,7 @@ export async function crearContexto({ conMp = true, pool = 10 } = {}) {
     despachador,
     operacion,
     auth,
+    configuracion,
     ahora: () => ahora,
     setAhora: (d: Date) => {
       ahora = d;

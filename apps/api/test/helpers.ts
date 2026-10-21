@@ -142,7 +142,7 @@ export async function usuarioPanel(ctx: Contexto, rol: Rol, clubId = ctx.club.id
 export function panel(
   ctx: Contexto,
   cookie: string,
-  metodo: 'GET' | 'POST' | 'PUT' | 'DELETE',
+  metodo: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   ruta: string,
   payload?: unknown,
 ) {

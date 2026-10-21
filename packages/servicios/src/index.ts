@@ -3,6 +3,7 @@ export * from './auth.ts';
 export * from './cifrado.ts';
 export * from './clientes.ts';
 export * from './config-club.ts';
+export * from './configuracion.ts';
 export * from './cotizacion.ts';
 export * from './credenciales.ts';
 export * from './entorno.ts';

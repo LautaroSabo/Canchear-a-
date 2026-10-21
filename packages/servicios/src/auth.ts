@@ -1,7 +1,7 @@
 import { createHash, randomBytes, type ScryptOptions, scrypt, timingSafeEqual } from 'node:crypto';
 import { violaUnique } from '@cancheria/db';
 import { clubs, miembrosClub, sesiones, usuarios } from '@cancheria/db/schema';
-import { and, eq, gt, lt } from 'drizzle-orm';
+import { and, eq, gt, lt, ne } from 'drizzle-orm';
 import type { Entorno } from './entorno.ts';
 import { ErrorNegocio } from './errores.ts';
 
@@ -145,6 +145,31 @@ export class ServicioAuth {
   /** Cierra todas las sesiones de un usuario (cambio de contraseña, baja). */
   async cerrarSesiones(usuarioId: string) {
     await this.e.db.delete(sesiones).where(eq(sesiones.usuarioId, usuarioId));
+  }
+
+  /** Cambia la contraseña y cierra todas las demás sesiones (la actual sigue abierta). */
+  async cambiarContrasena(usuarioId: string, sesionId: string, actual: string, nueva: string) {
+    const [u] = await this.e.db
+      .select({ hash: usuarios.passwordHash })
+      .from(usuarios)
+      .where(eq(usuarios.id, usuarioId));
+    if (!u || !(await verificarContrasena(actual, u.hash))) {
+      throw new ErrorNegocio(422, 'CONTRASENA_ACTUAL_INCORRECTA', 'La contraseña actual no es correcta');
+    }
+    if (nueva.length < LARGO_MINIMO_CONTRASENA) {
+      throw new ErrorNegocio(
+        422,
+        'CONTRASENA_CORTA',
+        `La contraseña tiene que tener al menos ${LARGO_MINIMO_CONTRASENA} caracteres`,
+      );
+    }
+    await this.e.db.transaction(async (tx) => {
+      await tx
+        .update(usuarios)
+        .set({ passwordHash: await hashContrasena(nueva) })
+        .where(eq(usuarios.id, usuarioId));
+      await tx.delete(sesiones).where(and(eq(sesiones.usuarioId, usuarioId), ne(sesiones.id, sesionId)));
+    });
   }
 
   async purgarVencidas() {
