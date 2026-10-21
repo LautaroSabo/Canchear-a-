@@ -6,13 +6,13 @@ import {
   type ConfigClub,
   cotizarTurno,
   ErrorNegocio,
+  insertarTurno,
   type Reloj,
-  registrarExpiraciones,
   setActor,
   telefonoValido,
   upsertCliente,
 } from '@cancheria/servicios';
-import { and, eq, lte, type SQL, sql } from 'drizzle-orm';
+import { and, eq, type SQL, sql } from 'drizzle-orm';
 import type { Config } from '../../config.ts';
 import type { ServicioDisponibilidad } from './disponibilidad.service.ts';
 import type { CuerpoReserva } from './esquemas.ts';
@@ -97,29 +97,9 @@ export class ServicioReservas {
         await setActor(tx, 'cliente');
         const cliente = await upsertCliente(tx, cfg.club.id, pedido.cliente);
 
-        // Expiración perezosa: un hold vencido que pisa este rango se libera acá mismo
-        // (con los mismos efectos que si lo liberara el worker: aviso y checkout cerrado).
-        const vencidos = await tx
-          .update(turnos)
-          .set({ estado: 'EXPIRADO', expiraEn: null })
-          .where(
-            and(
-              eq(turnos.canchaId, cancha.id),
-              eq(turnos.estado, 'PRE_RESERVADO'),
-              lte(turnos.expiraEn, ahora),
-              sql`${turnos.rango} && tstzrange(${slot.inicio.toISOString()}::timestamptz, ${slot.fin.toISOString()}::timestamptz, '[)')`,
-            ),
-          )
-          .returning({ id: turnos.id });
-        await registrarExpiraciones(
+        const turno = await insertarTurno(
           tx,
-          vencidos.map((v) => v.id),
-          this.config.urlWeb,
-        );
-
-        const [turno] = await tx
-          .insert(turnos)
-          .values({
+          {
             clubId: cfg.club.id,
             canchaId: cancha.id,
             clienteId: cliente.id,
@@ -131,9 +111,10 @@ export class ServicioReservas {
             montoSena: conSena ? cotizacion.montoSena : 0,
             expiraEn: conSena ? expiracion.expiraEn : null,
             idempotencyKey: pedido.idempotencyKey,
-          })
-          .returning();
-        if (!turno) throw new Error('insert de turno sin filas');
+          },
+          ahora,
+          this.config.urlWeb,
+        );
         return { turno, cliente };
       });
 

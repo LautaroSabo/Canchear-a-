@@ -7,10 +7,14 @@ import {
   PasarelaMpHttp,
   type Reloj,
   RepoClubs,
+  ServicioAuth,
   ServicioListaEspera,
+  ServicioOperacion,
   ServicioPagos,
+  ServicioReembolsos,
   TAMANO_MAXIMO_COMPROBANTE,
 } from '@cancheria/servicios';
+import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import multipart from '@fastify/multipart';
 import rateLimit from '@fastify/rate-limit';
@@ -19,11 +23,13 @@ import Fastify from 'fastify';
 import type postgres from 'postgres';
 import type { Config } from './config.ts';
 import { manejadorErrores } from './errores.ts';
+import { rutasAdmin } from './modulos/admin/admin.routes.ts';
+import { ConsultasAdmin } from './modulos/admin/consultas.ts';
 import { ServicioDisponibilidad } from './modulos/publico/disponibilidad.service.ts';
 import { rutasPublicas } from './modulos/publico/publico.routes.ts';
 import { ServicioReservas } from './modulos/publico/reservas.service.ts';
 import { rutasWebhooks } from './modulos/webhooks/webhooks.routes.ts';
-import { BusTurnos } from './plugins/eventos.ts';
+import { BusTurnos, StreamsSse } from './plugins/eventos.ts';
 
 export type { Reloj } from '@cancheria/servicios';
 
@@ -61,12 +67,28 @@ export async function construirApp({
   });
 
   app.setErrorHandler(manejadorErrores);
-  await app.register(cors, { origin: config.origenesWeb });
+  // JSON vacío = sin cuerpo. Por defecto Fastify responde 400, y un front que manda
+  // `content-type: application/json` en todos sus fetch rompería los POST sin datos
+  // (logout, aprobar, confirmar, pedir el link de MP).
+  app.removeContentTypeParser('application/json');
+  app.addContentTypeParser('application/json', { parseAs: 'string' }, (_req, cuerpo, listo) => {
+    if (cuerpo === '') return listo(null, undefined);
+    try {
+      listo(null, JSON.parse(cuerpo as string));
+    } catch {
+      listo(Object.assign(new Error('JSON inválido'), { statusCode: 400 }), undefined);
+    }
+  });
+  // credentials: el panel usa cookie de sesión desde el origen del front.
+  await app.register(cors, { origin: config.origenesWeb, credentials: true });
+  await app.register(cookie);
   await app.register(rateLimit, { global: false });
   await app.register(multipart, { limits: { fileSize: TAMANO_MAXIMO_COMPROBANTE, files: 1, fields: 0 } });
 
   const bus = new BusTurnos();
   const dejarDeEscuchar = await bus.escuchar(cliente, app.log);
+  const sse = new StreamsSse(bus);
+  app.addHook('preClose', async () => sse.cerrarTodos());
   app.addHook('onClose', async () => dejarDeEscuchar());
 
   const entorno = { db, reloj, urlWeb: config.urlWeb };
@@ -76,6 +98,10 @@ export async function construirApp({
   const reservas = new ServicioReservas(db, reloj, config, disponibilidad);
   const pagos = new ServicioPagos({ ...entorno, pasarela, cifrador, almacen, urlApi: config.urlApi });
   const listaEspera = new ServicioListaEspera({ ...entorno, clubs });
+  const auth = new ServicioAuth(entorno);
+  const operacion = new ServicioOperacion({ ...entorno, clubs, listaEspera });
+  const reembolsos = new ServicioReembolsos({ ...entorno, pasarela, cifrador });
+  const consultas = new ConsultasAdmin(db, reloj);
 
   app.get('/health', async () => {
     await db.execute(sql`SELECT 1`);
@@ -89,10 +115,25 @@ export async function construirApp({
     reservas,
     pagos,
     listaEspera,
-    bus,
+    sse,
     config,
   });
   await app.register(rutasWebhooks, { prefix: '/webhooks', clubs, pagos, db, cifrador });
+  await app.register(rutasAdmin, {
+    prefix: '/admin',
+    db,
+    config,
+    auth,
+    clubs,
+    consultas,
+    operacion,
+    pagos,
+    reembolsos,
+    pasarela,
+    cifrador,
+    almacen,
+    sse,
+  });
 
   return app;
 }

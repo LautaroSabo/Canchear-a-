@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { crearClubDemo, crearDb } from '@cancheria/db';
-import { Cifrador, guardarCredencialesMp } from '@cancheria/servicios';
+import { Cifrador, guardarCredencialesMp, type Rol, ServicioAuth } from '@cancheria/servicios';
 import { AlmacenMemoria, PasarelaMpFalsa } from '@cancheria/servicios/testing';
 import { inject } from 'vitest';
 import { construirApp } from '../src/app.ts';
@@ -16,7 +16,13 @@ export const iso = (fecha: string, hora: string) => new Date(ba(fecha, hora)).to
  * App completa contra la base de test, con un club demo propio (slug aleatorio) y un
  * reloj controlable. Misma config que producción salvo caché y rate limit.
  */
-export async function crearContexto({ pool = 10 }: { pool?: number } = {}) {
+export async function crearContexto({
+  pool = 10,
+  loginsPorMinuto = 10_000,
+}: {
+  pool?: number;
+  loginsPorMinuto?: number;
+} = {}) {
   const url = inject('databaseUrl');
   const conexion = crearDb(url, { max: pool });
   let ahora = AHORA;
@@ -31,6 +37,7 @@ export async function crearContexto({ pool = 10 }: { pool?: number } = {}) {
     }),
     cacheClubMs: 0,
     reservasPorMinuto: 10_000,
+    loginsPorMinuto,
   };
   const pasarela = new PasarelaMpFalsa();
   const almacen = new AlmacenMemoria();
@@ -113,3 +120,36 @@ export const PNG = Buffer.concat([
   Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
   Buffer.alloc(64),
 ]);
+
+/** Usuario del panel con un rol en el club del contexto, ya logueado: devuelve su cookie. */
+export async function usuarioPanel(ctx: Contexto, rol: Rol, clubId = ctx.club.id) {
+  const auth = new ServicioAuth({ db: ctx.db, reloj: () => new Date() });
+  const email = `${rol.toLowerCase()}-${randomUUID().slice(0, 8)}@club.test`;
+  const u = await auth.crearUsuario({ email, nombre: `Usuario ${rol}`, contrasena: 'contrasena-de-prueba' });
+  await auth.asignarRol(clubId, u.id, rol);
+  const res = await ctx.app.inject({
+    method: 'POST',
+    url: '/admin/auth/login',
+    headers: { 'x-cancheria-csrf': '1' },
+    payload: { email, contrasena: 'contrasena-de-prueba' },
+  });
+  const cookie = res.cookies.find((c) => c.name === 'cancheria_sesion');
+  if (!cookie) throw new Error(`login falló: ${res.body}`);
+  return { usuario: u, email, cookie: `cancheria_sesion=${cookie.value}` };
+}
+
+/** Request al panel con sesión y header CSRF. */
+export function panel(
+  ctx: Contexto,
+  cookie: string,
+  metodo: 'GET' | 'POST' | 'PUT' | 'DELETE',
+  ruta: string,
+  payload?: unknown,
+) {
+  return ctx.app.inject({
+    method: metodo,
+    url: `/admin/clubs/${ctx.club.id}${ruta}`,
+    headers: { cookie, 'x-cancheria-csrf': '1' },
+    ...(payload === undefined ? {} : { payload: payload as Record<string, unknown> }),
+  });
+}

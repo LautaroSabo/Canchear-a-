@@ -43,6 +43,8 @@ export interface PasarelaMp {
   buscarPagos(token: string, referenciaExterna: string): Promise<PagoMp[]>;
   /** Reembolso total. `idempotencia` evita devolver dos veces si se reintenta. */
   reembolsar(token: string, pagoId: string, idempotencia: string): Promise<{ id: string }>;
+  /** Valida un access token antes de guardarlo: devuelve la cuenta de MP a la que pertenece. */
+  verificarCredenciales(token: string): Promise<{ id: string; nickname: string }>;
 }
 
 /** Formato que pide MP para fechas: yyyy-MM-dd'T'HH:mm:ss.SSS±hh:mm. */
@@ -145,6 +147,12 @@ export class PasarelaMpHttp implements PasarelaMp {
     });
     const r = await this.pedir<{ results: PagoCrudo[] }>(token, 'GET', `/v1/payments/search?${q}`);
     return (r?.results ?? []).map(aPago);
+  }
+
+  async verificarCredenciales(token: string) {
+    const r = await this.pedir<{ id: number | string; nickname: string }>(token, 'GET', '/users/me');
+    if (!r) throw new ErrorMp(404, 'cuenta de Mercado Pago inexistente');
+    return { id: String(r.id), nickname: r.nickname };
   }
 
   async reembolsar(token: string, pagoId: string, idempotencia: string) {

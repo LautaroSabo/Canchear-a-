@@ -4,6 +4,7 @@ Gestión y reserva de turnos para complejos deportivos.
 
 - [Arquitectura, stack y control de concurrencia](docs/arquitectura.md)
 - [API pública: endpoints, errores y reglas de negocio](docs/api-publica.md)
+- [API del panel de administración: sesiones, roles y operación](docs/api-admin.md)
 - [Esquema de base de datos (migración SQL)](packages/db/migrations/0001_init.sql)
 
 ## Desarrollo local
@@ -19,6 +20,12 @@ pnpm db:seed      # club demo "la-canchita"
 pnpm test         # incluye la prueba de 50 reservas simultáneas
 pnpm --filter @cancheria/api dev      # API en http://localhost:3001
 pnpm --filter @cancheria/worker dev   # worker: expiraciones, mensajes (en consola), reembolsos
+```
+
+Usuario para el panel (la contraseña se genera y se muestra una vez, o se toma de `CONTRASENA`):
+
+```bash
+pnpm --filter @cancheria/api admin:crear-usuario vos@mail.com "Tu nombre" la-canchita OWNER
 ```
 
 Para probar Mercado Pago con credenciales de prueba de tu cuenta:
@@ -54,9 +61,10 @@ packages/
     test/       concurrencia, expiración de holds, triggers, drift del esquema
   core/         dominio puro: zona horaria, grilla, tarifas, reglas de seña, teléfonos
   servicios/    lógica con base de datos compartida por api y worker: pagos (Mercado Pago,
-                transferencia), reembolsos, lista de espera, expiración, notificaciones
+                transferencia), reembolsos, lista de espera, expiración, notificaciones,
+                sesiones del panel y operación diaria (carga manual, check-in, cobros)
 apps/
-  api/          Fastify: API pública, pagos, webhooks de MP, SSE
+  api/          Fastify: API pública, panel de admin (/admin), webhooks de MP, SSE
   worker/       tareas periódicas (expiración + conciliación, WhatsApp, reembolsos)
                 (próximo: web)
 ```

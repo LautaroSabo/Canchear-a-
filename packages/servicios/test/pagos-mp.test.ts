@@ -50,7 +50,7 @@ describe('checkout de Mercado Pago', () => {
     const viejo = await ctx.pagos.checkoutMp(t.codigoCheckin);
     await ctx.pagos.registrarTransferencia(t.codigoCheckin, PNG); // extiende el hold 60 min
     const [transferencia] = (await ctx.pagosDe(t.id)).filter((p) => p.proveedor === 'TRANSFERENCIA');
-    await ctx.pagos.rechazarTransferencia(transferencia!.id, ctx.usuario.id, 'ilegible');
+    await ctx.pagos.rechazarTransferencia(ctx.club.id, transferencia!.id, ctx.usuario.id, 'ilegible');
 
     const nuevo = await ctx.pagos.checkoutMp(t.codigoCheckin);
     expect(nuevo.urlCheckout).not.toBe(viejo.urlCheckout);

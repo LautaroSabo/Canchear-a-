@@ -1,6 +1,6 @@
 import { esTurnoOcupado, type Tx } from '@cancheria/db';
 import { canchas, clientes, clubs, listaEspera, pagos, turnos } from '@cancheria/db/schema';
-import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, lte, sql } from 'drizzle-orm';
 import { type Ejecutor, linkComprobante } from './entorno.ts';
 import { fechaCorta, horaCorta } from './formato.ts';
 import { encolarNotificacion } from './notificaciones/encolar.ts';
@@ -122,6 +122,19 @@ export async function notificarTurno(
 export async function registrarExpiraciones(tx: Ejecutor, turnoIds: string[], urlWeb: string) {
   if (turnoIds.length === 0) return;
   for (const id of turnoIds) await notificarTurno(tx, id, 'reserva_expirada', urlWeb);
+  await cerrarCheckoutsAbiertos(tx, turnoIds);
+  await tx
+    .update(listaEspera)
+    .set({ estado: 'VENCIDA' })
+    .where(and(inArray(listaEspera.ofertaTurnoId, turnoIds), eq(listaEspera.estado, 'NOTIFICADA')));
+}
+
+export const setActor = (tx: Ejecutor, actor: string) =>
+  tx.execute(sql`SELECT set_config('app.actor', ${actor}, true)`);
+
+/** Checkouts de Mercado Pago que nunca se pagaron: dejan de contar como pago abierto. */
+export async function cerrarCheckoutsAbiertos(tx: Ejecutor, turnoIds: string[]) {
+  if (turnoIds.length === 0) return;
   await tx
     .update(pagos)
     .set({ estado: 'RECHAZADO' })
@@ -133,11 +146,68 @@ export async function registrarExpiraciones(tx: Ejecutor, turnoIds: string[], ur
         isNull(pagos.externalId),
       ),
     );
-  await tx
-    .update(listaEspera)
-    .set({ estado: 'VENCIDA' })
-    .where(and(inArray(listaEspera.ofertaTurnoId, turnoIds), eq(listaEspera.estado, 'NOTIFICADA')));
 }
 
-export const setActor = (tx: Ejecutor, actor: string) =>
-  tx.execute(sql`SELECT set_config('app.actor', ${actor}, true)`);
+export interface NuevoTurno {
+  clubId: string;
+  canchaId: string;
+  clienteId: string | null;
+  inicio: Date;
+  fin: Date;
+  estado: 'PRE_RESERVADO' | 'CONFIRMADO';
+  origen: 'WEB' | 'MANUAL' | 'FIJO' | 'BLOQUEO';
+  precioTotal: number;
+  montoSena: number;
+  expiraEn: Date | null;
+  idempotencyKey?: string | undefined;
+  creadoPor?: string | undefined;
+  nota?: string | undefined;
+}
+
+/**
+ * Alta atómica de un turno (reserva pública, carga manual, bloqueo). Primero expira de
+ * forma perezosa los holds vencidos que pisan el rango, con sus efectos (aviso al
+ * cliente, checkout cerrado), y después inserta. Si el horario está ocupado, la
+ * exclusion constraint lo rechaza con 23P01 (`esTurnoOcupado`) y la transacción entera
+ * hace rollback, aviso incluido.
+ */
+export async function insertarTurno(tx: Tx, t: NuevoTurno, ahora: Date, urlWeb: string) {
+  const vencidos = await tx
+    .update(turnos)
+    .set({ estado: 'EXPIRADO', expiraEn: null })
+    .where(
+      and(
+        eq(turnos.canchaId, t.canchaId),
+        eq(turnos.estado, 'PRE_RESERVADO'),
+        lte(turnos.expiraEn, ahora),
+        sql`${turnos.rango} && tstzrange(${t.inicio.toISOString()}::timestamptz, ${t.fin.toISOString()}::timestamptz, '[)')`,
+      ),
+    )
+    .returning({ id: turnos.id });
+  await registrarExpiraciones(
+    tx,
+    vencidos.map((v) => v.id),
+    urlWeb,
+  );
+
+  const [turno] = await tx
+    .insert(turnos)
+    .values({
+      clubId: t.clubId,
+      canchaId: t.canchaId,
+      clienteId: t.clienteId,
+      inicio: t.inicio,
+      fin: t.fin,
+      estado: t.estado,
+      origen: t.origen,
+      precioTotal: t.precioTotal,
+      montoSena: t.montoSena,
+      expiraEn: t.expiraEn,
+      idempotencyKey: t.idempotencyKey ?? null,
+      creadoPor: t.creadoPor ?? null,
+      nota: t.nota ?? null,
+    })
+    .returning();
+  if (!turno) throw new Error('insert de turno sin filas');
+  return turno;
+}

@@ -62,23 +62,25 @@ describe('transferencia con comprobante', () => {
     const t = await ctx.hold();
     await ctx.pagos.registrarTransferencia(t.codigoCheckin, PNG);
     const [pago] = await ctx.pagosDe(t.id);
-    expect(await ctx.pagos.aprobarTransferencia(pago!.id, ctx.usuario.id)).toEqual({
+    expect(await ctx.pagos.aprobarTransferencia(ctx.club.id, pago!.id, ctx.usuario.id)).toEqual({
       tipo: 'CONFIRMADO',
       turnoId: t.id,
     });
     expect((await ctx.turno(t.id)).estado).toBe('CONFIRMADO');
     expect((await ctx.pagosDe(t.id))[0]).toMatchObject({ estado: 'APROBADO', revisadoPor: ctx.usuario.id });
     expect(await ctx.mensajes('reserva_confirmada')).toHaveLength(1);
-    await expect(ctx.pagos.aprobarTransferencia(pago!.id, ctx.usuario.id)).rejects.toMatchObject({
-      codigo: 'PAGO_NO_EN_REVISION',
-    });
+    await expect(ctx.pagos.aprobarTransferencia(ctx.club.id, pago!.id, ctx.usuario.id)).rejects.toMatchObject(
+      {
+        codigo: 'PAGO_NO_EN_REVISION',
+      },
+    );
   });
 
   it('el club la rechaza: se avisa con el motivo y el cliente puede subir otro', async () => {
     const t = await ctx.hold();
     await ctx.pagos.registrarTransferencia(t.codigoCheckin, PNG);
     const [pago] = await ctx.pagosDe(t.id);
-    await ctx.pagos.rechazarTransferencia(pago!.id, ctx.usuario.id, 'el monto no coincide');
+    await ctx.pagos.rechazarTransferencia(ctx.club.id, pago!.id, ctx.usuario.id, 'el monto no coincide');
     const [msg] = await ctx.mensajes('transferencia_rechazada');
     expect(msg?.payload).toMatchObject({ motivo: 'el monto no coincide' });
     await expect(ctx.pagos.registrarTransferencia(t.codigoCheckin, PNG)).resolves.toMatchObject({
@@ -93,7 +95,7 @@ describe('transferencia con comprobante', () => {
     await ctx.expiracion.barrer();
     await ctx.hold();
     const [pago] = await ctx.pagosDe(t.id);
-    expect(await ctx.pagos.aprobarTransferencia(pago!.id, ctx.usuario.id)).toEqual({
+    expect(await ctx.pagos.aprobarTransferencia(ctx.club.id, pago!.id, ctx.usuario.id)).toEqual({
       tipo: 'REEMBOLSO',
       motivo: 'PAGO_TARDIO',
     });

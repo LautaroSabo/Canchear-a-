@@ -1,8 +1,9 @@
 import { pagos, reembolsos } from '@cancheria/db/schema';
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import type { Cifrador } from './cifrado.ts';
 import { leerCredencialesMp } from './credenciales.ts';
 import type { Entorno } from './entorno.ts';
+import { ErrorNegocio } from './errores.ts';
 import { pesos } from './formato.ts';
 import type { PasarelaMp } from './mercadopago/pasarela.ts';
 import { MOTIVOS_REEMBOLSO } from './notificaciones/plantillas.ts';
@@ -85,5 +86,34 @@ export class ServicioReembolsos {
       }
     }
     return { hechos, fallidos };
+  }
+
+  /**
+   * El club devolvió la plata por su cuenta (transferencias, efectivo, o un reembolso de
+   * MP que el worker dio por FALLIDO). Un reembolso de MP pendiente no se puede marcar:
+   * lo va a ejecutar el worker y se devolvería dos veces.
+   */
+  async marcarHechoManual(clubId: string, reembolsoId: string, usuarioId: string) {
+    const filas = await this.e.db.execute<{ id: string }>(sql`
+      UPDATE reembolsos r SET estado = 'HECHO', hecho_en = ${this.e.reloj().toISOString()}::timestamptz,
+                              error = ${`marcado a mano por usuario:${usuarioId}`}
+        FROM pagos p
+       WHERE p.id = r.pago_id AND r.id = ${reembolsoId} AND r.club_id = ${clubId}
+         AND (r.estado = 'FALLIDO' OR (r.estado = 'PENDIENTE' AND p.proveedor <> 'MERCADO_PAGO'))
+      RETURNING r.id`);
+    if (filas.length === 0) {
+      const [existe] = await this.e.db
+        .select({ estado: reembolsos.estado })
+        .from(reembolsos)
+        .where(and(eq(reembolsos.id, reembolsoId), eq(reembolsos.clubId, clubId)));
+      if (!existe) throw new ErrorNegocio(404, 'REEMBOLSO_NO_ENCONTRADO', 'No existe ese reembolso');
+      throw new ErrorNegocio(
+        409,
+        'REEMBOLSO_AUTOMATICO',
+        existe.estado === 'HECHO'
+          ? 'Ese reembolso ya está hecho'
+          : 'Ese reembolso lo ejecuta Mercado Pago automáticamente',
+      );
+    }
   }
 }

@@ -29,8 +29,12 @@ export interface Config {
   dirComprobantes: string;
   nivelLog: z.infer<typeof esquema>['LOG_LEVEL'];
   logsLegibles: boolean;
+  /** Cookie de sesión con Secure (HTTPS). Siempre en producción. */
+  cookiesSeguras: boolean;
   /** Reservas públicas por IP y minuto. */
   reservasPorMinuto: number;
+  /** Intentos de login al panel por IP y minuto (fuerza bruta). */
+  loginsPorMinuto: number;
   /** Cuánto se cachea la configuración de un club (canchas, tarifas, reglas). */
   cacheClubMs: number;
   /** No se puede reservar un turno que empieza en menos de esto. */
@@ -52,7 +56,9 @@ export function cargarConfig(env: NodeJS.ProcessEnv = process.env): Config {
     dirComprobantes: e.DIR_COMPROBANTES,
     nivelLog: e.LOG_LEVEL,
     logsLegibles: e.NODE_ENV === 'development',
+    cookiesSeguras: e.NODE_ENV === 'production',
     reservasPorMinuto: 10,
+    loginsPorMinuto: 10,
     cacheClubMs: 10_000,
     anticipacionMinimaMin: 0,
     diasMaximosAnticipacion: 30,

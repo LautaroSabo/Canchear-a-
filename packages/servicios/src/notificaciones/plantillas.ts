@@ -13,7 +13,12 @@ export const PLANTILLAS = {
   reserva_expirada: {
     parametros: ['club', 'fecha', 'hora'],
     texto: (p: Record<string, string>) =>
-      `⌛ ${p.club}: venció el tiempo para pagar la seña del turno del ${p.fecha} a las ${p.hora} y la cancha quedó libre.`,
+      `⌛ ${p.club}: venció el plazo para confirmar tu turno del ${p.fecha} a las ${p.hora} y la cancha quedó libre.`,
+  },
+  reserva_cancelada: {
+    parametros: ['club', 'fecha', 'hora', 'motivo', 'reembolso'],
+    texto: (p: Record<string, string>) =>
+      `❌ ${p.club}: se canceló tu turno del ${p.fecha} a las ${p.hora} (${p.motivo}). ${p.reembolso}`,
   },
   pago_reembolsado: {
     parametros: ['club', 'monto', 'motivo'],

@@ -89,6 +89,15 @@ describe('PasarelaMpHttp (requests a la API de Mercado Pago)', () => {
     expect(llamadas[1]?.init.headers).toMatchObject({ 'x-idempotency-key': 'reembolso-1' });
   });
 
+  it('verifica credenciales contra /users/me', async () => {
+    const { fn, llamadas } = fetchFalso([{ json: { id: 99, nickname: 'LACANCHITA' } }]);
+    expect(await new PasarelaMpHttp(fn).verificarCredenciales('APP_USR-x')).toEqual({
+      id: '99',
+      nickname: 'LACANCHITA',
+    });
+    expect(llamadas[0]?.url).toBe('https://api.mercadopago.com/users/me');
+  });
+
   it('errores de MP se propagan con el status', async () => {
     const { fn } = fetchFalso([{ status: 401, json: { message: 'invalid token' } }]);
     await expect(new PasarelaMpHttp(fn).obtenerPago('MAL', '1')).rejects.toBeInstanceOf(ErrorMp);

@@ -61,6 +61,8 @@ export const turnos = pgTable('turnos', {
   creadoPor: uuid(),
   canceladoEn: ts(),
   motivoCancelacion: text(),
+  /** Nota interna del club (no se muestra al cliente). */
+  nota: text(),
   creadoEn: ts().notNull().defaultNow(),
   actualizadoEn: ts().notNull().defaultNow(),
   /** Bloqueo optimista: lo incrementa un trigger en cada UPDATE. */

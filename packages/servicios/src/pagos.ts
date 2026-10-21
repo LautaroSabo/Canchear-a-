@@ -325,10 +325,10 @@ export class ServicioPagos {
   }
 
   /** El club valida la transferencia. Las devoluciones de transferencias se hacen a mano. */
-  async aprobarTransferencia(pagoId: string, usuarioId: string): Promise<ResultadoPago> {
+  async aprobarTransferencia(clubId: string, pagoId: string, usuarioId: string): Promise<ResultadoPago> {
     return this.e.db.transaction(async (tx) => {
       await setActor(tx, `usuario:${usuarioId}`);
-      const pago = await this.transferenciaEnRevision(tx, pagoId);
+      const pago = await this.transferenciaEnRevision(tx, clubId, pagoId);
       await tx
         .update(pagos)
         .set({ estado: 'APROBADO', revisadoPor: usuarioId, acreditadoEn: this.e.reloj() })
@@ -337,10 +337,10 @@ export class ServicioPagos {
     });
   }
 
-  async rechazarTransferencia(pagoId: string, usuarioId: string, motivo: string) {
+  async rechazarTransferencia(clubId: string, pagoId: string, usuarioId: string, motivo: string) {
     await this.e.db.transaction(async (tx) => {
       await setActor(tx, `usuario:${usuarioId}`);
-      const pago = await this.transferenciaEnRevision(tx, pagoId);
+      const pago = await this.transferenciaEnRevision(tx, clubId, pagoId);
       await tx
         .update(pagos)
         .set({ estado: 'RECHAZADO', revisadoPor: usuarioId, payload: { motivoRechazo: motivo } })
@@ -350,9 +350,15 @@ export class ServicioPagos {
   }
 
   /** Bloquea turno → pago (mismo orden que el webhook, para no generar deadlocks). */
-  private async transferenciaEnRevision(tx: Tx, pagoId: string) {
-    const [sinBloqueo] = await tx.select({ turnoId: pagos.turnoId }).from(pagos).where(eq(pagos.id, pagoId));
-    if (!sinBloqueo) throw new ErrorNegocio(404, 'PAGO_NO_ENCONTRADO', 'No existe ese pago');
+  private async transferenciaEnRevision(tx: Tx, clubId: string, pagoId: string) {
+    const [sinBloqueo] = await tx
+      .select({ turnoId: pagos.turnoId, clubId: pagos.clubId })
+      .from(pagos)
+      .where(eq(pagos.id, pagoId));
+    // Un pago de otro club se responde igual que uno inexistente.
+    if (!sinBloqueo || sinBloqueo.clubId !== clubId) {
+      throw new ErrorNegocio(404, 'PAGO_NO_ENCONTRADO', 'No existe ese pago');
+    }
     await bloquearTurno(tx, sinBloqueo.turnoId);
     const [pago] = await tx.select().from(pagos).where(eq(pagos.id, pagoId)).for('update');
     if (pago?.proveedor !== 'TRANSFERENCIA' || pago.estado !== 'EN_REVISION') {

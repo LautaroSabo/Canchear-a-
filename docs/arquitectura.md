@@ -68,7 +68,7 @@ Decisiones clave:
 - **Importes congelados** en el turno (`precio_total`, `monto_sena`) y en los consumos (`precio_unitario`): si cambia la tarifa, las reservas ya hechas no se alteran.
 - **Puntos como ledger** (`movimientos_puntos`, solo inserciones). `clientes.saldo_puntos` es una caché con `CHECK >= 0`. Un índice único parcial garantiza que un partido acumule puntos una sola vez.
 - **Outbox** (`notificaciones`): se escribe en la misma transacción que el cambio de negocio, así nunca se avisa de algo que hizo rollback ni se pierde un aviso.
-- **`codigo_checkin`** de 128 bits aleatorios (no el id). El QR contiene `https://…/c/{codigo}` firmado con HMAC; el escáner del admin lo valida.
+- **`codigo_checkin`** de 128 bits aleatorios (no el id). El QR contiene la URL del comprobante (`https://…/r/{codigo}`). No hace falta firmarlo con HMAC (como proponía la primera versión de este documento): adivinar un código de 128 bits es inviable, y el check-in además verifica que la reserva sea del club de quien escanea, esté confirmada y sea para ese horario.
 
 ### Máquina de estados del turno
 
@@ -269,5 +269,7 @@ Pendientes para próximos pasos:
 1. ~~Scaffolding del monorepo + `packages/db` (Drizzle sobre este esquema) + Docker Compose con Postgres.~~ ✅
 2. ~~Módulo público de disponibilidad y reserva (grilla + endpoint transaccional + SSE).~~ ✅ Ver [api-publica.md](api-publica.md).
 3. ~~Pagos (Mercado Pago + transferencia) y worker de expiración.~~ ✅ Ver §4.4, §4.5 y §5.
-4. Panel admin: agenda, carga manual, check-in QR.
-5. Turnos fijos, lista de espera, cantina, fidelización, reportes.
+4. ~~API del panel admin: sesiones y roles, agenda en tiempo real, carga manual y bloqueos, cancelaciones, check-in QR, cobros en el club, transferencias, reembolsos, medios de cobro.~~ ✅ Ver [api-admin.md](api-admin.md).
+5. **Front (`apps/web`, Next.js):** página pública del club (grilla, reserva, pago, comprobante con QR, lista de espera) y panel (agenda, check-in con la cámara, revisión de transferencias).
+6. Configuración del club desde el panel: CRUD de canchas, tarifas, horarios, días especiales, reglas de seña y usuarios.
+7. Turnos fijos, cantina, fidelización (puntos y canjes), reportes.

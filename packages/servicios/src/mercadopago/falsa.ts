@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { DatosPreferencia, PagoMp, PasarelaMp } from './pasarela.ts';
+import { type DatosPreferencia, ErrorMp, type PagoMp, type PasarelaMp } from './pasarela.ts';
 
 /**
  * Mercado Pago en memoria para tests: registra lo que se le pide y permite simular que
@@ -53,6 +53,12 @@ export class PasarelaMpFalsa implements PasarelaMp {
 
   async buscarPagos(_token: string, referenciaExterna: string) {
     return [...this.pagos.values()].filter((p) => p.referenciaExterna === referenciaExterna).reverse();
+  }
+
+  /** Acepta tokens con el formato de MP (TEST-… de prueba, APP_USR-… de producción). */
+  async verificarCredenciales(token: string) {
+    if (!/^(TEST|APP_USR)-/.test(token)) throw new ErrorMp(401, 'invalid access token');
+    return { id: '123456', nickname: 'CLUB_TEST' };
   }
 
   async reembolsar(_token: string, pagoId: string, idempotencia: string) {

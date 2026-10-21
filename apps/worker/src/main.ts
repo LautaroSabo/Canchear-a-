@@ -7,6 +7,7 @@ import {
   Despachador,
   PasarelaMpHttp,
   RepoClubs,
+  ServicioAuth,
   ServicioExpiracion,
   ServicioListaEspera,
   ServicioPagos,
@@ -42,6 +43,7 @@ const expiracion = new ServicioExpiracion({ ...entorno, pagos, listaEspera, log 
 const reembolsos = new ServicioReembolsos({ ...entorno, pasarela, cifrador });
 const canal = config.whatsapp ? new CanalWhatsApp(config.whatsapp) : new CanalConsola((l) => log.info(l));
 const despachador = new Despachador(db, reloj, canal);
+const auth = new ServicioAuth(entorno);
 
 const programador = new Programador(
   [
@@ -56,6 +58,11 @@ const programador = new Programador(
       nombre: 'vencer-lista-espera',
       cadaMs: config.intervalos.listaEsperaMs,
       ejecutar: () => listaEspera.vencerViejas(),
+    },
+    {
+      nombre: 'purgar-sesiones',
+      cadaMs: config.intervalos.sesionesMs,
+      ejecutar: () => auth.purgarVencidas(),
     },
   ],
   log,

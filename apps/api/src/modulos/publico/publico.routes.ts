@@ -7,7 +7,7 @@ import {
 } from '@cancheria/servicios';
 import type { FastifyPluginAsync } from 'fastify';
 import type { Config } from '../../config.ts';
-import type { BusTurnos } from '../../plugins/eventos.ts';
+import type { StreamsSse } from '../../plugins/eventos.ts';
 import type { ServicioDisponibilidad } from './disponibilidad.service.ts';
 import {
   cuerpoListaEspera,
@@ -24,15 +24,13 @@ interface Opciones {
   reservas: ServicioReservas;
   pagos: ServicioPagos;
   listaEspera: ServicioListaEspera;
-  bus: BusTurnos;
+  sse: StreamsSse;
   config: Config;
 }
 
-const LATIDO_SSE_MS = 25_000;
-
 export const rutasPublicas: FastifyPluginAsync<Opciones> = async (
   app,
-  { clubs, disponibilidad, reservas, pagos, listaEspera, bus, config },
+  { clubs, disponibilidad, reservas, pagos, listaEspera, sse, config },
 ) => {
   const clubPorSlug = async (params: unknown) => {
     const { slug } = paramsSlug.parse(params);
@@ -147,43 +145,9 @@ export const rutasPublicas: FastifyPluginAsync<Opciones> = async (
     },
   );
 
-  // Tiempo real: Server-Sent Events. El front, ante cada evento, vuelve a pedir la
-  // disponibilidad de ese día (el evento no lleva datos personales).
-  const abiertos = new Set<() => void>();
-  app.addHook('preClose', async () => {
-    for (const cerrar of abiertos) cerrar();
-  });
-
+  // Tiempo real: Server-Sent Events (ver StreamsSse).
   app.get('/clubs/:slug/eventos', async (req, reply) => {
     const cfg = await clubPorSlug(req.params);
-    reply.hijack();
-    const res = reply.raw;
-    // CORS lo agrega Fastify en la reply; con hijack hay que copiarlo a mano.
-    const heredados = Object.entries(reply.getHeaders()).filter(
-      (h): h is [string, string | number | string[]] => h[1] !== undefined,
-    );
-    res.writeHead(200, {
-      ...Object.fromEntries(heredados),
-      'content-type': 'text/event-stream; charset=utf-8',
-      'cache-control': 'no-cache, no-transform',
-      connection: 'keep-alive',
-      'x-accel-buffering': 'no',
-    });
-    res.write('retry: 3000\n\n');
-
-    const desuscribir = bus.suscribir(cfg.club.id, (e) => {
-      res.write(
-        `event: turno\ndata: ${JSON.stringify({ canchaId: e.canchaId, inicio: e.inicio, estado: e.estado })}\n\n`,
-      );
-    });
-    const latido = setInterval(() => res.write(': ping\n\n'), LATIDO_SSE_MS);
-    const cerrar = () => {
-      if (!abiertos.delete(cerrar)) return;
-      clearInterval(latido);
-      desuscribir();
-      res.end();
-    };
-    abiertos.add(cerrar);
-    req.raw.on('close', cerrar);
+    sse.abrir(req, reply, cfg.club.id);
   });
 };

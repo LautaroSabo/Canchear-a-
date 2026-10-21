@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, expect, it } from 'vitest';
-import { type Contexto, crearContexto, iso, pedido, reservar } from './helpers.ts';
+import { type Contexto, crearContexto, iso, pedido, reservar, usuarioPanel } from './helpers.ts';
 
 let ctx: Contexto;
 let base: string;
@@ -65,4 +65,33 @@ it('no recibe eventos de otros clubs', async () => {
   } finally {
     await otro.cerrar();
   }
+});
+
+it('panel: el SSE del club exige sesión y transmite los cambios', async () => {
+  const sinSesion = await fetch(`${base}/admin/clubs/${ctx.club.id}/eventos`);
+  expect(sinSesion.status).toBe(401);
+  await sinSesion.body?.cancel();
+
+  const { cookie } = await usuarioPanel(ctx, 'RECEPCION');
+  const control = new AbortController();
+  const res = await fetch(`${base}/admin/clubs/${ctx.club.id}/eventos`, {
+    signal: control.signal,
+    headers: { cookie },
+  });
+  expect(res.headers.get('content-type')).toContain('text/event-stream');
+  const lector = res.body!.pipeThrough(new TextDecoderStream()).getReader();
+  const recibido = (async () => {
+    let buffer = '';
+    while (!buffer.includes('event: turno')) {
+      const { value, done } = await lector.read();
+      if (done) break;
+      buffer += value;
+    }
+    return buffer;
+  })();
+  await new Promise((r) => setTimeout(r, 100));
+  await reservar(ctx, pedido(ctx.canchas.f5b.id, iso('2030-01-05', '19:00')));
+  expect(await recibido).toContain('"estado":"PRE_RESERVADO"');
+  await lector.cancel();
+  control.abort();
 });

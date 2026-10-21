@@ -11,3 +11,6 @@ export const bytea = customType<{ data: Buffer }>({ dataType: () => 'bytea' });
  * En `turnos` es una columna generada: se lee, nunca se escribe.
  */
 export const tstzrange = customType<{ data: string }>({ dataType: () => 'tstzrange' });
+
+/** Dirección IP (columna inet). */
+export const inet = customType<{ data: string }>({ dataType: () => 'inet' });

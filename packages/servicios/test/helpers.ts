@@ -5,6 +5,7 @@ import { clonarBaseDeTest } from '@cancheria/db/testing';
 import { eq } from 'drizzle-orm';
 import { inject } from 'vitest';
 import { AlmacenMemoria } from '../src/almacen.ts';
+import { ServicioAuth } from '../src/auth.ts';
 import { Cifrador } from '../src/cifrado.ts';
 import { RepoClubs } from '../src/config-club.ts';
 import { cotizarTurno } from '../src/cotizacion.ts';
@@ -14,6 +15,7 @@ import { ServicioListaEspera } from '../src/lista-espera.ts';
 import { PasarelaMpFalsa } from '../src/mercadopago/falsa.ts';
 import { CanalMemoria } from '../src/notificaciones/canales.ts';
 import { Despachador } from '../src/notificaciones/despachador.ts';
+import { ServicioOperacion } from '../src/operacion.ts';
 import { ServicioPagos } from '../src/pagos.ts';
 import { ServicioReembolsos } from '../src/reembolsos.ts';
 
@@ -54,6 +56,8 @@ export async function crearContexto({ conMp = true, pool = 10 } = {}) {
     log: { warn: () => {} },
   });
   const servicioReembolsos = new ServicioReembolsos({ ...entorno, pasarela, cifrador });
+  const operacion = new ServicioOperacion({ ...entorno, clubs, listaEspera });
+  const auth = new ServicioAuth(entorno);
   const despachador = new Despachador(db, reloj, canal);
 
   const slug = `club-${randomUUID().slice(0, 8)}`;
@@ -86,6 +90,8 @@ export async function crearContexto({ conMp = true, pool = 10 } = {}) {
     expiracion,
     reembolsos: servicioReembolsos,
     despachador,
+    operacion,
+    auth,
     ahora: () => ahora,
     setAhora: (d: Date) => {
       ahora = d;

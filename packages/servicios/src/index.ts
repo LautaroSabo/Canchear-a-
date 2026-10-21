@@ -1,4 +1,5 @@
 export * from './almacen.ts';
+export * from './auth.ts';
 export * from './cifrado.ts';
 export * from './clientes.ts';
 export * from './config-club.ts';
@@ -14,6 +15,7 @@ export * from './notificaciones/canales.ts';
 export * from './notificaciones/despachador.ts';
 export * from './notificaciones/encolar.ts';
 export * from './notificaciones/plantillas.ts';
+export * from './operacion.ts';
 export * from './pagos.ts';
 export * from './reembolsos.ts';
 export * from './turnos.ts';

@@ -13,7 +13,7 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 import { rolMiembro } from './enums.ts';
-import { bytea, citext } from './tipos.ts';
+import { bytea, citext, inet } from './tipos.ts';
 
 const ts = () => timestamp({ withTimezone: true, mode: 'date' });
 
@@ -39,7 +39,20 @@ export const usuarios = pgTable('usuarios', {
   email: citext().notNull().unique(),
   nombre: text().notNull(),
   passwordHash: text().notNull(),
+  activo: boolean().notNull().default(true),
   creadoEn: ts().notNull().defaultNow(),
+});
+
+/** Sesiones del panel: se guarda el SHA-256 del token de la cookie, nunca el token. */
+export const sesiones = pgTable('sesiones', {
+  id: uuid().primaryKey().defaultRandom(),
+  usuarioId: uuid().notNull(),
+  tokenHash: bytea().notNull().unique(),
+  creadaEn: ts().notNull().defaultNow(),
+  expiraEn: ts().notNull(),
+  renovadaEn: ts().notNull().defaultNow(),
+  ip: inet(),
+  userAgent: text(),
 });
 
 export const miembrosClub = pgTable(

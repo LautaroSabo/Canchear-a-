@@ -62,6 +62,11 @@ export class RepoClubs {
     return this.cacheado(`slug:${slug.toLowerCase()}`, eq(clubs.slug, slug.toLowerCase()));
   }
 
+  /** Tras un cambio de configuración desde el panel: la próxima lectura va a la base. */
+  invalidar() {
+    this.cache.clear();
+  }
+
   porId(id: string): Promise<ConfigClub | null> {
     return this.cacheado(`id:${id}`, eq(clubs.id, id));
   }

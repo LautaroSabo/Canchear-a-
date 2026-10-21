@@ -3,7 +3,7 @@ import { z } from 'zod';
 const esquema = z.object({
   DATABASE_URL: z.string().min(1),
   CLAVE_CREDENCIALES: z.string().min(1),
-  URL_WEB: z.string().url().default('http://localhost:3000'),
+  URL_WEB: z.url().default('http://localhost:3000'),
   WHATSAPP_TOKEN: z.string().optional(),
   WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
@@ -31,6 +31,7 @@ export function cargarConfig(env: NodeJS.ProcessEnv = process.env) {
       notificacionesMs: 5_000,
       reembolsosMs: 30_000,
       listaEsperaMs: 15 * 60_000,
+      sesionesMs: 6 * 60 * 60_000,
     },
   };
 }
