@@ -270,6 +270,17 @@ Pendientes para próximos pasos:
 2. ~~Módulo público de disponibilidad y reserva (grilla + endpoint transaccional + SSE).~~ ✅ Ver [api-publica.md](api-publica.md).
 3. ~~Pagos (Mercado Pago + transferencia) y worker de expiración.~~ ✅ Ver §4.4, §4.5 y §5.
 4. ~~API del panel admin: sesiones y roles, agenda en tiempo real, carga manual y bloqueos, cancelaciones, check-in QR, cobros en el club, transferencias, reembolsos, medios de cobro.~~ ✅ Ver [api-admin.md](api-admin.md).
-5. **Front (`apps/web`, Next.js):** página pública del club (grilla, reserva, pago, comprobante con QR, lista de espera) y panel (agenda, check-in con la cámara, revisión de transferencias).
+5. ~~**Front (`apps/web`, Next.js):** página pública del club (grilla, reserva, pago, comprobante con QR, lista de espera) y panel (agenda, check-in con la cámara, revisión de transferencias).~~ ✅ Ver §7.
 6. Configuración del club desde el panel: CRUD de canchas, tarifas, horarios, días especiales, reglas de seña y usuarios.
 7. Turnos fijos, cantina, fidelización (puntos y canjes), reportes.
+
+## 7. Front (`apps/web`)
+
+- **Next.js 16 (App Router).** La página del club (`/[slug]`) se renderiza en el servidor para que el link compartido por WhatsApp muestre una vista previa con el nombre del club. La reserva, el comprobante (`/r/[codigo]`) y el panel (`/panel`) son componentes de cliente con **TanStack Query**.
+- **Tiempo real:** los streams SSE de la API (público y panel) solo avisan "algo cambió" e invalidan las queries de la grilla o la agenda, que se vuelven a pedir. El comprobante además consulta cada 8 s mientras espera la seña, por si el celular pierde el stream.
+- **El navegador le habla directo a la API** (CORS con credenciales). El panel usa la cookie de sesión `SameSite=Lax`, así que front y API tienen que estar en el mismo dominio registrable.
+- **Zona horaria:** todo se muestra en la del club (`zonaHoraria` de la API), nunca en la del navegador. Los e2e corren con el navegador en UTC a propósito para que esto no se rompa.
+- **Check-in con la cámara:** `jsQR` sobre cuadros del video (funciona también en Safari de iPhone, donde no existe `BarcodeDetector`), con ingreso manual del código como alternativa.
+- **Fuentes empaquetadas** (`@fontsource`): el build no depende de Google Fonts.
+- **TypeScript 6 en `apps/web`:** el paquete de TypeScript 7 no trae la API de JavaScript que usa Next.js; el resto del monorepo usa la 7.
+- **E2E (Playwright):** `apps/api/src/e2e.ts` levanta una API con base temporal, el club demo, un usuario dueño y Mercado Pago falso (con un endpoint que simula el pago y dispara el webhook firmado real). Cubre reserva y pago con MP, celular con transferencia, actualización en vivo entre dos clientes, y en el panel aprobación de transferencias, check-in, cobro, carga manual y cancelación.

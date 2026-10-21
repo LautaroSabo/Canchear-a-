@@ -31,3 +31,32 @@ jobs:
       - run: pnpm test
       - name: Migraciones + seed sobre base limpia
         run: pnpm db:migrate && pnpm db:seed
+
+  e2e:
+    # Front real en Chromium contra la API y Postgres (apps/web/e2e).
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgres://cancheria:cancheria@localhost:5432/cancheria
+      CI: "true"
+    steps:
+      - name: Postgres 16
+        run: |
+          docker run -d --name pg -p 5432:5432 \
+            -e POSTGRES_USER=cancheria -e POSTGRES_PASSWORD=cancheria -e POSTGRES_DB=cancheria \
+            postgres:16-alpine -c max_connections=200
+          for i in $(seq 1 60); do docker exec pg pg_isready -U cancheria && break; sleep 1; done
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @cancheria/web exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report
+          retention-days: 7

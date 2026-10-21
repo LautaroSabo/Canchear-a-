@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+/* Tema del prototipo: verde cancha, tinta casi negra, números en Barlow Condensed. */
+@theme {
+  --color-cancha: #0a7a3d;
+  --color-cancha-oscuro: #075c2d;
+  --color-cancha-claro: #e8f5ec;
+  --color-cancha-suave: #ddf0e4;
+  --color-noche: #0f1a14;
+  --color-noche-2: #24352b;
+  --color-tinta: #111814;
+  --color-suave: #5b655f;
+  --color-medio: #4a544e;
+  --color-fondo: #f5f7f5;
+  --color-linea: #e3e7e4;
+  --color-borde: #d5dbd7;
+  --color-ocupado: #e9ecea;
+  --color-ambar-fondo: #fff4de;
+  --color-ambar-borde: #b07812;
+  --color-ambar-texto: #4d2f00;
+  --color-azul-fondo: #eaf3fb;
+  --color-azul-borde: #3f7fb3;
+  --color-azul-texto: #0c3f66;
+  --color-rojo: #a1200f;
+  --color-rojo-borde: #e2b4ac;
+  --color-mp: #009ee3;
+
+  --font-sans: "Inter Variable", system-ui, sans-serif;
+  --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+}
+
+html {
+  background: var(--color-fondo);
+  color: var(--color-tinta);
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-cancha);
+  outline-offset: 2px;
+}

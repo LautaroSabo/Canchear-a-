@@ -15,7 +15,9 @@
     "db:down": "docker compose down",
     "db:migrate": "pnpm --filter @cancheria/db migrate",
     "db:seed": "pnpm --filter @cancheria/db seed",
-    "db:reset": "pnpm --filter @cancheria/db reset"
+    "db:reset": "pnpm --filter @cancheria/db reset",
+    "test:e2e": "pnpm --filter @cancheria/web test:e2e",
+    "dev:web": "pnpm --filter @cancheria/web dev"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",

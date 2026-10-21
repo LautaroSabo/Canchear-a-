@@ -66,6 +66,8 @@ export interface ClubDelUsuario {
   id: string;
   slug: string;
   nombre: string;
+  /** El panel muestra todas las horas en la zona del club, no en la del navegador. */
+  zonaHoraria: string;
   rol: Rol;
 }
 
@@ -155,7 +157,13 @@ export class ServicioAuth {
 
   async clubsDe(usuarioId: string): Promise<ClubDelUsuario[]> {
     return this.e.db
-      .select({ id: clubs.id, slug: clubs.slug, nombre: clubs.nombre, rol: miembrosClub.rol })
+      .select({
+        id: clubs.id,
+        slug: clubs.slug,
+        nombre: clubs.nombre,
+        zonaHoraria: clubs.zonaHoraria,
+        rol: miembrosClub.rol,
+      })
       .from(miembrosClub)
       .innerJoin(clubs, eq(clubs.id, miembrosClub.clubId))
       .where(eq(miembrosClub.usuarioId, usuarioId))

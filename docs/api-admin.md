@@ -24,7 +24,7 @@ pnpm --filter @cancheria/api admin:crear-usuario recepcion@club.com "Recepción"
 
 | Método | Ruta | Descripción |
 |---|---|---|
-| POST | `/admin/auth/login` | `{ email, contrasena }` → `{ usuario, clubs: [{ id, slug, nombre, rol }] }` + cookie |
+| POST | `/admin/auth/login` | `{ email, contrasena }` → `{ usuario, clubs: [{ id, slug, nombre, zonaHoraria, rol }] }` + cookie |
 | POST | `/admin/auth/logout` | 204; borra la sesión |
 | GET | `/admin/auth/yo` | Usuario actual y sus clubs |
 

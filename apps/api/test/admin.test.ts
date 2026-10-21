@@ -41,7 +41,13 @@ describe('sesión', () => {
     const res = await login({ email, contrasena: 'contrasena-de-prueba' });
     expect(res.statusCode).toBe(200);
     expect(res.json().clubs).toEqual([
-      { id: ctx.club.id, slug: ctx.slug, nombre: 'La Canchita F5', rol: 'RECEPCION' },
+      {
+        id: ctx.club.id,
+        slug: ctx.slug,
+        nombre: 'La Canchita F5',
+        zonaHoraria: 'America/Argentina/Buenos_Aires',
+        rol: 'RECEPCION',
+      },
     ]);
     const c = res.cookies.find((x) => x.name === 'cancheria_sesion');
     expect(c).toMatchObject({ httpOnly: true, sameSite: 'Lax', path: '/admin' });

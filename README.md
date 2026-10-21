@@ -20,7 +20,11 @@ pnpm db:seed      # club demo "la-canchita"
 pnpm test         # incluye la prueba de 50 reservas simultáneas
 pnpm --filter @cancheria/api dev      # API en http://localhost:3001
 pnpm --filter @cancheria/worker dev   # worker: expiraciones, mensajes (en consola), reembolsos
+pnpm dev:web                          # front en http://localhost:3000
 ```
+
+- Página pública del club demo: http://localhost:3000/la-canchita
+- Panel del club: http://localhost:3000/panel
 
 Usuario para el panel (la contraseña se genera y se muestra una vez, o se toma de `CONTRASENA`):
 
@@ -47,6 +51,7 @@ curl -N localhost:3001/public/clubs/la-canchita/eventos   # tiempo real
 | `pnpm lint` / `pnpm format` | Biome (lint + formato) |
 | `pnpm typecheck` | TypeScript en todos los paquetes |
 | `pnpm test` | Vitest; cada corrida crea y borra su propia base temporal |
+| `pnpm test:e2e` | Playwright: el front real en Chromium contra una API y una base temporales |
 | `pnpm --filter @cancheria/api dev` | API con recarga automática |
 | `pnpm --filter @cancheria/worker dev` | Worker con recarga automática |
 | `pnpm db:reset` | Borra la base de desarrollo, migra de cero y siembra (deshabilitado en producción) |
@@ -66,7 +71,9 @@ packages/
 apps/
   api/          Fastify: API pública, panel de admin (/admin), webhooks de MP, SSE
   worker/       tareas periódicas (expiración + conciliación, WhatsApp, reembolsos)
-                (próximo: web)
+  web/          Next.js 16: página pública del club (/[slug]), comprobante (/r/[codigo])
+                y panel (/panel). Tailwind 4, TanStack Query, SSE para el tiempo real.
+    e2e/        tests de punta a punta con Playwright
 ```
 
 ### Cambios al esquema
@@ -83,5 +90,7 @@ Antes de cobrar de verdad:
 2. **Plantillas de WhatsApp:** crear y aprobar en Meta las plantillas `reserva_confirmada`, `reserva_expirada`, `pago_reembolsado`, `transferencia_rechazada` y `oferta_lista_espera` (idioma `es_AR`). El texto y el orden de los parámetros están en `packages/servicios/src/notificaciones/plantillas.ts`. El worker se niega a arrancar en producción sin `WHATSAPP_TOKEN` y `WHATSAPP_PHONE_NUMBER_ID`.
 3. **Comprobantes:** hoy se guardan en disco (`DIR_COMPROBANTES`). En producción implementar `AlmacenArchivos` sobre S3/R2 (la interfaz ya está).
 4. **`CLAVE_CREDENCIALES`:** generar una propia (no la de `.env.example`) y guardarla como secreto. Si se pierde, hay que volver a cargar las credenciales de MP de cada club.
+
+5. **Front y API en el mismo dominio** (ej. `app.tuclub.com` y `api.tuclub.com`): el panel usa una cookie `SameSite=Lax` de la API, que el navegador no manda entre sitios distintos (`algo.vercel.app` ↔ `algo.fly.dev`). `NEXT_PUBLIC_API_URL` va embebida en el build del front y `WEB_ORIGIN` de la API tiene que ser la URL del front.
 
 Arrancar la API y el worker con `node` directo (`node --import tsx apps/api/src/server.ts` y `apps/worker/src/main.ts`) y no con `pnpm start`: pnpm no reenvía `SIGTERM` al proceso hijo, y entonces el apagado ordenado no se ejecuta: cerrar los streams SSE en la API y, en el worker, esperar a que terminen los reembolsos y envíos en curso.
