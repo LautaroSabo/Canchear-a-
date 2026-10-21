@@ -2,7 +2,7 @@ import { crearClubDemo } from '@cancheria/db';
 import { turnos } from '@cancheria/db/schema';
 import { eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { AHORA, ba, type Contexto, crearContexto } from './helpers.ts';
+import { AHORA, ba, type Contexto, crearContexto, PNG } from './helpers.ts';
 
 let ctx: Contexto;
 beforeEach(async () => {
@@ -43,6 +43,22 @@ describe('checkout de Mercado Pago', () => {
     ]);
     expect(a.urlCheckout).toBe(b.urlCheckout);
     expect(await ctx.pagosDe(t.id)).toHaveLength(1);
+  });
+
+  it('si la reserva se extendió (transferencia rechazada), genera un link nuevo que vence con ella', async () => {
+    const t = await ctx.hold();
+    const viejo = await ctx.pagos.checkoutMp(t.codigoCheckin);
+    await ctx.pagos.registrarTransferencia(t.codigoCheckin, PNG); // extiende el hold 60 min
+    const [transferencia] = (await ctx.pagosDe(t.id)).filter((p) => p.proveedor === 'TRANSFERENCIA');
+    await ctx.pagos.rechazarTransferencia(transferencia!.id, ctx.usuario.id, 'ilegible');
+
+    const nuevo = await ctx.pagos.checkoutMp(t.codigoCheckin);
+    expect(nuevo.urlCheckout).not.toBe(viejo.urlCheckout);
+    const extendida = (await ctx.turno(t.id)).expiraEn;
+    expect([...ctx.pasarela.preferencias.values()].at(-1)?.vence).toEqual(extendida);
+    // El checkout viejo queda cerrado: sigue habiendo un solo pago de MP abierto.
+    const mp = (await ctx.pagosDe(t.id)).filter((p) => p.proveedor === 'MERCADO_PAGO');
+    expect(mp.map((p) => p.estado).sort()).toEqual(['PENDIENTE', 'RECHAZADO']);
   });
 
   it('MP caído: 502 MP_SIN_RESPUESTA, sin dejar un pago abierto; al reintentar funciona', async () => {

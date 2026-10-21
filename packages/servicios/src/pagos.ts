@@ -75,7 +75,17 @@ export class ServicioPagos {
     if (!cred) throw new ErrorNegocio(422, 'MP_NO_DISPONIBLE', 'El club no tiene Mercado Pago configurado');
 
     const abierto = await this.pagoAbiertoMp(t.id);
-    if (abierto?.urlCheckout) return { urlCheckout: abierto.urlCheckout };
+    if (abierto?.urlCheckout) {
+      const vence = (abierto.payload as { vence?: string } | null)?.vence;
+      if (abierto.externalId || vence === t.expiraEn.toISOString())
+        return { urlCheckout: abierto.urlCheckout };
+      // La reserva se extendió (p. ej. se subió y se rechazó una transferencia): el link
+      // viejo vence antes que ella y MP rechazaría el pago. Se cierra y se crea otro.
+      await this.e.db
+        .update(pagos)
+        .set({ estado: 'RECHAZADO' })
+        .where(and(eq(pagos.id, abierto.id), eq(pagos.estado, 'PENDIENTE'), isNull(pagos.externalId)));
+    }
 
     const pref = await this.crearPreferencia(cred.accessToken, {
       titulo: `Seña ${t.cancha} ${fechaCorta(t.inicio, t.zona)} ${horaCorta(t.inicio, t.zona)} — ${t.club}`,
@@ -97,6 +107,8 @@ export class ServicioPagos {
         monto: t.montoSena,
         preferenciaId: pref.id,
         urlCheckout: pref.urlCheckout,
+        // Hasta cuándo acepta pagos esta preferencia (se compara al reusarla).
+        payload: { vence: t.expiraEn.toISOString() },
       });
     } catch (err) {
       // Dos pedidos simultáneos: gana el primero y el segundo devuelve el mismo link.
@@ -369,7 +381,12 @@ export class ServicioPagos {
 
   private async pagoAbiertoMp(turnoId: string) {
     const [p] = await this.e.db
-      .select({ urlCheckout: pagos.urlCheckout })
+      .select({
+        id: pagos.id,
+        urlCheckout: pagos.urlCheckout,
+        externalId: pagos.externalId,
+        payload: pagos.payload,
+      })
       .from(pagos)
       .where(
         and(
