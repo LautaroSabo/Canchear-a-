@@ -1,7 +1,7 @@
 import { instanteLocal, sumarDias, ventanasDeJornada } from '@cancheria/core';
 import type { Db } from '@cancheria/db';
 import { canchas, clientes, pagos, reembolsos, turnos, turnosEventos } from '@cancheria/db/schema';
-import { type ConfigClub, ErrorNegocio, type Reloj } from '@cancheria/servicios';
+import { type ConfigClub, consumosDeTurnoSql, ErrorNegocio, type Reloj } from '@cancheria/servicios';
 import { and, asc, desc, eq, notInArray, type SQL, sql } from 'drizzle-orm';
 
 /** Suma de pagos aprobados de un turno que no se devolvieron. */
@@ -55,6 +55,7 @@ export class ConsultasAdmin {
         motivoCancelacion: turnos.motivoCancelacion,
         cliente: { id: clientes.id, nombre: clientes.nombre, telefono: clientes.telefonoE164 },
         pagado: pagadoSql,
+        consumos: consumosDeTurnoSql,
         senaEnRevision: senaEnRevisionSql,
       })
       .from(turnos)
@@ -73,6 +74,7 @@ export class ConsultasAdmin {
         // Un hold vencido que el worker todavía no barrió ya no ocupa la cancha.
         const vencido = f.estado === 'PRE_RESERVADO' && f.expiraEn !== null && f.expiraEn <= ahora;
         const pagado = Number(f.pagado);
+        const consumos = Number(f.consumos);
         return {
           ...f,
           estado: vencido ? ('EXPIRADO' as const) : f.estado,
@@ -81,8 +83,9 @@ export class ConsultasAdmin {
           expiraEn: f.expiraEn?.toISOString() ?? null,
           checkinEn: f.checkinEn?.toISOString() ?? null,
           cliente: f.cliente?.id ? f.cliente : null,
+          consumos,
           pagado,
-          saldo: Math.max(f.precioTotal - pagado, 0),
+          saldo: Math.max(f.precioTotal + consumos - pagado, 0),
         };
       })
       .filter((t) => t.estado !== 'EXPIRADO');
@@ -127,6 +130,7 @@ export class ConsultasAdmin {
           bloqueado: clientes.bloqueado,
         },
         pagado: pagadoSql,
+        consumos: consumosDeTurnoSql,
       })
       .from(turnos)
       .innerJoin(canchas, eq(canchas.id, turnos.canchaId))
@@ -162,11 +166,13 @@ export class ConsultasAdmin {
         .orderBy(asc(turnosEventos.id)),
     ]);
     const pagado = Number(t.pagado);
+    const consumos = Number(t.consumos);
     return {
       ...t,
+      consumos,
       cliente: t.cliente?.id ? t.cliente : null,
       pagado,
-      saldo: Math.max(t.precioTotal - pagado, 0),
+      saldo: Math.max(t.precioTotal + consumos - pagado, 0),
       pagos: listaPagos.map((p) => ({ ...p, reembolso: p.reembolso?.id ? p.reembolso : null })),
       historial,
     };

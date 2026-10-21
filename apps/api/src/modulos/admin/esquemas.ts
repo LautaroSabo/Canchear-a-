@@ -199,3 +199,47 @@ export const cuerpoBajaFijo = z.object({
 
 export const paramsFijo = z.object({ clubId: z.uuid(), fijoId: z.uuid() });
 export const paramsOmitido = z.object({ clubId: z.uuid(), fijoId: z.uuid(), fecha: z.iso.date() });
+
+// --- Cantina ---------------------------------------------------------------------
+
+const cantidad = z.number().int().min(1).max(10_000);
+
+export const cuerpoProducto = z.object({
+  nombre: texto(60),
+  categoria: z.enum(['BEBIDA', 'COMIDA', 'ALQUILER', 'OTRO']),
+  precio: centavos,
+  controlaStock: z.boolean(),
+  stockMinimo: z.number().int().min(0).max(100_000),
+  activo: z.boolean(),
+});
+export const cuerpoProductoNuevo = cuerpoProducto.extend({
+  stockInicial: z.number().int().min(0).max(100_000),
+});
+
+export const cuerpoReposicion = z.object({ cantidad, motivo: z.string().trim().max(200).optional() });
+export const cuerpoAjuste = z.object({
+  stock: z.number().int().min(0).max(100_000),
+  motivo: z.string().trim().min(2).max(200),
+});
+
+export const cuerpoVenta = z.object({
+  items: z
+    .array(z.object({ productoId: z.uuid(), cantidad }))
+    .min(1)
+    .max(50),
+  turnoId: z.uuid().optional(),
+  medio: z.enum(['EFECTIVO', 'TRANSFERENCIA', 'MERCADO_PAGO', 'OTRO']).optional(),
+  idempotencyKey: z.uuid().optional(),
+});
+
+export const queryVentas = z.object({ fecha: z.iso.date().optional(), turnoId: z.uuid().optional() });
+export const queryResumenCantina = z.object({ fecha: z.iso.date().optional() });
+export const queryProductos = z.object({
+  inactivos: z
+    .enum(['true', 'false'])
+    .transform((v) => v === 'true')
+    .optional(),
+});
+
+export const paramsProducto = z.object({ clubId: z.uuid(), productoId: z.uuid() });
+export const paramsVenta = z.object({ clubId: z.uuid(), ventaId: z.uuid() });

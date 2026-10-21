@@ -11,6 +11,7 @@ import {
   type PasarelaMp,
   type RepoClubs,
   type ServicioAuth,
+  type ServicioCantina,
   type ServicioConfiguracion,
   type ServicioOperacion,
   type ServicioPagos,
@@ -23,6 +24,7 @@ import type { Config } from '../../config.ts';
 import type { StreamsSse } from '../../plugins/eventos.ts';
 import type { ConsultasAdmin } from './consultas.ts';
 import {
+  cuerpoAjuste,
   cuerpoBajaFijo,
   cuerpoBloqueo,
   cuerpoCancelar,
@@ -38,26 +40,35 @@ import {
   cuerpoModificarFijo,
   cuerpoPago,
   cuerpoPreviaFijo,
+  cuerpoProducto,
+  cuerpoProductoNuevo,
   cuerpoRechazo,
   cuerpoRegla,
+  cuerpoReposicion,
   cuerpoRol,
   cuerpoTarifa,
   cuerpoTransferencia,
   cuerpoTurnoFijo,
   cuerpoTurnoManual,
+  cuerpoVenta,
   paramsCancha,
   paramsFecha,
   paramsFijo,
   paramsOmitido,
   paramsPago,
+  paramsProducto,
   paramsReembolso,
   paramsRegla,
   paramsTarifa,
   paramsTurno,
   paramsUsuario,
+  paramsVenta,
   queryAgenda,
+  queryProductos,
   queryReembolsos,
+  queryResumenCantina,
   queryTransferencias,
+  queryVentas,
 } from './esquemas.ts';
 import {
   COOKIE_SESION,
@@ -73,6 +84,7 @@ interface Opciones {
   db: Db;
   config: Config;
   auth: ServicioAuth;
+  cantina: ServicioCantina;
   clubs: RepoClubs;
   consultas: ConsultasAdmin;
   configuracion: ServicioConfiguracion;
@@ -146,7 +158,11 @@ export const rutasAdmin: FastifyPluginAsync<Opciones> = async (app, o) => {
 
       club.get('/turnos/:turnoId', async (req) => {
         const { clubId, turnoId } = paramsTurno.parse(req.params);
-        return o.consultas.turno(clubId, turnoId);
+        const [turno, ventas] = await Promise.all([
+          o.consultas.turno(clubId, turnoId),
+          o.cantina.ventas(clubId, { turnoId }),
+        ]);
+        return { ...turno, ventas };
       });
 
       club.post('/turnos', async (req, reply) => {
@@ -194,6 +210,77 @@ export const rutasAdmin: FastifyPluginAsync<Opciones> = async (app, o) => {
         const { qr, forzar } = cuerpoCheckin.parse(req.body);
         return o.operacion.checkin(clubIdDe(req), usuarioDe(req).id, qr, { forzar: forzar ?? false });
       });
+
+      // --- Cantina ----------------------------------------------------------------
+
+      club.get('/cantina/productos', async (req) => {
+        const { inactivos } = queryProductos.parse(req.query);
+        return o.cantina.productos(clubIdDe(req), { incluirInactivos: inactivos ?? false });
+      });
+
+      club.post('/cantina/productos', { config: { rolMinimo: 'ADMIN' } }, async (req, reply) =>
+        reply
+          .status(201)
+          .send(
+            await o.cantina.crearProducto(
+              clubIdDe(req),
+              usuarioDe(req).id,
+              cuerpoProductoNuevo.parse(req.body),
+            ),
+          ),
+      );
+
+      club.patch('/cantina/productos/:productoId', { config: { rolMinimo: 'ADMIN' } }, async (req, reply) => {
+        const { clubId, productoId } = paramsProducto.parse(req.params);
+        await o.cantina.actualizarProducto(clubId, productoId, cuerpoProducto.partial().parse(req.body));
+        return reply.status(204).send();
+      });
+
+      club.post('/cantina/productos/:productoId/reposicion', async (req) => {
+        const { clubId, productoId } = paramsProducto.parse(req.params);
+        const { cantidad, motivo } = cuerpoReposicion.parse(req.body);
+        return o.cantina.reponer(clubId, usuarioDe(req).id, productoId, cantidad, motivo);
+      });
+
+      club.post('/cantina/productos/:productoId/ajuste', { config: { rolMinimo: 'ADMIN' } }, async (req) => {
+        const { clubId, productoId } = paramsProducto.parse(req.params);
+        const { stock, motivo } = cuerpoAjuste.parse(req.body);
+        return o.cantina.ajustar(clubId, usuarioDe(req).id, productoId, stock, motivo);
+      });
+
+      club.get(
+        '/cantina/productos/:productoId/movimientos',
+        { config: { rolMinimo: 'ADMIN' } },
+        async (req) => {
+          const { clubId, productoId } = paramsProducto.parse(req.params);
+          return o.cantina.movimientos(clubId, productoId);
+        },
+      );
+
+      club.post('/cantina/ventas', async (req, reply) =>
+        reply
+          .status(201)
+          .send(await o.cantina.vender(clubIdDe(req), usuarioDe(req).id, cuerpoVenta.parse(req.body))),
+      );
+
+      club.get('/cantina/ventas', async (req) => {
+        const q = queryVentas.parse(req.query);
+        if (!q.fecha && !q.turnoId) throw new ErrorNegocio(422, 'FILTRO_REQUERIDO', 'Indicá fecha o turno');
+        return o.cantina.ventas(clubIdDe(req), {
+          ...(q.fecha ? { fecha: q.fecha } : {}),
+          ...(q.turnoId ? { turnoId: q.turnoId } : {}),
+        });
+      });
+
+      club.post('/cantina/ventas/:ventaId/anular', async (req, reply) => {
+        const { clubId, ventaId } = paramsVenta.parse(req.params);
+        await o.cantina.anular(clubId, usuarioDe(req).id, ventaId, cuerpoRechazo.parse(req.body).motivo);
+        return reply.status(204).send();
+      });
+
+      club.get('/cantina/resumen', async (req) =>
+        o.cantina.resumenDia(clubIdDe(req), queryResumenCantina.parse(req.query).fecha),
+      );
 
       // --- Turnos fijos -----------------------------------------------------------
 

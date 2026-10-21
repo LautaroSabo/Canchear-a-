@@ -1,6 +1,7 @@
 import { esTurnoOcupado, type Tx } from '@cancheria/db';
 import { canchas, clientes, pagos, reembolsos, turnos } from '@cancheria/db/schema';
 import { and, eq, inArray, sql } from 'drizzle-orm';
+import { consumosDeTurnoSql } from './cantina.ts';
 import { type DatosCliente, upsertCliente } from './clientes.ts';
 import type { RepoClubs } from './config-club.ts';
 import { cotizarTurno } from './cotizacion.ts';
@@ -31,6 +32,8 @@ export interface ResumenCobro {
   cancha: string;
   cliente: { nombre: string; telefono: string } | null;
   precioTotal: number;
+  /** Cantina a cuenta del turno. */
+  consumos: number;
   /** Pagos aprobados (seña + saldo) menos lo reembolsado. */
   pagado: number;
   saldo: number;
@@ -321,6 +324,7 @@ export class ServicioOperacion {
           SELECT coalesce(sum(${pagos.monto}), 0) FROM ${pagos}
            WHERE ${pagos.turnoId} = ${turnos.id} AND ${pagos.estado} = 'APROBADO'
              AND NOT EXISTS (SELECT 1 FROM ${reembolsos} r WHERE r.pago_id = ${pagos.id}))`,
+        consumos: consumosDeTurnoSql,
       })
       .from(turnos)
       .innerJoin(canchas, eq(canchas.id, turnos.canchaId))
@@ -328,6 +332,7 @@ export class ServicioOperacion {
       .where(eq(turnos.id, turnoId));
     if (!f) throw new ErrorNegocio(404, 'TURNO_NO_ENCONTRADO', 'No existe ese turno');
     const pagado = Number(f.pagado);
+    const consumido = Number(f.consumos);
     return {
       turnoId: f.id,
       estado: f.estado,
@@ -336,8 +341,9 @@ export class ServicioOperacion {
       cancha: f.cancha,
       cliente: f.cliente?.nombre ? { nombre: f.cliente.nombre, telefono: f.cliente.telefono } : null,
       precioTotal: f.precioTotal,
+      consumos: consumido,
       pagado,
-      saldo: Math.max(f.precioTotal - pagado, 0),
+      saldo: Math.max(f.precioTotal + consumido - pagado, 0),
     };
   }
 

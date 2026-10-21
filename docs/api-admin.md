@@ -64,6 +64,25 @@ pnpm --filter @cancheria/api admin:crear-usuario recepcion@club.com "Recepción"
 | PUT | `/transferencia` | ADMIN | `{ alias?, cbu?, titular }`. Alias o CBU/CVU (22 dígitos) obligatorio. |
 | DELETE | `/transferencia` | ADMIN | Deja de aceptar transferencias |
 
+## Cantina — `/admin/clubs/:clubId/cantina/…`
+
+Una venta es un ticket que **o se cobra en el momento** (`medio`) **o se carga a la cuenta de un turno** (`turnoId`, solo turnos `CONFIRMADO` o `PRESENTE`). Lo cargado a un turno suma al saldo (`consumos` en la agenda, el detalle y el check-in) y se cobra con el saldo. El stock se descuenta con un `UPDATE … WHERE stock >= cantidad` dentro de la transacción de la venta: todo o nada, y dos cajas no pueden vender el último a la vez. Cada cambio de stock queda en `movimientos_stock` (venta, anulación, reposición, ajuste) con usuario y motivo.
+
+| Método | Ruta | Rol | Descripción |
+|---|---|---|---|
+| GET | `/productos` | RECEPCION | Productos a la venta (`?inactivos=true` incluye los dados de baja) |
+| POST | `/productos` | ADMIN | `{ nombre, categoria (BEBIDA/COMIDA/ALQUILER/OTRO), precio, controlaStock, stockMinimo, activo, stockInicial }`. `409 NOMBRE_EN_USO` |
+| PATCH | `/productos/:productoId` | ADMIN | Cualquier subconjunto de los datos (el stock no: se mueve con reposición o ajuste). El precio nuevo no cambia las ventas hechas. |
+| POST | `/productos/:productoId/reposicion` | RECEPCION | `{ cantidad, motivo? }` → `{ stock }` |
+| POST | `/productos/:productoId/ajuste` | ADMIN | Conteo físico: `{ stock, motivo }` → `{ stock }`; la diferencia queda en el libro |
+| GET | `/productos/:productoId/movimientos` | ADMIN | Últimos 50 movimientos de stock |
+| POST | `/ventas` | RECEPCION | `{ items: [{ productoId, cantidad }], medio? \| turnoId?, idempotencyKey? }` → `201` con la venta y sus renglones (precio congelado). `409 SIN_STOCK` con `detalle.disponible`, `409 TURNO_SIN_CUENTA`, `422 DESTINO_INVALIDO` |
+| GET | `/ventas?fecha=` · `?turnoId=` | RECEPCION | Ventas con renglones (incluye anuladas) |
+| POST | `/ventas/:ventaId/anular` | RECEPCION | `{ motivo }`. Devuelve el stock. Si era a cuenta de un turno que ya se cobró y quedaría pagado de más: `409 VENTA_COBRADA` |
+| GET | `/resumen?fecha=` | RECEPCION | Caja del día: `cobradoPorMedio`, `cobrado`, `aCuentaDeTurnos`, `ventas`, `anuladas`, `masVendidos`, `stockBajo` |
+
+`GET /turnos/:turnoId` incluye `ventas` (lo cargado a ese turno) y `consumos`.
+
 ## Turnos fijos — `/admin/clubs/:clubId/turnos-fijos` (RECEPCION)
 
 El mismo cliente, cancha y horario cada 1, 2 o 4 semanas. Se guarda como plantilla y se materializa en turnos `CONFIRMADO` con origen `FIJO` (sin seña) hasta **8 semanas** adelante: al crearlo y después el worker cada hora. Una fecha que choca con otro turno **nunca lo pisa**: queda como *omitida* (`OCUPADO`, `CERRADO` por feriado u horario, `SIN_TARIFA`) para que el club la resuelva.

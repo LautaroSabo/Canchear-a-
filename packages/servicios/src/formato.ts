@@ -28,6 +28,9 @@ export function fechaCorta(d: Date, zona: string) {
 export const horaCorta = (d: Date, zona: string) =>
   cacheado(formatosHora, zona, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(d);
 
-/** 2250000 centavos → "$22.500". */
-export const pesos = (centavos: number) =>
-  `$${(centavos / 100).toLocaleString('es-AR', { maximumFractionDigits: 2 })}`;
+/** 2250000 centavos → "$22.500". Separador de miles a mano: es-AR no agrupa los números de 4 cifras ("$5000"). */
+export function pesos(centavos: number) {
+  const [entero = '0', decimales] = (Math.abs(centavos) / 100).toFixed(2).split('.');
+  const conPuntos = entero.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return `${centavos < 0 ? '−' : ''}$${conPuntos}${decimales && decimales !== '00' ? `,${decimales}` : ''}`;
+}

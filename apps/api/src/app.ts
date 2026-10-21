@@ -8,6 +8,7 @@ import {
   type Reloj,
   RepoClubs,
   ServicioAuth,
+  ServicioCantina,
   ServicioConfiguracion,
   ServicioListaEspera,
   ServicioOperacion,
@@ -110,6 +111,7 @@ export async function construirApp({
   const reembolsos = new ServicioReembolsos({ ...entorno, pasarela, cifrador });
   const configuracion = new ServicioConfiguracion({ ...entorno, clubs });
   const turnosFijos = new ServicioTurnosFijos({ ...entorno, clubs, listaEspera });
+  const cantina = new ServicioCantina({ ...entorno, clubs });
   const consultas = new ConsultasAdmin(db, reloj);
 
   app.get('/health', async () => {
@@ -133,6 +135,7 @@ export async function construirApp({
     db,
     config,
     auth,
+    cantina,
     clubs,
     consultas,
     configuracion,

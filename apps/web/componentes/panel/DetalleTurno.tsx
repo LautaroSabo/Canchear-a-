@@ -5,9 +5,12 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { ErrorApi, mensajeDe, panel } from '@/lib/api';
 import { hora, linkWhatsApp, pesos, telefonoLegible } from '@/lib/formato';
-import type { DetalleTurno as TipoDetalle } from '@/lib/tipos';
+import type { DetalleTurno as TipoDetalle, VentaCantina } from '@/lib/tipos';
 import { IconoWhatsApp } from '../iconos';
 import { Aviso, Boton, Cargando, Numero } from '../ui';
+import { FormAnular } from './Cantina';
+import { Vendedor } from './cantina/Vendedor';
+import { Dialogo } from './Dialogo';
 import { DialogoCancelar, DialogoCobrar } from './DialogosTurno';
 import { actorLegible, apariencia, CLASES, ESTADOS_HISTORIAL, ORIGENES, TEXTOS } from './estados';
 import { useClubActual } from './sesion';
@@ -25,7 +28,8 @@ export function DetalleTurno({
 }) {
   const { clubId } = useClubActual();
   const qc = useQueryClient();
-  const [dialogo, setDialogo] = useState<'cobrar' | 'cancelar' | null>(null);
+  const [dialogo, setDialogo] = useState<'cobrar' | 'cancelar' | 'cantina' | null>(null);
+  const [anulando, setAnulando] = useState<VentaCantina | null>(null);
   const detalle = useQuery({
     queryKey: ['turno', clubId, turnoId],
     queryFn: () => panel.get<TipoDetalle>(`/clubs/${clubId}/turnos/${turnoId}`),
@@ -93,6 +97,12 @@ export function DetalleTurno({
         <dl className="mt-3.5 grid grid-cols-[1fr_auto] items-baseline gap-y-1.5 text-sm">
           <dt className="text-suave">Precio</dt>
           <dd className="font-semibold">{pesos(t.precioTotal)}</dd>
+          {t.consumos > 0 ? (
+            <>
+              <dt className="text-suave">Cantina</dt>
+              <dd className="font-semibold">{pesos(t.consumos)}</dd>
+            </>
+          ) : null}
           <dt className="text-suave">Pagado</dt>
           <dd className="font-semibold">{pesos(t.pagado)}</dd>
           <dt className="font-bold">Saldo a cobrar</dt>
@@ -100,6 +110,34 @@ export function DetalleTurno({
             <Numero className="text-2xl">{pesos(t.saldo)}</Numero>
           </dd>
         </dl>
+      ) : null}
+
+      {t.origen !== 'BLOQUEO' ? (
+        <section aria-label="Cantina del turno" className="mt-3 flex flex-col gap-1.5">
+          {t.ventas
+            .filter((v) => !v.anuladaEn)
+            .map((v) => (
+              <div key={v.id} className="flex items-center justify-between gap-2 text-[13px]">
+                <span className="min-w-0 flex-1">
+                  {v.items.map((i) => `${i.cantidad} × ${i.nombre}`).join(', ')}
+                </span>
+                <span>{pesos(v.total)}</span>
+                <button
+                  type="button"
+                  onClick={() => setAnulando(v)}
+                  className="text-suave underline"
+                  aria-label={`Anular ${v.items.map((i) => i.nombre).join(', ')}`}
+                >
+                  anular
+                </button>
+              </div>
+            ))}
+          {t.estado === 'CONFIRMADO' || t.estado === 'PRESENTE' ? (
+            <Boton variante="fantasma" className="self-start" onClick={() => setDialogo('cantina')}>
+              + Cargar de la cantina
+            </Boton>
+          ) : null}
+        </section>
       ) : null}
 
       {error ? (
@@ -162,6 +200,33 @@ export function DetalleTurno({
         ))}
       </ol>
 
+      <Dialogo
+        abierto={dialogo === 'cantina'}
+        alCerrar={() => setDialogo(null)}
+        titulo={`Cantina · ${t.cliente?.nombre ?? ''}`}
+      >
+        {dialogo === 'cantina' ? (
+          <Vendedor
+            turnoId={t.id}
+            alVender={(v) => {
+              setDialogo(null);
+              refrescar();
+              alHacer(`Cargado a la cuenta: ${pesos(v.total)}.`);
+            }}
+          />
+        ) : null}
+      </Dialogo>
+      <Dialogo abierto={anulando !== null} alCerrar={() => setAnulando(null)} titulo="Anular consumo">
+        {anulando ? (
+          <FormAnular
+            venta={anulando}
+            alAnular={() => {
+              setAnulando(null);
+              refrescar();
+            }}
+          />
+        ) : null}
+      </Dialogo>
       <DialogoCobrar
         abierto={dialogo === 'cobrar'}
         turno={t}

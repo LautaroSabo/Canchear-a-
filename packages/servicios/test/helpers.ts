@@ -6,6 +6,7 @@ import { eq } from 'drizzle-orm';
 import { inject } from 'vitest';
 import { AlmacenMemoria } from '../src/almacen.ts';
 import { ServicioAuth } from '../src/auth.ts';
+import { ServicioCantina } from '../src/cantina.ts';
 import { Cifrador } from '../src/cifrado.ts';
 import { RepoClubs } from '../src/config-club.ts';
 import { ServicioConfiguracion } from '../src/configuracion.ts';
@@ -62,6 +63,7 @@ export async function crearContexto({ conMp = true, pool = 10 } = {}) {
   const auth = new ServicioAuth(entorno);
   const configuracion = new ServicioConfiguracion({ ...entorno, clubs });
   const turnosFijos = new ServicioTurnosFijos({ ...entorno, clubs, listaEspera });
+  const cantina = new ServicioCantina({ ...entorno, clubs });
   const despachador = new Despachador(db, reloj, canal);
 
   const slug = `club-${randomUUID().slice(0, 8)}`;
@@ -98,6 +100,7 @@ export async function crearContexto({ conMp = true, pool = 10 } = {}) {
     auth,
     configuracion,
     turnosFijos,
+    cantina,
     ahora: () => ahora,
     setAhora: (d: Date) => {
       ahora = d;

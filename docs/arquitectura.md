@@ -274,7 +274,8 @@ Pendientes para próximos pasos:
 5. ~~**Front (`apps/web`, Next.js):** página pública del club (grilla, reserva, pago, comprobante con QR, lista de espera) y panel (agenda, check-in con la cámara, revisión de transferencias).~~ ✅ Ver §7.
 6. ~~Configuración del club desde el panel: canchas, tarifas, horarios, días especiales, reglas de seña y usuarios.~~ ✅ Ver [api-admin.md](api-admin.md#configuración-del-club--adminclubsclubidconfig).
 7. ~~Turnos fijos.~~ ✅ Ver [api-admin.md](api-admin.md#turnos-fijos--adminclubsclubidturnos-fijos-recepcion).
-8. Cantina, fidelización (puntos y canjes), reportes.
+8. ~~Cantina.~~ ✅ Ver [api-admin.md](api-admin.md#cantina--adminclubsclubidcantina).
+9. Fidelización (puntos y canjes), reportes.
 
 ## 7. Front (`apps/web`)
 

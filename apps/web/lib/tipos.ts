@@ -90,6 +90,8 @@ export interface TurnoAgenda {
   nota: string | null;
   motivoCancelacion: string | null;
   cliente: { id: string; nombre: string; telefono: string } | null;
+  /** Cantina a cuenta del turno. */
+  consumos: number;
   pagado: number;
   saldo: number;
   senaEnRevision: boolean;
@@ -118,6 +120,7 @@ export interface DetalleTurno extends Omit<TurnoAgenda, 'cliente' | 'senaEnRevis
     reembolso: { id: string; estado: string; motivo: string } | null;
   }[];
   historial: { de: EstadoTurno | null; a: EstadoTurno; actor: string; en: string }[];
+  ventas: VentaCantina[];
 }
 
 export interface ResumenCobro {
@@ -128,6 +131,8 @@ export interface ResumenCobro {
   cancha: string;
   cliente: { nombre: string; telefono: string } | null;
   precioTotal: number;
+  /** Cantina a cuenta del turno. */
+  consumos: number;
   pagado: number;
   saldo: number;
 }
@@ -278,4 +283,42 @@ export interface ResultadoFijo {
   id: string;
   creados: number;
   omitidos: { fecha: string; motivo: MotivoOmision }[];
+}
+
+// --- Cantina -----------------------------------------------------------------------
+
+export type CategoriaProducto = 'BEBIDA' | 'COMIDA' | 'ALQUILER' | 'OTRO';
+export type MedioCantina = 'EFECTIVO' | 'TRANSFERENCIA' | 'MERCADO_PAGO' | 'OTRO';
+
+export interface Producto {
+  id: string;
+  nombre: string;
+  categoria: CategoriaProducto;
+  precio: number;
+  controlaStock: boolean;
+  stock: number;
+  stockMinimo: number;
+  activo: boolean;
+}
+
+export interface VentaCantina {
+  id: string;
+  turnoId: string | null;
+  medio: MedioCantina | null;
+  total: number;
+  creadoEn: string;
+  anuladaEn: string | null;
+  motivoAnulacion: string | null;
+  items: { productoId: string; nombre: string; cantidad: number; precioUnitario: number }[];
+}
+
+export interface ResumenCantina {
+  fecha: string;
+  cobradoPorMedio: Partial<Record<MedioCantina, number>>;
+  cobrado: number;
+  aCuentaDeTurnos: number;
+  ventas: number;
+  anuladas: number;
+  masVendidos: { nombre: string; cantidad: number; total: number }[];
+  stockBajo: { id: string; nombre: string; stock: number; stockMinimo: number }[];
 }
