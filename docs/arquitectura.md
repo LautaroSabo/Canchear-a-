@@ -235,7 +235,7 @@ Cuando un turno pasa a `CANCELADO` o `EXPIRADO`, el worker busca la primera insc
 ## 6. Próximos pasos sugeridos
 
 1. ~~Scaffolding del monorepo + `packages/db` (Drizzle sobre este esquema) + Docker Compose con Postgres.~~ ✅
-2. Módulo público de disponibilidad y reserva (grilla + endpoint transaccional + SSE).
+2. ~~Módulo público de disponibilidad y reserva (grilla + endpoint transaccional + SSE).~~ ✅ Ver [api-publica.md](api-publica.md).
 3. Pagos (Mercado Pago + transferencia) y worker de expiración.
 4. Panel admin: agenda, carga manual, check-in QR.
 5. Turnos fijos, lista de espera, cantina, fidelización, reportes.

@@ -2,3 +2,4 @@ export { crearDb, type Db, type OpcionesConexion, type Tx, urlDesdeEntorno } fro
 export { errorPg, esTurnoOcupado, PG, violaUnique } from './errores.ts';
 export { DIR_MIGRACIONES, migrar } from './migrador.ts';
 export * as schema from './schema/index.ts';
+export { crearClubDemo, SLUG_DEMO } from './seed.ts';
