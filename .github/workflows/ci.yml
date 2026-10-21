@@ -8,19 +8,17 @@ on:
 jobs:
   checks:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: cancheria
-          POSTGRES_PASSWORD: cancheria
-          POSTGRES_DB: cancheria
-        ports: ["5432:5432"]
-        options: >-
-          --health-cmd "pg_isready -U cancheria" --health-interval 2s --health-timeout 3s --health-retries 30
     env:
       DATABASE_URL: postgres://cancheria:cancheria@localhost:5432/cancheria
     steps:
+      # Postgres con `docker run` (y no como service container) para poder subir
+      # max_connections: los tests abren muchas conexiones en paralelo.
+      - name: Postgres 16
+        run: |
+          docker run -d --name pg -p 5432:5432 \
+            -e POSTGRES_USER=cancheria -e POSTGRES_PASSWORD=cancheria -e POSTGRES_DB=cancheria \
+            postgres:16-alpine -c max_connections=200
+          for i in $(seq 1 60); do docker exec pg pg_isready -U cancheria && break; sleep 1; done
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4

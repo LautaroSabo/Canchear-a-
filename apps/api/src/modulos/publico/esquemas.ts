@@ -35,3 +35,15 @@ export const cuerpoReserva = z.object({
 });
 
 export type CuerpoReserva = z.infer<typeof cuerpoReserva>;
+
+const horaLocal = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'hora inválida (HH:MM)');
+
+export const cuerpoListaEspera = z.object({
+  cliente: cuerpoReserva.shape.cliente,
+  fecha: z.iso.date(),
+  /** Franja local del club en la que le sirve jugar; "hasta" <= "desde" cruza la medianoche. */
+  desde: horaLocal,
+  hasta: horaLocal,
+  jugadores: z.coerce.number().int().min(3).max(11).optional(),
+  canchaId: z.uuid().optional(),
+});

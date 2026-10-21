@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { crearClubDemo, crearDb } from '@cancheria/db';
+import { Cifrador, guardarCredencialesMp } from '@cancheria/servicios';
+import { AlmacenMemoria, PasarelaMpFalsa } from '@cancheria/servicios/testing';
 import { inject } from 'vitest';
 import { construirApp } from '../src/app.ts';
 import { cargarConfig } from '../src/config.ts';
@@ -18,20 +20,35 @@ export async function crearContexto({ pool = 10 }: { pool?: number } = {}) {
   const url = inject('databaseUrl');
   const conexion = crearDb(url, { max: pool });
   let ahora = AHORA;
+  const clave = Cifrador.generarClave();
   const config = {
-    ...cargarConfig({ DATABASE_URL: url, NODE_ENV: 'test' }),
+    ...cargarConfig({
+      DATABASE_URL: url,
+      NODE_ENV: 'test',
+      CLAVE_CREDENCIALES: clave,
+      URL_WEB: 'https://cancheria.test',
+      URL_API: 'https://api.cancheria.test',
+    }),
     cacheClubMs: 0,
     reservasPorMinuto: 10_000,
   };
+  const pasarela = new PasarelaMpFalsa();
+  const almacen = new AlmacenMemoria();
   const app = await construirApp({
     db: conexion.db,
     cliente: conexion.cliente,
     config,
     reloj: () => ahora,
     logger: false,
+    pasarela,
+    almacen,
   });
   const slug = `club-${randomUUID().slice(0, 8)}`;
   const { club, canchas } = await crearClubDemo(conexion.db, slug);
+  await guardarCredencialesMp(conexion.db, new Cifrador(clave), club.id, {
+    accessToken: 'TEST-token',
+    webhookSecret: 'secreto-webhook',
+  });
   const [f5a, f5b, f7] = canchas;
 
   return {
@@ -39,6 +56,8 @@ export async function crearContexto({ pool = 10 }: { pool?: number } = {}) {
     db: conexion.db,
     club,
     slug,
+    pasarela,
+    almacen,
     canchas: { f5a, f5b, f7 },
     setAhora: (d: Date) => {
       ahora = d;
@@ -74,3 +93,23 @@ export function pedido(
 export function reservar(ctx: Contexto, cuerpo: ReturnType<typeof pedido>) {
   return ctx.app.inject({ method: 'POST', url: `/public/clubs/${ctx.slug}/reservas`, payload: cuerpo });
 }
+
+/** Cuerpo multipart con un solo archivo, como lo arma un <input type="file">. */
+export function multipart(campo: string, nombre: string, tipo: string, datos: Buffer) {
+  const limite = `----cancheria${randomUUID()}`;
+  return {
+    headers: { 'content-type': `multipart/form-data; boundary=${limite}` },
+    payload: Buffer.concat([
+      Buffer.from(
+        `--${limite}\r\nContent-Disposition: form-data; name="${campo}"; filename="${nombre}"\r\nContent-Type: ${tipo}\r\n\r\n`,
+      ),
+      datos,
+      Buffer.from(`\r\n--${limite}--\r\n`),
+    ]),
+  };
+}
+
+export const PNG = Buffer.concat([
+  Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+  Buffer.alloc(64),
+]);

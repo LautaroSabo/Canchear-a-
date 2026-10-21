@@ -8,7 +8,7 @@ import {
   horariosApertura,
   tarifas,
 } from '@cancheria/db/schema';
-import { and, asc, eq, gte, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, type SQL, sql } from 'drizzle-orm';
 
 export interface Cancha {
   id: string;
@@ -31,6 +31,13 @@ export interface ConfigClub {
     telefono: string | null;
     direccion: string | null;
     logoUrl: string | null;
+    moneda: string;
+    minutosRevisionTransferencia: number;
+  };
+  mediosPago: {
+    /** El club cargó sus credenciales de Mercado Pago. */
+    mercadoPago: boolean;
+    transferencia: { alias?: string; cbu?: string; titular?: string } | null;
   };
   canchas: Cancha[];
   horarios: HorarioApertura[];
@@ -40,7 +47,7 @@ export interface ConfigClub {
 }
 
 /**
- * Configuración por slug con caché corta en memoria (los cambios del admin se ven en
+ * Configuración por slug o id con caché corta en memoria (los cambios del admin se ven en
  * segundos). Se cachea la promesa para que N requests simultáneas hagan una sola carga.
  */
 export class RepoClubs {
@@ -52,18 +59,25 @@ export class RepoClubs {
   ) {}
 
   porSlug(slug: string): Promise<ConfigClub | null> {
-    const clave = slug.toLowerCase();
+    return this.cacheado(`slug:${slug.toLowerCase()}`, eq(clubs.slug, slug.toLowerCase()));
+  }
+
+  porId(id: string): Promise<ConfigClub | null> {
+    return this.cacheado(`id:${id}`, eq(clubs.id, id));
+  }
+
+  private cacheado(clave: string, condicion: SQL): Promise<ConfigClub | null> {
     const enCache = this.cache.get(clave);
     if (enCache && enCache.vence > Date.now()) return enCache.valor;
 
-    const valor = this.cargar(clave);
+    const valor = this.cargar(condicion);
     this.cache.set(clave, { vence: Date.now() + this.ttlMs, valor });
     valor.catch(() => this.cache.delete(clave));
     return valor;
   }
 
-  private async cargar(slug: string): Promise<ConfigClub | null> {
-    const [club] = await this.db
+  private async cargar(condicion: SQL): Promise<ConfigClub | null> {
+    const [fila] = await this.db
       .select({
         id: clubs.id,
         slug: clubs.slug,
@@ -72,10 +86,15 @@ export class RepoClubs {
         telefono: clubs.telefono,
         direccion: clubs.direccion,
         logoUrl: clubs.logoUrl,
+        moneda: clubs.moneda,
+        minutosRevisionTransferencia: clubs.minutosRevisionTransferencia,
+        tieneMp: sql<boolean>`${clubs.mpCredencialesCifradas} IS NOT NULL`,
+        datosTransferencia: clubs.datosTransferencia,
       })
       .from(clubs)
-      .where(and(eq(clubs.slug, slug), eq(clubs.activo, true)));
-    if (!club) return null;
+      .where(and(condicion, eq(clubs.activo, true)));
+    if (!fila) return null;
+    const { tieneMp, datosTransferencia, ...club } = fila;
 
     const [listaCanchas, horarios, especiales, listaTarifas, reglas] = await Promise.all([
       this.db
@@ -139,6 +158,14 @@ export class RepoClubs {
         .where(and(eq(configuracionExpiracion.clubId, club.id), eq(configuracionExpiracion.activa, true))),
     ]);
 
-    return { club, canchas: listaCanchas, horarios, especiales, tarifas: listaTarifas, reglas };
+    return {
+      club,
+      mediosPago: { mercadoPago: tieneMp, transferencia: datosTransferencia },
+      canchas: listaCanchas,
+      horarios,
+      especiales,
+      tarifas: listaTarifas,
+      reglas,
+    };
   }
 }

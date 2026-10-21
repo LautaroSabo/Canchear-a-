@@ -27,6 +27,7 @@ export const clubs = pgTable('clubs', {
   logoUrl: text(),
   moneda: char({ length: 3 }).notNull().default('ARS'),
   puntosPorPartido: integer().notNull().default(10),
+  minutosRevisionTransferencia: integer().notNull().default(60),
   mpCredencialesCifradas: bytea(),
   datosTransferencia: jsonb().$type<{ alias?: string; cbu?: string; titular?: string }>(),
   activo: boolean().notNull().default(true),

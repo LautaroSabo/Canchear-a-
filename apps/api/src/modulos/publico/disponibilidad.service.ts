@@ -1,23 +1,17 @@
 import {
-  calcularSena,
   type EstadoSlot,
   generarSlots,
   type Intervalo,
   marcarDisponibilidad,
   partesLocales,
-  type ReglaSena,
-  resolverRegla,
-  resolverTarifa,
   sumarDias,
   ventanasDeJornada,
 } from '@cancheria/core';
 import type { Db } from '@cancheria/db';
 import { ESTADOS_QUE_OCUPAN, turnos } from '@cancheria/db/schema';
+import { type Cancha, type ConfigClub, cotizarTurno, ErrorNegocio, type Reloj } from '@cancheria/servicios';
 import { and, eq, gt, inArray, ne, or, sql } from 'drizzle-orm';
-import type { Reloj } from '../../app.ts';
 import type { Config } from '../../config.ts';
-import { ErrorNegocio } from '../../errores.ts';
-import type { Cancha, ConfigClub } from './club.repo.ts';
 
 export interface SlotPublico {
   inicio: string;
@@ -37,12 +31,6 @@ export interface CanchaConSlots {
   techada: boolean;
   duracionMin: number;
   slots: SlotPublico[];
-}
-
-export interface Cotizacion {
-  precio: number;
-  montoSena: number;
-  regla: ReglaSena | null;
 }
 
 export class ServicioDisponibilidad {
@@ -70,21 +58,6 @@ export class ServicioDisponibilidad {
       ventanasDeJornada(fecha, cfg.club.zonaHoraria, cfg.horarios, especial),
       cancha.duracionTurnoMin,
     );
-  }
-
-  /** Precio y seña de un turno; null si ninguna tarifa cubre ese horario. */
-  cotizar(cfg: ConfigClub, cancha: Cancha, inicio: Date): Cotizacion | null {
-    const local = partesLocales(inicio, cfg.club.zonaHoraria);
-    const contexto = {
-      canchaId: cancha.id,
-      diaSemana: local.diaSemana,
-      minutoInicio: local.minutos,
-      fecha: local.fecha,
-    };
-    const tarifa = resolverTarifa(cfg.tarifas, contexto);
-    if (!tarifa) return null;
-    const regla = resolverRegla(cfg.reglas, contexto);
-    return { precio: tarifa.precio, montoSena: calcularSena(tarifa.precio, regla), regla };
   }
 
   async jornada(
@@ -125,7 +98,7 @@ export class ServicioDisponibilidad {
         ahora,
         this.config.anticipacionMinimaMin,
       ).flatMap((s) => {
-        const cotizacion = this.cotizar(cfg, cancha, s.inicio);
+        const cotizacion = cotizarTurno(cfg, cancha, s.inicio);
         // Un horario sin tarifa es un error de configuración del club: no se ofrece.
         if (!cotizacion) return [];
         return [

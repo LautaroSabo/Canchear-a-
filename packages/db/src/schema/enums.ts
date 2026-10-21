@@ -26,6 +26,7 @@ export const estadoPago = pgEnum('estado_pago', [
   'RECHAZADO',
   'REEMBOLSADO',
 ]);
+export const estadoReembolso = pgEnum('estado_reembolso', ['PENDIENTE', 'HECHO', 'FALLIDO']);
 export const tipoSena = pgEnum('tipo_sena', ['PORCENTAJE', 'MONTO_FIJO']);
 export const estadoEspera = pgEnum('estado_espera', [
   'ACTIVA',

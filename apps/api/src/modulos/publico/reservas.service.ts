@@ -1,17 +1,19 @@
-import {
-  calcularExpiracion,
-  normalizarTelefono,
-  partesLocales,
-  sumarDias,
-  sumarMinutos,
-} from '@cancheria/core';
+import { calcularExpiracion, partesLocales, sumarDias, sumarMinutos } from '@cancheria/core';
 import { type Db, esTurnoOcupado, violaUnique } from '@cancheria/db';
-import { canchas, clientes, clubs, turnos } from '@cancheria/db/schema';
+import { canchas, clientes, clubs, pagos, turnos } from '@cancheria/db/schema';
+import {
+  type Cancha,
+  type ConfigClub,
+  cotizarTurno,
+  ErrorNegocio,
+  type Reloj,
+  registrarExpiraciones,
+  setActor,
+  telefonoValido,
+  upsertCliente,
+} from '@cancheria/servicios';
 import { and, eq, lte, type SQL, sql } from 'drizzle-orm';
-import type { Reloj } from '../../app.ts';
 import type { Config } from '../../config.ts';
-import { ErrorNegocio } from '../../errores.ts';
-import type { Cancha, ConfigClub } from './club.repo.ts';
 import type { ServicioDisponibilidad } from './disponibilidad.service.ts';
 import type { CuerpoReserva } from './esquemas.ts';
 
@@ -36,6 +38,8 @@ export interface ReservaPublica {
   saldoAPagar: number;
   /** Solo en PRE_RESERVADO: hasta cuándo se espera la seña. */
   expiraEn: string | null;
+  /** Hay un comprobante de transferencia esperando que el club lo revise. */
+  senaEnRevision: boolean;
   cliente: { nombre: string };
 }
 
@@ -51,7 +55,7 @@ export class ServicioReservas {
   constructor(
     private readonly db: Db,
     private readonly reloj: Reloj,
-    private readonly config: Pick<Config, 'anticipacionMinimaMin'>,
+    private readonly config: Pick<Config, 'anticipacionMinimaMin' | 'urlWeb'>,
     private readonly disponibilidad: ServicioDisponibilidad,
   ) {}
 
@@ -66,9 +70,7 @@ export class ServicioReservas {
     const cancha = cfg.canchas.find((c) => c.id === pedido.canchaId);
     if (!cancha) throw new ErrorNegocio(404, 'CANCHA_NO_ENCONTRADA', 'La cancha no existe en este club');
 
-    const telefono = normalizarTelefono(pedido.cliente.telefono);
-    if (!telefono)
-      throw new ErrorNegocio(422, 'TELEFONO_INVALIDO', 'Revisá el número de teléfono / WhatsApp');
+    telefonoValido(pedido.cliente.telefono);
 
     const inicio = new Date(pedido.inicio);
     const { slot, fecha } = this.buscarSlot(cfg, cancha, inicio);
@@ -76,7 +78,7 @@ export class ServicioReservas {
       throw new ErrorNegocio(422, 'HORARIO_PASADO', 'Ese horario ya pasó');
     }
 
-    const cotizacion = this.disponibilidad.cotizar(cfg, cancha, inicio);
+    const cotizacion = cotizarTurno(cfg, cancha, inicio);
     if (!cotizacion) throw new ErrorNegocio(422, 'SIN_TARIFA', 'Ese horario no tiene precio configurado');
 
     const expiracion = calcularExpiracion(ahora, inicio, cotizacion.regla, cotizacion.montoSena);
@@ -92,38 +94,12 @@ export class ServicioReservas {
 
     try {
       const { turno, cliente } = await this.db.transaction(async (tx) => {
-        await tx.execute(sql`SELECT set_config('app.actor', 'cliente', true)`);
+        await setActor(tx, 'cliente');
+        const cliente = await upsertCliente(tx, cfg.club.id, pedido.cliente);
 
-        // El teléfono identifica al cliente dentro del club. Si ya existe no se pisa el
-        // nombre (alguien podría escribir el teléfono de otro); solo se completa el DNI.
-        const [cliente] = await tx
-          .insert(clientes)
-          .values({
-            clubId: cfg.club.id,
-            nombre: pedido.cliente.nombre,
-            telefonoE164: telefono,
-            dni: pedido.cliente.dni ?? null,
-            email: pedido.cliente.email ?? null,
-          })
-          .onConflictDoUpdate({
-            target: [clientes.clubId, clientes.telefonoE164],
-            set: {
-              dni: sql`coalesce(${clientes.dni}, excluded.dni)`,
-              email: sql`coalesce(${clientes.email}, excluded.email)`,
-            },
-          })
-          .returning({ id: clientes.id, nombre: clientes.nombre, bloqueado: clientes.bloqueado });
-        if (!cliente) throw new Error('upsert de cliente sin filas');
-        if (cliente.bloqueado) {
-          throw new ErrorNegocio(
-            403,
-            'CLIENTE_BLOQUEADO',
-            'No podés reservar online: comunicate con el club',
-          );
-        }
-
-        // Expiración perezosa: un hold vencido que pisa este rango se libera acá mismo.
-        await tx
+        // Expiración perezosa: un hold vencido que pisa este rango se libera acá mismo
+        // (con los mismos efectos que si lo liberara el worker: aviso y checkout cerrado).
+        const vencidos = await tx
           .update(turnos)
           .set({ estado: 'EXPIRADO', expiraEn: null })
           .where(
@@ -133,7 +109,13 @@ export class ServicioReservas {
               lte(turnos.expiraEn, ahora),
               sql`${turnos.rango} && tstzrange(${slot.inicio.toISOString()}::timestamptz, ${slot.fin.toISOString()}::timestamptz, '[)')`,
             ),
-          );
+          )
+          .returning({ id: turnos.id });
+        await registrarExpiraciones(
+          tx,
+          vencidos.map((v) => v.id),
+          this.config.urlWeb,
+        );
 
         const [turno] = await tx
           .insert(turnos)
@@ -168,6 +150,7 @@ export class ServicioReservas {
           montoSena: turno.montoSena,
           saldoAPagar: turno.precioTotal - turno.montoSena,
           expiraEn: turno.expiraEn?.toISOString() ?? null,
+          senaEnRevision: false,
           cliente: { nombre: cliente.nombre },
         },
       };
@@ -186,13 +169,6 @@ export class ServicioReservas {
           alternativas: await this.alternativas(cfg, cancha, fecha, inicio),
         });
       }
-      if (violaUnique(e, 'clientes_dni_uq')) {
-        throw new ErrorNegocio(
-          409,
-          'DNI_CON_OTRO_TELEFONO',
-          'Ese DNI ya está registrado con otro teléfono. Usá el teléfono con el que reservaste antes.',
-        );
-      }
       throw e;
     }
   }
@@ -210,6 +186,7 @@ export class ServicioReservas {
         cancha: { id: canchas.id, nombre: canchas.nombre },
         club: { slug: clubs.slug, nombre: clubs.nombre },
         cliente: { nombre: clientes.nombre },
+        senaEnRevision: sql<boolean>`EXISTS (SELECT 1 FROM ${pagos} WHERE ${pagos.turnoId} = ${turnos.id} AND ${pagos.estado} = 'EN_REVISION')`,
       })
       .from(turnos)
       .innerJoin(canchas, eq(canchas.id, turnos.canchaId))
@@ -229,6 +206,7 @@ export class ServicioReservas {
       montoSena: turno.montoSena,
       saldoAPagar: turno.precioTotal - turno.montoSena,
       expiraEn: turno.expiraEn?.toISOString() ?? null,
+      senaEnRevision: fila.senaEnRevision,
       cliente: fila.cliente,
     };
   }

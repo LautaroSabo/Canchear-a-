@@ -17,7 +17,14 @@ pnpm db:up        # Postgres 16 en Docker
 pnpm db:migrate   # aplica packages/db/migrations/*.sql
 pnpm db:seed      # club demo "la-canchita"
 pnpm test         # incluye la prueba de 50 reservas simultáneas
-pnpm --filter @cancheria/api dev   # API en http://localhost:3001
+pnpm --filter @cancheria/api dev      # API en http://localhost:3001
+pnpm --filter @cancheria/worker dev   # worker: expiraciones, mensajes (en consola), reembolsos
+```
+
+Para probar Mercado Pago con credenciales de prueba de tu cuenta:
+
+```bash
+pnpm --filter @cancheria/servicios mp:configurar la-canchita TEST-xxxx-access-token [clave_secreta_webhooks]
 ```
 
 Probalo con el club demo:
@@ -34,6 +41,7 @@ curl -N localhost:3001/public/clubs/la-canchita/eventos   # tiempo real
 | `pnpm typecheck` | TypeScript en todos los paquetes |
 | `pnpm test` | Vitest; cada corrida crea y borra su propia base temporal |
 | `pnpm --filter @cancheria/api dev` | API con recarga automática |
+| `pnpm --filter @cancheria/worker dev` | Worker con recarga automática |
 | `pnpm db:reset` | Borra la base de desarrollo, migra de cero y siembra (deshabilitado en producción) |
 
 ## Estructura
@@ -45,9 +53,12 @@ packages/
     src/schema/ tablas tipadas para consultas (test/schema-drift verifica que coincidan con la base)
     test/       concurrencia, expiración de holds, triggers, drift del esquema
   core/         dominio puro: zona horaria, grilla, tarifas, reglas de seña, teléfonos
+  servicios/    lógica con base de datos compartida por api y worker: pagos (Mercado Pago,
+                transferencia), reembolsos, lista de espera, expiración, notificaciones
 apps/
-  api/          Fastify: API pública (disponibilidad, reservas, SSE)
-                (próximos: worker, web)
+  api/          Fastify: API pública, pagos, webhooks de MP, SSE
+  worker/       tareas periódicas (expiración + conciliación, WhatsApp, reembolsos)
+                (próximo: web)
 ```
 
 ### Cambios al esquema
@@ -58,4 +69,11 @@ apps/
 
 ### Producción
 
-Arrancar la API con `node` directo (`node --import tsx apps/api/src/server.ts`) y no con `pnpm start`: pnpm no reenvía `SIGTERM` al proceso hijo, y entonces el apagado ordenado (cerrar los streams SSE y el pool de conexiones) no se ejecuta.
+Antes de cobrar de verdad:
+
+1. **Firma de webhooks de MP:** mandar una notificación de prueba desde el panel de MP y verificar en los logs que no aparezca `webhook de MP con firma inválida`. Aunque la firma fallara, los pagos se confirman igual por la conciliación del worker (con hasta 30 s de demora), pero conviene que ande.
+2. **Plantillas de WhatsApp:** crear y aprobar en Meta las plantillas `reserva_confirmada`, `reserva_expirada`, `pago_reembolsado`, `transferencia_rechazada` y `oferta_lista_espera` (idioma `es_AR`). El texto y el orden de los parámetros están en `packages/servicios/src/notificaciones/plantillas.ts`. El worker se niega a arrancar en producción sin `WHATSAPP_TOKEN` y `WHATSAPP_PHONE_NUMBER_ID`.
+3. **Comprobantes:** hoy se guardan en disco (`DIR_COMPROBANTES`). En producción implementar `AlmacenArchivos` sobre S3/R2 (la interfaz ya está).
+4. **`CLAVE_CREDENCIALES`:** generar una propia (no la de `.env.example`) y guardarla como secreto. Si se pierde, hay que volver a cargar las credenciales de MP de cada club.
+
+Arrancar la API y el worker con `node` directo (`node --import tsx apps/api/src/server.ts` y `apps/worker/src/main.ts`) y no con `pnpm start`: pnpm no reenvía `SIGTERM` al proceso hijo, y entonces el apagado ordenado no se ejecuta: cerrar los streams SSE en la API y, en el worker, esperar a que terminen los reembolsos y envíos en curso.

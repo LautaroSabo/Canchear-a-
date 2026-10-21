@@ -11,7 +11,7 @@
 | API | **Fastify 5** sobre Node 22 | Uno de los frameworks HTTP más rápidos de Node, con validación por esquema y bajo overhead. Para este dominio la concurrencia la resuelve Postgres, no los hilos de la app; por eso Go o Rust no aportan una ventaja real acá. |
 | ORM / SQL | **Drizzle ORM** | SQL-first, sin binario ni motor aparte. Permite SQL crudo tipado para lo que importa (`EXCLUDE`, `FOR UPDATE SKIP LOCKED`, rangos). |
 | Base de datos | **PostgreSQL 16** | Tipos de rango + *exclusion constraints*: la anti-sobrerreserva queda garantizada por el motor. También transacciones ACID, `LISTEN/NOTIFY` y JSONB. |
-| Jobs / cron | **pg-boss** (cola sobre Postgres) | Timers de expiración, envío de notificaciones, materialización de turnos fijos. Sin Redis al principio: un componente menos para operar. |
+| Jobs / cron | **Worker propio sobre tablas de Postgres** (`FOR UPDATE SKIP LOCKED` + *lease*) | Expiración de holds, outbox de notificaciones, reembolsos. Cambio respecto de la propuesta original (pg-boss): ver §5. |
 | Tiempo real | `LISTEN/NOTIFY` → API → **SSE** | El trigger de `turnos` emite un evento solo si la transacción hace COMMIT; el navegador refresca la grilla. Si después se escala a muchas instancias, se cambia por Redis pub/sub sin tocar el front. |
 | Pagos | **Mercado Pago Checkout Pro** + webhooks | Transferencias: comprobante subido a **Cloudflare R2** (S3) y revisado por el admin. |
 | Notificaciones | **WhatsApp Cloud API** (Meta, mensajes con plantilla); SMS de respaldo (Twilio) | Despachadas desde una tabla *outbox* con reintentos. |
@@ -25,7 +25,7 @@
 apps/
   web/        Next.js — público (/[slug]) + admin (/admin)
   api/        Fastify — REST + SSE + webhooks
-  worker/     pg-boss — expiraciones, outbox, turnos fijos, lista de espera
+  worker/     tareas periódicas: expiraciones, conciliación con MP, reembolsos, outbox
 packages/
   db/         migraciones SQL (fuente de verdad) + esquema Drizzle tipado, migrador, seed
   core/       dominio puro: reglas de precio, seña, expiración, puntos (testeable sin DB)
@@ -192,7 +192,7 @@ Si el resultado es menor a ~3 minutos desde ahora (turno inminente), la polític
 
 1. **Lectura:** la consulta de disponibilidad considera libre un `PRE_RESERVADO` con `expira_en <= now()`. El público ve el turno libre en el mismo segundo en que vence, aunque el worker todavía no haya pasado.
 2. **Escritura (expiración perezosa):** la transacción de reserva pasa a `EXPIRADO` los holds vencidos que pisan el rango antes de insertar (ver capa 2). Si dos personas compiten por ese hold vencido, el lock de fila del UPDATE las serializa y la exclusion constraint deja ganar solo a una. *Verificado en el test.*
-3. **Worker (pg-boss):** un job programado en `expira_en` para cada hold, más un barrido de respaldo cada 30 s:
+3. **Worker:** un barrido cada 30 s:
 
    ```sql
    WITH vencidos AS (
@@ -206,28 +206,60 @@ Si el resultado es menor a ~3 minutos desde ahora (turno inminente), la polític
    RETURNING t.id, t.club_id, t.cancha_id, t.inicio, t.fin;
    ```
 
-   El worker se encarga de los **efectos secundarios**: avisar al cliente ("tu reserva venció"), disparar la lista de espera y emitir el evento de tiempo real. Las capas 1 y 2 hacen que la corrección **no dependa** de que el worker sea puntual.
+   El worker se encarga de los **efectos secundarios**: avisar al cliente ("tu reserva venció"), cerrar el checkout impago, ofrecer el turno a la lista de espera y emitir el evento de tiempo real. Las capas 1 y 2 hacen que la corrección **no dependa** de que el worker sea puntual. La expiración perezosa de la capa 2 registra los mismos efectos (`registrarExpiraciones`), así el aviso al cliente sale aunque el hold lo haya liberado una reserva nueva.
+
+   **Conciliación antes de expirar:** si el hold tiene un checkout de MP abierto, el worker primero le pregunta a MP (`/v1/payments/search?external_reference=<turno>`) si hubo un pago. Esto cubre webhooks demorados o perdidos, y también un eventual error en la validación de la firma.
 
 ### 4.4 Pagos y el timer
 
-- **Mercado Pago:** la preferencia se crea con `external_reference = turno.id`, `expires = true` y `expiration_date_to = expira_en`, así MP no acepta pagos fuera de término.
-- **Webhook:** nunca se confía en el payload. Se consulta `GET /v1/payments/{id}` a MP, se valida monto y referencia, y en una transacción:
-  1. `INSERT INTO pagos … ON CONFLICT (proveedor, external_id) DO NOTHING` (idempotente).
-  2. `SELECT … FROM turnos WHERE id = $ref FOR UPDATE`.
-  3. Si está `PRE_RESERVADO` → `CONFIRMADO`.
-  4. Si ya está `EXPIRADO` (el pago llegó en el límite) → intentar `UPDATE … SET estado = 'CONFIRMADO'` dentro de un SAVEPOINT: si el slot sigue libre, se confirma; si da `23P01` (alguien lo tomó) → se encola un **reembolso automático** y se notifica. *Ambos caminos verificados en el test.*
-- **Transferencia:** al subir el comprobante, el pago pasa a `EN_REVISION` y `expira_en` se extiende (configurable, ej. +60 min) para que el admin alcance a revisarlo. Aprobarlo = mismo camino que el webhook.
+Implementado en `packages/servicios/src/pagos.ts`.
+
+- **Preferencia de Mercado Pago:**
+  - `external_reference = turno.id` y `expiration_date_to = expira_en`: MP no acepta pagos fuera de término.
+  - `binary_mode: true`: el pago se aprueba o se rechaza en el momento, sin estados "pendiente" que se resuelvan horas después.
+  - Sin efectivo ni cajeros (`excluded_payment_types: ticket, atm`), porque se acreditan tarde.
+  - Una sola preferencia abierta por turno (índice `pagos_sena_abierta_uq`) y `X-Idempotency-Key`.
+  - Si MP no responde, la API devuelve `502 MP_SIN_RESPUESTA` y sugiere transferencia.
+- **Webhook** (`POST /webhooks/mercadopago/:slug`, una URL por club porque cada club cobra en su propia cuenta de MP):
+  1. Se valida `x-signature` (HMAC-SHA256 de `id:…;request-id:…;ts:…;` con la clave secreta del club).
+  2. Nunca se confía en el cuerpo: se consulta `GET /v1/payments/{id}` con el token del club.
+  3. En una transacción, primero se bloquea el turno (`FOR UPDATE`) y después los pagos. **Siempre en ese orden** (webhook, conciliación y aprobación de transferencias), para no generar deadlocks.
+  4. Se registra el pago de forma idempotente: el mismo pago procesado N veces produce el efecto una vez. *Verificado con 10 webhooks simultáneos.*
+  5. Si fue aprobado:
+     - `PRE_RESERVADO` → `CONFIRMADO`;
+     - `EXPIRADO` → se intenta revivir dentro de un SAVEPOINT; si da `23P01` (otro tomó el horario) → reembolso `PAGO_TARDIO`;
+     - seña ya pagada → reembolso `PAGO_DUPLICADO`;
+     - monto menor a la seña → reembolso `MONTO_INSUFICIENTE`.
+- **Reembolsos:** se registran en `reembolsos` dentro de la misma transacción (un pago se devuelve una sola vez, `pago_id UNIQUE`). El worker los ejecuta contra MP con el id del reembolso como clave de idempotencia, con backoff exponencial, y quedan `FALLIDO` para revisión manual a los 8 intentos. Los de transferencia quedan registrados para devolverlos a mano.
+- **Transferencia:** el comprobante (JPG/PNG/WEBP/PDF ≤ 5 MB, validado por su contenido) deja el pago `EN_REVISION` y extiende `expira_en` en `clubs.minutos_revision_transferencia` (60 por defecto), sin pasar del inicio del turno. Aprobarlo sigue el mismo camino que un pago de MP. Si se rechaza, se avisa el motivo y el cliente puede subir otro.
 
 ### 4.5 Lista de espera al liberarse un turno
 
-Cuando un turno pasa a `CANCELADO` o `EXPIRADO`, el worker busca la primera inscripción `ACTIVA` compatible (FIFO por `creado_en`, rango que contenga el turno, misma cancha o mismo tipo). Para esa persona crea un **hold `PRE_RESERVADO` propio** (que queda en `lista_espera.oferta_turno_id`) con su timer y le manda por WhatsApp el link de pago. Si vence, se pasa al siguiente. Como el hold ocupa la cancha, nadie del público se la "roba" mientras la persona de la lista decide.
+Cuando un turno pasa a `EXPIRADO` (y, con el panel de admin, a `CANCELADO`), el worker busca la primera inscripción `ACTIVA` compatible: FIFO por `creado_en`, franja que contenga el turno completo, misma cancha o mismo tipo, sin clientes bloqueados y sin incluir a quien dejó vencer el turno. Para esa persona crea un **hold `PRE_RESERVADO` propio** (queda en `lista_espera.oferta_turno_id`) con el timer de la regla del horario y le manda por WhatsApp el link. Como el hold ocupa la cancha, nadie del público se la "roba" mientras la persona de la lista decide.
 
-## 5. Otros procesos del worker
+- **Si paga** la inscripción queda `CONVERTIDA`; **si vence** queda `VENCIDA` y el turno se le ofrece al siguiente.
+- **Horario sin seña:** la oferta igual se tiene que aceptar (`POST /public/reservas/:codigo/confirmar`), con un timer de 30 min.
+- **Turno inminente:** si ya no hay tiempo de ofrecerlo (menos de 3 min antes del margen previo al inicio), queda libre al público.
 
-| Job | Frecuencia | Qué hace |
+## 5. Worker (`apps/worker`)
+
+Cada tarea corre cada N segundos, contados desde que terminó la corrida anterior, así que nunca se solapa consigo misma. Pueden correr varias instancias del worker, porque todas reclaman trabajo con `FOR UPDATE SKIP LOCKED`. Ante SIGTERM se espera a que terminen las corridas en curso.
+
+**Por qué no pg-boss (cambio respecto de la propuesta original):** todo el trabajo pendiente ya vive en tablas de negocio con su estado (`turnos.expira_en`, `notificaciones`, `reembolsos`). Una cola aparte duplicaría ese estado y abriría la posibilidad de que se desincronicen (un job encolado para algo que ya cambió). Barrer las tablas con `SKIP LOCKED` es igual de durable, se prueba con SQL común y no agrega un esquema ni una dependencia. Si aparece trabajo que no tiene una tabla natural, se puede sumar pg-boss sin cambiar lo existente.
+
+**Patrón lease** (outbox y reembolsos, que llaman a servicios externos): se reclama un lote corriendo su `proximo_intento` y se hace commit enseguida. La llamada externa se hace fuera de toda transacción y después se marca el resultado. Si el proceso muere, el lease vence y otro reintenta.
+
+| Tarea | Frecuencia | Qué hace |
 |---|---|---|
-| `expirar-holds` | job por hold + barrido cada 30 s | §4.3 |
-| `despachar-notificaciones` | continuo | Toma la outbox con `FOR UPDATE SKIP LOCKED` y reintenta con backoff exponencial. |
+| `expirar-holds` | 30 s | Conciliación con MP + barrido (§4.3) + ofertas a la lista de espera (§4.5) |
+| `notificaciones` | 5 s | Outbox → WhatsApp Cloud API; backoff exponencial, `FALLIDA` a los 6 intentos |
+| `reembolsos` | 30 s | Reembolsos de MP pendientes (§4.4) |
+| `vencer-lista-espera` | 15 min | Inscripciones cuya franja ya pasó → `VENCIDA` |
+
+Pendientes para próximos pasos:
+
+| Tarea | Frecuencia | Qué hace |
+|---|---|---|
 | `materializar-turnos-fijos` | diario | Inserta turnos `CONFIRMADO/FIJO` hasta 8 semanas adelante. Si da `23P01` contra una reserva existente, se lo informa al admin en vez de pisarla. |
 | `marcar-ausentes` | cada 15 min | `CONFIRMADO` con `fin + tolerancia < now()` y sin check-in → `AUSENTE` (alimenta la métrica de ausentismo). |
 | `recordatorios` | cada 15 min | WhatsApp X horas antes del partido con link para cancelar. |
@@ -236,6 +268,6 @@ Cuando un turno pasa a `CANCELADO` o `EXPIRADO`, el worker busca la primera insc
 
 1. ~~Scaffolding del monorepo + `packages/db` (Drizzle sobre este esquema) + Docker Compose con Postgres.~~ ✅
 2. ~~Módulo público de disponibilidad y reserva (grilla + endpoint transaccional + SSE).~~ ✅ Ver [api-publica.md](api-publica.md).
-3. Pagos (Mercado Pago + transferencia) y worker de expiración.
+3. ~~Pagos (Mercado Pago + transferencia) y worker de expiración.~~ ✅ Ver §4.4, §4.5 y §5.
 4. Panel admin: agenda, carga manual, check-in QR.
 5. Turnos fijos, lista de espera, cantina, fidelización, reportes.
