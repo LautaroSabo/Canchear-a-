@@ -13,6 +13,7 @@ import { ServicioConfiguracion } from '../src/configuracion.ts';
 import { cotizarTurno } from '../src/cotizacion.ts';
 import { guardarCredencialesMp } from '../src/credenciales.ts';
 import { ServicioExpiracion } from '../src/expiracion.ts';
+import { ServicioFidelizacion } from '../src/fidelizacion.ts';
 import { ServicioListaEspera } from '../src/lista-espera.ts';
 import { PasarelaMpFalsa } from '../src/mercadopago/falsa.ts';
 import { CanalMemoria } from '../src/notificaciones/canales.ts';
@@ -64,6 +65,7 @@ export async function crearContexto({ conMp = true, pool = 10 } = {}) {
   const configuracion = new ServicioConfiguracion({ ...entorno, clubs });
   const turnosFijos = new ServicioTurnosFijos({ ...entorno, clubs, listaEspera });
   const cantina = new ServicioCantina({ ...entorno, clubs });
+  const fidelizacion = new ServicioFidelizacion(entorno);
   const despachador = new Despachador(db, reloj, canal);
 
   const slug = `club-${randomUUID().slice(0, 8)}`;
@@ -101,6 +103,7 @@ export async function crearContexto({ conMp = true, pool = 10 } = {}) {
     configuracion,
     turnosFijos,
     cantina,
+    fidelizacion,
     ahora: () => ahora,
     setAhora: (d: Date) => {
       ahora = d;

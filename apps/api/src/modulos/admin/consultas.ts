@@ -1,14 +1,17 @@
 import { instanteLocal, sumarDias, ventanasDeJornada } from '@cancheria/core';
 import type { Db } from '@cancheria/db';
 import { canchas, clientes, pagos, reembolsos, turnos, turnosEventos } from '@cancheria/db/schema';
-import { type ConfigClub, consumosDeTurnoSql, ErrorNegocio, type Reloj } from '@cancheria/servicios';
+import {
+  aCuenta,
+  type ConfigClub,
+  consumosDeTurnoSql,
+  descuentosDeTurnoSql,
+  ErrorNegocio,
+  pagadoDeTurnoSql,
+  type Reloj,
+  saldoDe,
+} from '@cancheria/servicios';
 import { and, asc, desc, eq, notInArray, type SQL, sql } from 'drizzle-orm';
-
-/** Suma de pagos aprobados de un turno que no se devolvieron. */
-const pagadoSql = sql<string>`(
-  SELECT coalesce(sum(p.monto), 0) FROM pagos p
-   WHERE p.turno_id = ${turnos.id} AND p.estado = 'APROBADO'
-     AND NOT EXISTS (SELECT 1 FROM reembolsos r WHERE r.pago_id = p.id))`;
 
 const senaEnRevisionSql = sql<boolean>`EXISTS (
   SELECT 1 FROM pagos p WHERE p.turno_id = ${turnos.id} AND p.estado = 'EN_REVISION')`;
@@ -54,8 +57,9 @@ export class ConsultasAdmin {
         nota: turnos.nota,
         motivoCancelacion: turnos.motivoCancelacion,
         cliente: { id: clientes.id, nombre: clientes.nombre, telefono: clientes.telefonoE164 },
-        pagado: pagadoSql,
+        pagado: pagadoDeTurnoSql,
         consumos: consumosDeTurnoSql,
+        descuentos: descuentosDeTurnoSql,
         senaEnRevision: senaEnRevisionSql,
       })
       .from(turnos)
@@ -73,8 +77,7 @@ export class ConsultasAdmin {
       .map((f) => {
         // Un hold vencido que el worker todavía no barrió ya no ocupa la cancha.
         const vencido = f.estado === 'PRE_RESERVADO' && f.expiraEn !== null && f.expiraEn <= ahora;
-        const pagado = Number(f.pagado);
-        const consumos = Number(f.consumos);
+        const cuenta = aCuenta(f);
         return {
           ...f,
           estado: vencido ? ('EXPIRADO' as const) : f.estado,
@@ -83,9 +86,8 @@ export class ConsultasAdmin {
           expiraEn: f.expiraEn?.toISOString() ?? null,
           checkinEn: f.checkinEn?.toISOString() ?? null,
           cliente: f.cliente?.id ? f.cliente : null,
-          consumos,
-          pagado,
-          saldo: Math.max(f.precioTotal + consumos - pagado, 0),
+          ...cuenta,
+          saldo: saldoDe(cuenta),
         };
       })
       .filter((t) => t.estado !== 'EXPIRADO');
@@ -129,8 +131,9 @@ export class ConsultasAdmin {
           dni: clientes.dni,
           bloqueado: clientes.bloqueado,
         },
-        pagado: pagadoSql,
+        pagado: pagadoDeTurnoSql,
         consumos: consumosDeTurnoSql,
+        descuentos: descuentosDeTurnoSql,
       })
       .from(turnos)
       .innerJoin(canchas, eq(canchas.id, turnos.canchaId))
@@ -165,14 +168,12 @@ export class ConsultasAdmin {
         .where(eq(turnosEventos.turnoId, turnoId))
         .orderBy(asc(turnosEventos.id)),
     ]);
-    const pagado = Number(t.pagado);
-    const consumos = Number(t.consumos);
+    const cuenta = aCuenta(t);
     return {
       ...t,
-      consumos,
+      ...cuenta,
       cliente: t.cliente?.id ? t.cliente : null,
-      pagado,
-      saldo: Math.max(t.precioTotal + consumos - pagado, 0),
+      saldo: saldoDe(cuenta),
       pagos: listaPagos.map((p) => ({ ...p, reembolso: p.reembolso?.id ? p.reembolso : null })),
       historial,
     };

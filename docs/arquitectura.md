@@ -275,7 +275,8 @@ Pendientes para próximos pasos:
 6. ~~Configuración del club desde el panel: canchas, tarifas, horarios, días especiales, reglas de seña y usuarios.~~ ✅ Ver [api-admin.md](api-admin.md#configuración-del-club--adminclubsclubidconfig).
 7. ~~Turnos fijos.~~ ✅ Ver [api-admin.md](api-admin.md#turnos-fijos--adminclubsclubidturnos-fijos-recepcion).
 8. ~~Cantina.~~ ✅ Ver [api-admin.md](api-admin.md#cantina--adminclubsclubidcantina).
-9. Fidelización (puntos y canjes), reportes.
+9. ~~Fidelización (puntos y canjes).~~ ✅ Ver [api-admin.md](api-admin.md#clientes-y-puntos--adminclubsclubid).
+10. Reportes.
 
 ## 7. Front (`apps/web`)
 

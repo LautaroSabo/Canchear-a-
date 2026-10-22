@@ -10,7 +10,7 @@ import { IconoAlerta, IconoCheck } from '../iconos';
 import { Aviso, Boton, Numero, Tarjeta } from '../ui';
 import { useClubActual } from './sesion';
 
-type Resultado = ResumenCobro & { yaRegistrado: boolean };
+type Resultado = ResumenCobro & { yaRegistrado: boolean; puntosGanados: number };
 
 export function Checkin() {
   const { clubId, zona } = useClubActual();
@@ -83,6 +83,9 @@ export function Checkin() {
             <IconoCheck tamano={28} />
             {r.cliente?.nombre ?? 'Reserva'} {r.yaRegistrado ? 'ya estaba en cancha' : 'está en cancha'}
           </p>
+          {r.puntosGanados > 0 ? (
+            <p className="text-sm font-semibold text-cancha">Sumó {r.puntosGanados} puntos.</p>
+          ) : null}
           <div className="flex justify-between gap-3 text-[15px]">
             <div>
               <div className="text-[13px] text-suave">Cancha</div>

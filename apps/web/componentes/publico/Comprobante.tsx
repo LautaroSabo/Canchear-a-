@@ -106,7 +106,7 @@ function EstadoReserva({
   switch (r.estado) {
     case 'CONFIRMADO':
     case 'PRESENTE':
-      return <Confirmada codigo={codigo} presente={r.estado === 'PRESENTE'} />;
+      return <Confirmada codigo={codigo} presente={r.estado === 'PRESENTE'} puntos={r.puntos} />;
     case 'PRE_RESERVADO':
       if (r.montoSena === 0) return <OfertaSinSena reserva={r} codigo={codigo} />;
       if (r.senaEnRevision) return <EnRevision reserva={r} />;
@@ -313,7 +313,15 @@ function OfertaSinSena({ reserva: r, codigo }: { reserva: ReservaPublica; codigo
   );
 }
 
-function Confirmada({ codigo, presente }: { codigo: string; presente: boolean }) {
+function Confirmada({
+  codigo,
+  presente,
+  puntos,
+}: {
+  codigo: string;
+  presente: boolean;
+  puntos: ReservaPublica['puntos'];
+}) {
   const [svg, setSvg] = useState<string | null>(null);
   useEffect(() => {
     // El QR lleva la URL de este comprobante: el escáner del club extrae el código.
@@ -330,6 +338,12 @@ function Confirmada({ codigo, presente }: { codigo: string; presente: boolean })
       <p className="flex items-center gap-2 text-xl font-bold text-cancha-oscuro">
         <IconoCheck tamano={26} /> {presente ? '¡A jugar! Ya hiciste el check-in' : '¡Turno confirmado!'}
       </p>
+      {puntos ? (
+        <p className="rounded-xl bg-cancha-suave px-4 py-3 text-[15px] text-cancha-oscuro">
+          Sumaste <strong>{puntos.ganados} puntos</strong> con este partido. Tenés {puntos.saldo} en total
+          para canjear en el club.
+        </p>
+      ) : null}
       {!presente ? (
         <>
           <p className="text-[15px] text-medio">

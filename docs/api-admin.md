@@ -64,6 +64,29 @@ pnpm --filter @cancheria/api admin:crear-usuario recepcion@club.com "Recepción"
 | PUT | `/transferencia` | ADMIN | `{ alias?, cbu?, titular }`. Alias o CBU/CVU (22 dígitos) obligatorio. |
 | DELETE | `/transferencia` | ADMIN | Deja de aceptar transferencias |
 
+## Clientes y puntos — `/admin/clubs/:clubId/…`
+
+**Acumulación:** el check-in suma `clubs.puntos_por_partido`, o lo que dé la mejor promoción vigente para el día y la hora de inicio del turno (`multiplicador` y `puntosExtra`; no se acumulan dos). La respuesta del check-in trae `puntosGanados` y el comprobante público muestra `puntos: { ganados, saldo }`. Un turno suma una sola vez (índice único). Con 0 puntos por partido el club no usa puntos.
+
+**Saldo:** `clientes.saldo_puntos` es una caché de `movimientos_puntos` (`ACUMULACION`, `CANJE`, `AJUSTE`, `REVERSION`), actualizada en la misma transacción con la fila del cliente bloqueada: dos canjes simultáneos no pueden gastar los mismos puntos.
+
+**Canjes:** los premios de producto se entregan en el momento (`USADO`). Los de descuento (`DESCUENTO_MONTO`, `DESCUENTO_PORCENTAJE`, `TURNO_GRATIS`) quedan `EMITIDO` hasta aplicarse a un turno **del mismo cliente** (confirmado o en cancha). El descuento es sobre el precio del turno, nunca sobre la cantina, y nunca deja saldo a favor: si ya pagó una parte, descuenta solo lo que falta. Baja el saldo del turno (`descuentos` en la agenda y el detalle).
+
+| Método | Ruta | Rol | Descripción |
+|---|---|---|---|
+| GET | `/clientes?q=` | RECEPCION | Búsqueda por nombre o por los últimos dígitos del teléfono: `[{ id, nombre, telefono, saldoPuntos, bloqueado, partidos }]` |
+| GET | `/clientes/:clienteId` | RECEPCION | Ficha: partidos, ausencias, cancelados, último partido, movimientos de puntos, canjes y próximos turnos |
+| POST | `/clientes/:clienteId/ajuste-puntos` | ADMIN | `{ puntos (con signo), motivo }` → `{ saldoPuntos }`. `409 PUNTOS_INSUFICIENTES` si quedaría negativo |
+| GET | `/fidelizacion` | RECEPCION | `{ puntosPorPartido, premios, promociones }` |
+| PUT | `/fidelizacion/puntos-por-partido` | ADMIN | `{ puntos }` |
+| POST · PUT | `/fidelizacion/premios[/:premioId]` | ADMIN | `{ nombre, descripcion, costoPuntos, tipo, valor (centavos o %), stock \| null, activo }` |
+| POST · PUT · DELETE | `/fidelizacion/promociones[/:promocionId]` | ADMIN | `{ nombre, diaSemana, horaDesde, horaHasta, multiplicador, puntosExtra, vigenteDesde, vigenteHasta, activa }` |
+| POST | `/fidelizacion/canjes` | RECEPCION | `{ clienteId, premioId, turnoId? }` → `201 { id, codigo, estado, montoAplicado, saldoPuntos }`. `409 PUNTOS_INSUFICIENTES`, `409 PREMIO_AGOTADO` |
+| POST | `/fidelizacion/canjes/:canjeId/aplicar` | RECEPCION | `{ turnoId }` → `{ montoAplicado }`. `422 TURNO_DE_OTRO_CLIENTE`, `409 TURNO_PAGADO`, `409 CANJE_USADO` |
+| POST | `/fidelizacion/canjes/:canjeId/anular` | RECEPCION | `{ motivo }`: devuelve los puntos, el stock del premio y, si estaba aplicado, el descuento |
+
+`GET /turnos/:turnoId` incluye `canjes: { saldoPuntos, aplicados, disponibles }` (los de descuento que el cliente tiene sin usar).
+
 ## Cantina — `/admin/clubs/:clubId/cantina/…`
 
 Una venta es un ticket que **o se cobra en el momento** (`medio`) **o se carga a la cuenta de un turno** (`turnoId`, solo turnos `CONFIRMADO` o `PRESENTE`). Lo cargado a un turno suma al saldo (`consumos` en la agenda, el detalle y el check-in) y se cobra con el saldo. El stock se descuenta con un `UPDATE … WHERE stock >= cantidad` dentro de la transacción de la venta: todo o nada, y dos cajas no pueden vender el último a la vez. Cada cambio de stock queda en `movimientos_stock` (venta, anulación, reposición, ajuste) con usuario y motivo.

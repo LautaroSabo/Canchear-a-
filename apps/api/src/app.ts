@@ -10,6 +10,7 @@ import {
   ServicioAuth,
   ServicioCantina,
   ServicioConfiguracion,
+  ServicioFidelizacion,
   ServicioListaEspera,
   ServicioOperacion,
   ServicioPagos,
@@ -112,6 +113,7 @@ export async function construirApp({
   const configuracion = new ServicioConfiguracion({ ...entorno, clubs });
   const turnosFijos = new ServicioTurnosFijos({ ...entorno, clubs, listaEspera });
   const cantina = new ServicioCantina({ ...entorno, clubs });
+  const fidelizacion = new ServicioFidelizacion(entorno);
   const consultas = new ConsultasAdmin(db, reloj);
 
   app.get('/health', async () => {
@@ -139,6 +141,7 @@ export async function construirApp({
     clubs,
     consultas,
     configuracion,
+    fidelizacion,
     operacion,
     pagos,
     reembolsos,

@@ -9,6 +9,7 @@ import { useConfig } from './config/comunes';
 import { DiasEspeciales } from './config/DiasEspeciales';
 import { General } from './config/General';
 import { Horarios } from './config/Horarios';
+import { Puntos } from './config/Puntos';
 import { Sena } from './config/Sena';
 import { Tarifas } from './config/Tarifas';
 import { Usuarios } from './config/Usuarios';
@@ -20,6 +21,7 @@ const SECCIONES = [
   { id: 'tarifas', nombre: 'Tarifas' },
   { id: 'sena', nombre: 'Seña' },
   { id: 'dias', nombre: 'Feriados' },
+  { id: 'puntos', nombre: 'Puntos' },
   { id: 'cobros', nombre: 'Cobros' },
   { id: 'club', nombre: 'Club' },
   { id: 'usuarios', nombre: 'Usuarios', soloDueno: true },
@@ -79,6 +81,8 @@ export function Configuracion() {
       <div role="tabpanel" className="flex flex-col gap-4">
         {seccion === 'cobros' ? (
           <Cobros />
+        ) : seccion === 'puntos' ? (
+          <Puntos hoy={hoyEn(zona)} />
         ) : seccion === 'usuarios' ? (
           <Usuarios />
         ) : config.isPending ? (

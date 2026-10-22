@@ -1,12 +1,13 @@
 import { esTurnoOcupado, type Tx } from '@cancheria/db';
 import { canchas, clientes, pagos, reembolsos, turnos } from '@cancheria/db/schema';
 import { and, eq, inArray, sql } from 'drizzle-orm';
-import { consumosDeTurnoSql } from './cantina.ts';
 import { type DatosCliente, upsertCliente } from './clientes.ts';
 import type { RepoClubs } from './config-club.ts';
 import { cotizarTurno } from './cotizacion.ts';
+import { aCuenta, consumosDeTurnoSql, descuentosDeTurnoSql, pagadoDeTurnoSql, saldoDe } from './cuenta.ts';
 import type { Entorno } from './entorno.ts';
 import { ErrorNegocio } from './errores.ts';
+import { acumularPuntos } from './fidelizacion.ts';
 import { pesos } from './formato.ts';
 import type { ServicioListaEspera } from './lista-espera.ts';
 import {
@@ -34,6 +35,8 @@ export interface ResumenCobro {
   precioTotal: number;
   /** Cantina a cuenta del turno. */
   consumos: number;
+  /** Canjes de puntos aplicados. */
+  descuentos: number;
   /** Pagos aprobados (seña + saldo) menos lo reembolsado. */
   pagado: number;
   saldo: number;
@@ -240,7 +243,9 @@ export class ServicioOperacion {
       const turno = await bloquearTurno(tx, sinBloqueo.id);
       if (!turno) throw new Error('turno desapareció');
 
-      if (turno.estado === 'PRESENTE') return { yaRegistrado: true, ...(await this.resumen(tx, turno.id)) };
+      if (turno.estado === 'PRESENTE') {
+        return { yaRegistrado: true, puntosGanados: 0, ...(await this.resumen(tx, turno.id)) };
+      }
       if (turno.estado !== 'CONFIRMADO') {
         throw new ErrorNegocio(
           409,
@@ -263,7 +268,8 @@ export class ServicioOperacion {
         .update(turnos)
         .set({ estado: 'PRESENTE', checkinEn: ahora, checkinPor: usuarioId })
         .where(eq(turnos.id, turno.id));
-      return { yaRegistrado: false, ...(await this.resumen(tx, turno.id)) };
+      const puntosGanados = await acumularPuntos(tx, turno.id, ahora);
+      return { yaRegistrado: false, puntosGanados, ...(await this.resumen(tx, turno.id)) };
     });
   }
 
@@ -320,19 +326,16 @@ export class ServicioOperacion {
         precioTotal: turnos.precioTotal,
         cancha: canchas.nombre,
         cliente: { nombre: clientes.nombre, telefono: clientes.telefonoE164 },
-        pagado: sql<string>`(
-          SELECT coalesce(sum(${pagos.monto}), 0) FROM ${pagos}
-           WHERE ${pagos.turnoId} = ${turnos.id} AND ${pagos.estado} = 'APROBADO'
-             AND NOT EXISTS (SELECT 1 FROM ${reembolsos} r WHERE r.pago_id = ${pagos.id}))`,
+        pagado: pagadoDeTurnoSql,
         consumos: consumosDeTurnoSql,
+        descuentos: descuentosDeTurnoSql,
       })
       .from(turnos)
       .innerJoin(canchas, eq(canchas.id, turnos.canchaId))
       .leftJoin(clientes, eq(clientes.id, turnos.clienteId))
       .where(eq(turnos.id, turnoId));
     if (!f) throw new ErrorNegocio(404, 'TURNO_NO_ENCONTRADO', 'No existe ese turno');
-    const pagado = Number(f.pagado);
-    const consumido = Number(f.consumos);
+    const cuenta = aCuenta(f);
     return {
       turnoId: f.id,
       estado: f.estado,
@@ -340,10 +343,8 @@ export class ServicioOperacion {
       fin: f.fin.toISOString(),
       cancha: f.cancha,
       cliente: f.cliente?.nombre ? { nombre: f.cliente.nombre, telefono: f.cliente.telefono } : null,
-      precioTotal: f.precioTotal,
-      consumos: consumido,
-      pagado,
-      saldo: Math.max(f.precioTotal + consumido - pagado, 0),
+      ...cuenta,
+      saldo: saldoDe(cuenta),
     };
   }
 

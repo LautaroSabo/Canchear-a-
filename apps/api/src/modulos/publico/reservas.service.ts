@@ -41,6 +41,8 @@ export interface ReservaPublica {
   /** Hay un comprobante de transferencia esperando que el club lo revise. */
   senaEnRevision: boolean;
   cliente: { nombre: string };
+  /** Después del check-in: puntos que sumó este partido y su saldo. */
+  puntos: { ganados: number; saldo: number } | null;
 }
 
 export interface Alternativa {
@@ -133,6 +135,7 @@ export class ServicioReservas {
           expiraEn: turno.expiraEn?.toISOString() ?? null,
           senaEnRevision: false,
           cliente: { nombre: cliente.nombre },
+          puntos: null,
         },
       };
     } catch (e) {
@@ -167,6 +170,10 @@ export class ServicioReservas {
         cancha: { id: canchas.id, nombre: canchas.nombre },
         club: { slug: clubs.slug, nombre: clubs.nombre },
         cliente: { nombre: clientes.nombre },
+        saldoPuntos: clientes.saldoPuntos,
+        puntosGanados: sql<
+          number | null
+        >`(SELECT m.puntos FROM movimientos_puntos m WHERE m.turno_id = ${turnos.id} AND m.tipo = 'ACUMULACION')`,
         senaEnRevision: sql<boolean>`EXISTS (SELECT 1 FROM ${pagos} WHERE ${pagos.turnoId} = ${turnos.id} AND ${pagos.estado} = 'EN_REVISION')`,
       })
       .from(turnos)
@@ -189,6 +196,7 @@ export class ServicioReservas {
       expiraEn: turno.expiraEn?.toISOString() ?? null,
       senaEnRevision: fila.senaEnRevision,
       cliente: fila.cliente,
+      puntos: fila.puntosGanados ? { ganados: fila.puntosGanados, saldo: fila.saldoPuntos } : null,
     };
   }
 

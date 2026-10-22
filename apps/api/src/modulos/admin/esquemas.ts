@@ -243,3 +243,45 @@ export const queryProductos = z.object({
 
 export const paramsProducto = z.object({ clubId: z.uuid(), productoId: z.uuid() });
 export const paramsVenta = z.object({ clubId: z.uuid(), ventaId: z.uuid() });
+
+// --- Fidelización --------------------------------------------------------------------
+
+export const queryClientes = z.object({ q: z.string().trim().min(2).max(60) });
+export const paramsCliente = z.object({ clubId: z.uuid(), clienteId: z.uuid() });
+export const paramsCanje = z.object({ clubId: z.uuid(), canjeId: z.uuid() });
+export const paramsPremio = z.object({ clubId: z.uuid(), premioId: z.uuid() });
+export const paramsPromocion = z.object({ clubId: z.uuid(), promocionId: z.uuid() });
+
+export const cuerpoAjustePuntos = z.object({
+  puntos: z.number().int().min(-100_000).max(100_000),
+  motivo: z.string().trim().min(2).max(200),
+});
+export const cuerpoCanje = z.object({
+  clienteId: z.uuid(),
+  premioId: z.uuid(),
+  turnoId: z.uuid().optional(),
+});
+export const cuerpoAplicarCanje = z.object({ turnoId: z.uuid() });
+export const cuerpoPuntosPorPartido = z.object({ puntos: z.number().int().min(0).max(10_000) });
+
+export const cuerpoPremio = z.object({
+  nombre: texto(80),
+  descripcion: textoOpcional(300),
+  costoPuntos: z.number().int().min(1).max(1_000_000),
+  tipo: z.enum(['DESCUENTO_MONTO', 'DESCUENTO_PORCENTAJE', 'TURNO_GRATIS', 'PRODUCTO']),
+  valor: z.number().int().min(0).max(100_000_000),
+  stock: z.number().int().min(0).max(100_000).nullable(),
+  activo: z.boolean(),
+});
+
+export const cuerpoPromocion = z.object({
+  nombre: texto(60),
+  diaSemana: dia.nullable(),
+  horaDesde: hora.nullable(),
+  horaHasta: hora.nullable(),
+  multiplicador: z.number().min(0.1).max(10),
+  puntosExtra: z.number().int().min(0).max(10_000),
+  vigenteDesde: z.iso.date(),
+  vigenteHasta: z.iso.date().nullable(),
+  activa: z.boolean(),
+});

@@ -54,6 +54,12 @@ export const canjes = pgTable('canjes', {
   estado: estadoCanje().notNull().default('EMITIDO'),
   turnoId: uuid(),
   creadoEn: ts().notNull().defaultNow(),
+  /** Lo que el canje le descontó al turno (centavos). */
+  montoAplicado: bigint({ mode: 'number' }).notNull().default(0),
+  usadoEn: ts(),
+  creadoPor: uuid(),
+  anuladoEn: ts(),
+  motivoAnulacion: text(),
 });
 
 /** Ledger append-only de puntos (negativos en CANJE). */
@@ -67,4 +73,6 @@ export const movimientosPuntos = pgTable('movimientos_puntos', {
   canjeId: uuid(),
   promocionId: uuid(),
   creadoEn: ts().notNull().defaultNow(),
+  usuarioId: uuid(),
+  motivo: text(),
 });

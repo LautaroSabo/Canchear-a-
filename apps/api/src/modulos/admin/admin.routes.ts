@@ -13,6 +13,7 @@ import {
   type ServicioAuth,
   type ServicioCantina,
   type ServicioConfiguracion,
+  type ServicioFidelizacion,
   type ServicioOperacion,
   type ServicioPagos,
   type ServicioReembolsos,
@@ -25,10 +26,13 @@ import type { StreamsSse } from '../../plugins/eventos.ts';
 import type { ConsultasAdmin } from './consultas.ts';
 import {
   cuerpoAjuste,
+  cuerpoAjustePuntos,
+  cuerpoAplicarCanje,
   cuerpoBajaFijo,
   cuerpoBloqueo,
   cuerpoCancelar,
   cuerpoCancha,
+  cuerpoCanje,
   cuerpoCheckin,
   cuerpoClub,
   cuerpoContrasena,
@@ -39,9 +43,12 @@ import {
   cuerpoMercadoPago,
   cuerpoModificarFijo,
   cuerpoPago,
+  cuerpoPremio,
   cuerpoPreviaFijo,
   cuerpoProducto,
   cuerpoProductoNuevo,
+  cuerpoPromocion,
+  cuerpoPuntosPorPartido,
   cuerpoRechazo,
   cuerpoRegla,
   cuerpoReposicion,
@@ -52,11 +59,15 @@ import {
   cuerpoTurnoManual,
   cuerpoVenta,
   paramsCancha,
+  paramsCanje,
+  paramsCliente,
   paramsFecha,
   paramsFijo,
   paramsOmitido,
   paramsPago,
+  paramsPremio,
   paramsProducto,
+  paramsPromocion,
   paramsReembolso,
   paramsRegla,
   paramsTarifa,
@@ -64,6 +75,7 @@ import {
   paramsUsuario,
   paramsVenta,
   queryAgenda,
+  queryClientes,
   queryProductos,
   queryReembolsos,
   queryResumenCantina,
@@ -88,6 +100,7 @@ interface Opciones {
   clubs: RepoClubs;
   consultas: ConsultasAdmin;
   configuracion: ServicioConfiguracion;
+  fidelizacion: ServicioFidelizacion;
   operacion: ServicioOperacion;
   pagos: ServicioPagos;
   reembolsos: ServicioReembolsos;
@@ -158,11 +171,12 @@ export const rutasAdmin: FastifyPluginAsync<Opciones> = async (app, o) => {
 
       club.get('/turnos/:turnoId', async (req) => {
         const { clubId, turnoId } = paramsTurno.parse(req.params);
-        const [turno, ventas] = await Promise.all([
+        const [turno, ventas, canjes] = await Promise.all([
           o.consultas.turno(clubId, turnoId),
           o.cantina.ventas(clubId, { turnoId }),
+          o.fidelizacion.paraTurno(clubId, turnoId),
         ]);
-        return { ...turno, ventas };
+        return { ...turno, ventas, canjes };
       });
 
       club.post('/turnos', async (req, reply) => {
@@ -209,6 +223,73 @@ export const rutasAdmin: FastifyPluginAsync<Opciones> = async (app, o) => {
       club.post('/checkin', async (req) => {
         const { qr, forzar } = cuerpoCheckin.parse(req.body);
         return o.operacion.checkin(clubIdDe(req), usuarioDe(req).id, qr, { forzar: forzar ?? false });
+      });
+
+      // --- Clientes y fidelización --------------------------------------------------
+
+      const f = o.fidelizacion;
+      const admin_ = { config: { rolMinimo: 'ADMIN' as const } };
+
+      club.get('/clientes', async (req) => f.buscarClientes(clubIdDe(req), queryClientes.parse(req.query).q));
+
+      club.get('/clientes/:clienteId', async (req) => {
+        const { clubId, clienteId } = paramsCliente.parse(req.params);
+        return f.cliente(clubId, clienteId);
+      });
+
+      club.post('/clientes/:clienteId/ajuste-puntos', admin_, async (req) => {
+        const { clubId, clienteId } = paramsCliente.parse(req.params);
+        const { puntos, motivo } = cuerpoAjustePuntos.parse(req.body);
+        return f.ajustar(clubId, usuarioDe(req).id, clienteId, puntos, motivo);
+      });
+
+      club.get('/fidelizacion', async (req) => f.configuracion(clubIdDe(req)));
+
+      club.put('/fidelizacion/puntos-por-partido', admin_, async (req, reply) => {
+        await f.setPuntosPorPartido(clubIdDe(req), cuerpoPuntosPorPartido.parse(req.body).puntos);
+        return reply.status(204).send();
+      });
+
+      club.post('/fidelizacion/canjes', async (req, reply) =>
+        reply
+          .status(201)
+          .send(await f.canjear(clubIdDe(req), usuarioDe(req).id, cuerpoCanje.parse(req.body))),
+      );
+
+      club.post('/fidelizacion/canjes/:canjeId/aplicar', async (req) => {
+        const { clubId, canjeId } = paramsCanje.parse(req.params);
+        return f.aplicar(clubId, canjeId, cuerpoAplicarCanje.parse(req.body).turnoId);
+      });
+
+      club.post('/fidelizacion/canjes/:canjeId/anular', async (req) => {
+        const { clubId, canjeId } = paramsCanje.parse(req.params);
+        return f.anularCanje(clubId, usuarioDe(req).id, canjeId, cuerpoRechazo.parse(req.body).motivo);
+      });
+
+      club.post('/fidelizacion/premios', admin_, async (req, reply) =>
+        reply.status(201).send(await f.crearPremio(clubIdDe(req), cuerpoPremio.parse(req.body))),
+      );
+
+      club.put('/fidelizacion/premios/:premioId', admin_, async (req, reply) => {
+        const { clubId, premioId } = paramsPremio.parse(req.params);
+        await f.actualizarPremio(clubId, premioId, cuerpoPremio.parse(req.body));
+        return reply.status(204).send();
+      });
+
+      club.post('/fidelizacion/promociones', admin_, async (req, reply) =>
+        reply.status(201).send(await f.crearPromocion(clubIdDe(req), cuerpoPromocion.parse(req.body))),
+      );
+
+      club.put('/fidelizacion/promociones/:promocionId', admin_, async (req, reply) => {
+        const { clubId, promocionId } = paramsPromocion.parse(req.params);
+        await f.actualizarPromocion(clubId, promocionId, cuerpoPromocion.parse(req.body));
+        return reply.status(204).send();
+      });
+
+      club.delete('/fidelizacion/promociones/:promocionId', admin_, async (req, reply) => {
+        const { clubId, promocionId } = paramsPromocion.parse(req.params);
+        await f.borrarPromocion(clubId, promocionId);
+        return reply.status(204).send();
       });
 
       // --- Cantina ----------------------------------------------------------------

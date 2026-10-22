@@ -41,10 +41,12 @@ export function DetalleTurno({
 
   const checkin = useMutation({
     mutationFn: (forzar: boolean) =>
-      panel.post(`/clubs/${clubId}/checkin`, { qr: detalle.data?.codigo, forzar }),
-    onSuccess: () => {
+      panel.post<{ puntosGanados: number }>(`/clubs/${clubId}/checkin`, { qr: detalle.data?.codigo, forzar }),
+    onSuccess: (r) => {
       refrescar();
-      alHacer(`${detalle.data?.cliente?.nombre ?? 'El turno'} está en cancha.`);
+      alHacer(
+        `${detalle.data?.cliente?.nombre ?? 'El turno'} está en cancha.${r.puntosGanados ? ` Sumó ${r.puntosGanados} puntos.` : ''}`,
+      );
     },
   });
   const ausente = useMutation({
@@ -103,6 +105,12 @@ export function DetalleTurno({
               <dd className="font-semibold">{pesos(t.consumos)}</dd>
             </>
           ) : null}
+          {t.descuentos > 0 ? (
+            <>
+              <dt className="text-suave">Canje de puntos</dt>
+              <dd className="font-semibold">−{pesos(t.descuentos)}</dd>
+            </>
+          ) : null}
           <dt className="text-suave">Pagado</dt>
           <dd className="font-semibold">{pesos(t.pagado)}</dd>
           <dt className="font-bold">Saldo a cobrar</dt>
@@ -138,6 +146,17 @@ export function DetalleTurno({
             </Boton>
           ) : null}
         </section>
+      ) : null}
+
+      {t.cliente && (t.canjes.disponibles.length || t.canjes.aplicados.length) ? (
+        <CanjesDelTurno
+          turnoId={t.id}
+          canjes={t.canjes}
+          alHacer={(m) => {
+            refrescar();
+            alHacer(m);
+          }}
+        />
       ) : null}
 
       {error ? (
@@ -248,5 +267,45 @@ export function DetalleTurno({
         }}
       />
     </div>
+  );
+}
+
+function CanjesDelTurno({
+  turnoId,
+  canjes,
+  alHacer,
+}: {
+  turnoId: string;
+  canjes: TipoDetalle['canjes'];
+  alHacer: (m: string) => void;
+}) {
+  const { clubId } = useClubActual();
+  const aplicar = useMutation({
+    mutationFn: (canjeId: string) =>
+      panel.post<{ montoAplicado: number }>(`/clubs/${clubId}/fidelizacion/canjes/${canjeId}/aplicar`, {
+        turnoId,
+      }),
+    onSuccess: (r) => alHacer(`Canje aplicado: −${pesos(r.montoAplicado)}.`),
+  });
+  return (
+    <section
+      aria-label="Canjes de puntos"
+      className="mt-3 flex flex-col gap-1.5 rounded-xl bg-cancha-suave px-3 py-2.5 text-[13px]"
+    >
+      {canjes.aplicados.map((c) => (
+        <div key={c.id}>
+          ✓ {c.premio.nombre}: −{pesos(c.montoAplicado)}
+        </div>
+      ))}
+      {canjes.disponibles.map((c) => (
+        <div key={c.id} className="flex items-center justify-between gap-2">
+          <span>Tiene sin usar: {c.premio.nombre}</span>
+          <Boton variante="secundario" disabled={aplicar.isPending} onClick={() => aplicar.mutate(c.id)}>
+            Aplicar
+          </Boton>
+        </div>
+      ))}
+      {aplicar.error ? <Aviso>{mensajeDe(aplicar.error)}</Aviso> : null}
+    </section>
   );
 }

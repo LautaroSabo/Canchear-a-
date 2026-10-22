@@ -57,6 +57,8 @@ export interface ReservaPublica {
   expiraEn: string | null;
   senaEnRevision: boolean;
   cliente: { nombre: string };
+  /** Después del check-in. */
+  puntos: { ganados: number; saldo: number } | null;
 }
 
 export interface Alternativa {
@@ -92,6 +94,8 @@ export interface TurnoAgenda {
   cliente: { id: string; nombre: string; telefono: string } | null;
   /** Cantina a cuenta del turno. */
   consumos: number;
+  /** Canjes de puntos aplicados. */
+  descuentos: number;
   pagado: number;
   saldo: number;
   senaEnRevision: boolean;
@@ -121,6 +125,7 @@ export interface DetalleTurno extends Omit<TurnoAgenda, 'cliente' | 'senaEnRevis
   }[];
   historial: { de: EstadoTurno | null; a: EstadoTurno; actor: string; en: string }[];
   ventas: VentaCantina[];
+  canjes: { saldoPuntos: number; aplicados: Canje[]; disponibles: Canje[] };
 }
 
 export interface ResumenCobro {
@@ -133,6 +138,8 @@ export interface ResumenCobro {
   precioTotal: number;
   /** Cantina a cuenta del turno. */
   consumos: number;
+  /** Canjes de puntos aplicados. */
+  descuentos: number;
   pagado: number;
   saldo: number;
 }
@@ -321,4 +328,80 @@ export interface ResumenCantina {
   anuladas: number;
   masVendidos: { nombre: string; cantidad: number; total: number }[];
   stockBajo: { id: string; nombre: string; stock: number; stockMinimo: number }[];
+}
+
+// --- Fidelización ------------------------------------------------------------------
+
+export type TipoPremio = 'DESCUENTO_MONTO' | 'DESCUENTO_PORCENTAJE' | 'TURNO_GRATIS' | 'PRODUCTO';
+
+export interface Premio {
+  id: string;
+  nombre: string;
+  descripcion: string | null;
+  costoPuntos: number;
+  tipo: TipoPremio;
+  valor: number;
+  stock: number | null;
+  activo: boolean;
+}
+
+export interface PromocionPuntos {
+  id: string;
+  nombre: string;
+  diaSemana: number | null;
+  horaDesde: string | null;
+  horaHasta: string | null;
+  multiplicador: number;
+  puntosExtra: number;
+  vigenteDesde: string;
+  vigenteHasta: string | null;
+  activa: boolean;
+}
+
+export interface ConfigFidelizacion {
+  puntosPorPartido: number;
+  premios: Premio[];
+  promociones: PromocionPuntos[];
+}
+
+export interface Canje {
+  id: string;
+  codigo: string;
+  estado: 'EMITIDO' | 'USADO' | 'ANULADO';
+  puntos: number;
+  montoAplicado: number;
+  turnoId: string | null;
+  creadoEn: string;
+  usadoEn: string | null;
+  premio: { id: string; nombre: string; tipo: TipoPremio; valor: number };
+}
+
+export interface ClienteResumen {
+  id: string;
+  nombre: string;
+  telefono: string;
+  saldoPuntos: number;
+  bloqueado: boolean;
+  partidos: number;
+}
+
+export interface FichaCliente extends Omit<ClienteResumen, 'partidos'> {
+  dni: string | null;
+  creadoEn: string;
+  partidos: number;
+  ausencias: number;
+  cancelados: number;
+  ultimo: string | null;
+  movimientos: {
+    id: string;
+    tipo: 'ACUMULACION' | 'CANJE' | 'AJUSTE' | 'REVERSION';
+    puntos: number;
+    motivo: string | null;
+    creadoEn: string;
+    turnoInicio: string | null;
+    promocion: string | null;
+    premio: string | null;
+  }[];
+  canjes: Canje[];
+  proximosTurnos: { id: string; inicio: string; estado: EstadoTurno; precioTotal: number }[];
 }

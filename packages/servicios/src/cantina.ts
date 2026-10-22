@@ -5,33 +5,17 @@ import {
   consumos,
   inventarioCantina,
   movimientosStock,
-  pagos,
-  reembolsos,
   turnos,
   ventasCantina,
 } from '@cancheria/db/schema';
 import { and, asc, desc, eq, gte, inArray, lt, sql } from 'drizzle-orm';
 import type { RepoClubs } from './config-club.ts';
+import { cuentaDeTurno } from './cuenta.ts';
 import type { Entorno } from './entorno.ts';
 import { ErrorNegocio } from './errores.ts';
 import { pesos } from './formato.ts';
 
 export type MedioCantina = 'EFECTIVO' | 'TRANSFERENCIA' | 'MERCADO_PAGO' | 'OTRO';
-
-/**
- * Lo consumido en la cantina a cuenta del turno (ventas no anuladas): suma al saldo.
- * `turnos.id` va calificado a mano: en un SELECT de una sola tabla Drizzle escribe solo
- * "id", que dentro de la subconsulta sería el id de la venta.
- */
-export const consumosDeTurnoSql = sql<string>`(
-  SELECT coalesce(sum(v.total), 0) FROM ventas_cantina v
-   WHERE v.turno_id = turnos.id AND v.anulada_en IS NULL)`;
-
-/** Pagos aprobados de un turno que no se devolvieron. */
-const pagadoDeTurno = (turnoId: string) => sql<string>`(
-  SELECT coalesce(sum(p.monto), 0) FROM ${pagos} p
-   WHERE p.turno_id = ${turnoId} AND p.estado = 'APROBADO'
-     AND NOT EXISTS (SELECT 1 FROM ${reembolsos} r WHERE r.pago_id = p.id))`;
 
 export interface DatosProducto {
   nombre: string;
@@ -323,20 +307,13 @@ export class ServicioCantina {
       if (!v) throw new ErrorNegocio(404, 'VENTA_NO_ENCONTRADA', 'No existe esa venta');
       if (v.anuladaEn) throw new ErrorNegocio(409, 'VENTA_ANULADA', 'Esa venta ya está anulada');
       if (v.turnoId) {
-        const [t] = await tx
-          .select({
-            precio: turnos.precioTotal,
-            consumos: consumosDeTurnoSql,
-            pagado: pagadoDeTurno(v.turnoId),
-          })
-          .from(turnos)
-          .where(eq(turnos.id, v.turnoId))
-          .for('update');
-        if (t && Number(t.pagado) > t.precio + Number(t.consumos) - v.total) {
+        const c = await cuentaDeTurno(tx, v.turnoId, { bloquear: true });
+        const sobra = c ? c.pagado - (c.precioTotal + c.consumos - v.total - c.descuentos) : 0;
+        if (sobra > 0) {
           throw new ErrorNegocio(
             409,
             'VENTA_COBRADA',
-            `Esa cuenta ya se cobró: si anulás, sobran ${pesos(Number(t.pagado) - (t.precio + Number(t.consumos) - v.total))} que habría que devolver`,
+            `Esa cuenta ya se cobró: si anulás, sobran ${pesos(sobra)} que habría que devolver`,
           );
         }
       }
