@@ -15,6 +15,7 @@ import {
   ServicioOperacion,
   ServicioPagos,
   ServicioReembolsos,
+  ServicioReportes,
   ServicioTurnosFijos,
   TAMANO_MAXIMO_COMPROBANTE,
 } from '@cancheria/servicios';
@@ -114,6 +115,7 @@ export async function construirApp({
   const turnosFijos = new ServicioTurnosFijos({ ...entorno, clubs, listaEspera });
   const cantina = new ServicioCantina({ ...entorno, clubs });
   const fidelizacion = new ServicioFidelizacion(entorno);
+  const reportes = new ServicioReportes({ ...entorno, clubs });
   const consultas = new ConsultasAdmin(db, reloj);
 
   app.get('/health', async () => {
@@ -145,6 +147,7 @@ export async function construirApp({
     operacion,
     pagos,
     reembolsos,
+    reportes,
     turnosFijos,
     pasarela,
     cifrador,

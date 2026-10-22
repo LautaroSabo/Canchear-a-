@@ -285,3 +285,8 @@ export const cuerpoPromocion = z.object({
   vigenteHasta: z.iso.date().nullable(),
   activa: z.boolean(),
 });
+
+// --- Reportes ----------------------------------------------------------------------
+
+export const queryReporte = z.object({ desde: z.iso.date(), hasta: z.iso.date() });
+export const queryExportar = queryReporte.extend({ tipo: z.enum(['turnos', 'pagos', 'ventas']) });

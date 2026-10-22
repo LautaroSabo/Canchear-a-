@@ -2,6 +2,7 @@ import type { Db } from '@cancheria/db';
 import { clubs as tablaClubs } from '@cancheria/db/schema';
 import {
   type AlmacenArchivos,
+  aCsv,
   type Cifrador,
   detectarTipoComprobante,
   ErrorMp,
@@ -17,6 +18,7 @@ import {
   type ServicioOperacion,
   type ServicioPagos,
   type ServicioReembolsos,
+  type ServicioReportes,
   type ServicioTurnosFijos,
 } from '@cancheria/servicios';
 import { eq } from 'drizzle-orm';
@@ -76,8 +78,10 @@ import {
   paramsVenta,
   queryAgenda,
   queryClientes,
+  queryExportar,
   queryProductos,
   queryReembolsos,
+  queryReporte,
   queryResumenCantina,
   queryTransferencias,
   queryVentas,
@@ -104,6 +108,7 @@ interface Opciones {
   operacion: ServicioOperacion;
   pagos: ServicioPagos;
   reembolsos: ServicioReembolsos;
+  reportes: ServicioReportes;
   turnosFijos: ServicioTurnosFijos;
   pasarela: PasarelaMp;
   cifrador: Cifrador;
@@ -223,6 +228,22 @@ export const rutasAdmin: FastifyPluginAsync<Opciones> = async (app, o) => {
       club.post('/checkin', async (req) => {
         const { qr, forzar } = cuerpoCheckin.parse(req.body);
         return o.operacion.checkin(clubIdDe(req), usuarioDe(req).id, qr, { forzar: forzar ?? false });
+      });
+
+      // --- Reportes ----------------------------------------------------------------
+
+      club.get('/reportes', { config: { rolMinimo: 'ADMIN' } }, async (req) => {
+        const { desde, hasta } = queryReporte.parse(req.query);
+        return o.reportes.resumen(clubIdDe(req), desde, hasta);
+      });
+
+      club.get('/reportes/exportar', { config: { rolMinimo: 'ADMIN' } }, async (req, reply) => {
+        const { tipo, desde, hasta } = queryExportar.parse(req.query);
+        const csv = aCsv(await o.reportes.filas(clubIdDe(req), tipo, desde, hasta));
+        return reply
+          .header('content-type', 'text/csv; charset=utf-8')
+          .header('content-disposition', `attachment; filename="${tipo}-${desde}-a-${hasta}.csv"`)
+          .send(csv);
       });
 
       // --- Clientes y fidelización --------------------------------------------------

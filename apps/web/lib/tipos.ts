@@ -405,3 +405,56 @@ export interface FichaCliente extends Omit<ClienteResumen, 'partidos'> {
   canjes: Canje[];
   proximosTurnos: { id: string; inicio: string; estado: EstadoTurno; precioTotal: number }[];
 }
+
+// --- Reportes ----------------------------------------------------------------------
+
+export interface BloqueOcupacion {
+  disponible: number;
+  ocupado: number;
+}
+
+export interface ReporteClub {
+  desde: string;
+  hasta: string;
+  zonaHoraria: string;
+  ocupacion: BloqueOcupacion & {
+    porcentaje: number;
+    /** [díaSemana 0=domingo][hora] */
+    mapa: BloqueOcupacion[][];
+    porCancha: (BloqueOcupacion & {
+      canchaId: string;
+      nombre: string;
+      partidos: number;
+      facturado: number;
+    })[];
+  };
+  dinero: {
+    cobrado: number;
+    cobradoTurnos: number;
+    cobradoCantina: number;
+    devuelto: number;
+    porMedio: Record<string, number>;
+    porConcepto: Record<string, number>;
+    descuentosPorPuntos: number;
+    canjesAplicados: number;
+    porCobrar: number;
+    turnosConSaldo: number;
+  };
+  turnos: {
+    porEstado: Record<string, number>;
+    porOrigen: Record<string, number>;
+    jugados: number;
+    ausentismo: number;
+  };
+  clientes: {
+    nuevos: number;
+    frecuentes: { id: string; nombre: string; telefono: string; partidos: number }[];
+    masAusencias: { id: string; nombre: string; telefono: string; ausencias: number }[];
+  };
+  cantina: {
+    mostrador: number;
+    aCuentaDeTurnos: number;
+    masVendidos: { nombre: string; cantidad: number; total: number }[];
+  };
+  porDia: (BloqueOcupacion & { fecha: string; cobrado: number })[];
+}

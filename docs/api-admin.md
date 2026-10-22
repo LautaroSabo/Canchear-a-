@@ -64,6 +64,17 @@ pnpm --filter @cancheria/api admin:crear-usuario recepcion@club.com "Recepción"
 | PUT | `/transferencia` | ADMIN | `{ alias?, cbu?, titular }`. Alias o CBU/CVU (22 dígitos) obligatorio. |
 | DELETE | `/transferencia` | ADMIN | Deja de aceptar transferencias |
 
+## Reportes — `/admin/clubs/:clubId/reportes` (ADMIN)
+
+Período en fechas locales del club (`desde` y `hasta` inclusive, hasta 366 días).
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `?desde=&hasta=` | Resumen: `ocupacion` (minutos-cancha `disponible`/`ocupado`, `porcentaje`, `mapa[díaSemana][hora]`, `porCancha`), `dinero` (cobrado de turnos neto de devoluciones + cantina de mostrador, `porMedio`, `porConcepto`, descuentos por puntos, `porCobrar` de turnos jugados con saldo), `turnos` (`porEstado`, `porOrigen`, `jugados`, `ausentismo`), `clientes` (nuevos, más frecuentes, más ausencias), `cantina` y `porDia` |
+| GET | `/exportar?tipo=turnos\|pagos\|ventas&desde=&hasta=` | CSV para Excel en castellano (`;`, coma decimal, BOM UTF-8). Las celdas que empiezan con `= + - @` se escapan con `'` (inyección de fórmulas) |
+
+**Ocupación:** se calcula por bloques de una hora local. Lo disponible es el horario abierto de cada cancha activa (horarios + feriados; la madrugada de una jornada que cierra tarde cuenta en el día calendario siguiente), menos los bloqueos. Lo ocupado son los turnos confirmados, jugados o ausentes, y nunca pasa lo disponible. Lo cobrado se cuenta por la fecha de acreditación del pago, no por la del turno.
+
 ## Clientes y puntos — `/admin/clubs/:clubId/…`
 
 **Acumulación:** el check-in suma `clubs.puntos_por_partido`, o lo que dé la mejor promoción vigente para el día y la hora de inicio del turno (`multiplicador` y `puntosExtra`; no se acumulan dos). La respuesta del check-in trae `puntosGanados` y el comprobante público muestra `puntos: { ganados, saldo }`. Un turno suma una sola vez (índice único). Con 0 puntos por partido el club no usa puntos.

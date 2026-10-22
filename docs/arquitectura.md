@@ -276,7 +276,7 @@ Pendientes para próximos pasos:
 7. ~~Turnos fijos.~~ ✅ Ver [api-admin.md](api-admin.md#turnos-fijos--adminclubsclubidturnos-fijos-recepcion).
 8. ~~Cantina.~~ ✅ Ver [api-admin.md](api-admin.md#cantina--adminclubsclubidcantina).
 9. ~~Fidelización (puntos y canjes).~~ ✅ Ver [api-admin.md](api-admin.md#clientes-y-puntos--adminclubsclubid).
-10. Reportes.
+10. ~~Reportes.~~ ✅ Ver [api-admin.md](api-admin.md#reportes--adminclubsclubidreportes-admin).
 
 ## 7. Front (`apps/web`)
 
