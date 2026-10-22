@@ -184,7 +184,7 @@ export class ServicioOperacion {
       if (p.notificar !== false && turno.clienteId) {
         await notificarTurno(tx, turnoId, 'reserva_cancelada', this.e.urlWeb, {
           motivo: p.motivo,
-          reembolso: devuelto > 0 ? `Te devolvemos la seña (${pesos(devuelto)}).` : '',
+          reembolso: devuelto > 0 ? `te la devolvemos (${pesos(devuelto)})` : 'no corresponde devolución',
         });
       }
 

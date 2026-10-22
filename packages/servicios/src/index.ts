@@ -18,6 +18,7 @@ export * from './mercadopago/pasarela.ts';
 export * from './notificaciones/canales.ts';
 export * from './notificaciones/despachador.ts';
 export * from './notificaciones/encolar.ts';
+export * from './notificaciones/meta-plantillas.ts';
 export * from './notificaciones/plantillas.ts';
 export * from './operacion.ts';
 export * from './pagos.ts';

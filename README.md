@@ -87,7 +87,7 @@ apps/
 Antes de cobrar de verdad:
 
 1. **Firma de webhooks de MP:** mandar una notificación de prueba desde el panel de MP y verificar en los logs que no aparezca `webhook de MP con firma inválida`. Aunque la firma fallara, los pagos se confirman igual por la conciliación del worker (con hasta 30 s de demora), pero conviene que ande.
-2. **Plantillas de WhatsApp:** crear y aprobar en Meta las plantillas `reserva_confirmada`, `reserva_expirada`, `pago_reembolsado`, `transferencia_rechazada` y `oferta_lista_espera` (idioma `es_AR`). El texto y el orden de los parámetros están en `packages/servicios/src/notificaciones/plantillas.ts`. El worker se niega a arrancar en producción sin `WHATSAPP_TOKEN` y `WHATSAPP_PHONE_NUMBER_ID`.
+2. **WhatsApp:** número, token y plantillas en Meta. Paso a paso en [docs/whatsapp.md](docs/whatsapp.md); las 7 plantillas se cargan con `pnpm whatsapp:plantillas crear`. El worker se niega a arrancar en producción sin `WHATSAPP_TOKEN` y `WHATSAPP_PHONE_NUMBER_ID`.
 3. **Comprobantes:** hoy se guardan en disco (`DIR_COMPROBANTES`). En producción implementar `AlmacenArchivos` sobre S3/R2 (la interfaz ya está).
 4. **`CLAVE_CREDENCIALES`:** generar una propia (no la de `.env.example`) y guardarla como secreto. Si se pierde, hay que volver a cargar las credenciales de MP de cada club.
 

@@ -108,7 +108,7 @@ describe('cancelación', () => {
       'NOTIFICADA',
     );
     const [msg] = await ctx.mensajes('reserva_cancelada');
-    expect(msg?.payload).toMatchObject({ motivo: 'lluvia', reembolso: '' });
+    expect(msg?.payload).toMatchObject({ motivo: 'lluvia', reembolso: 'no corresponde devolución' });
   });
 
   it('con devolución: registra el reembolso de la seña de MP y lo informa en el mensaje', async () => {
@@ -122,7 +122,7 @@ describe('cancelación', () => {
     const [pago] = await ctx.pagosDe(t.id);
     expect(await ctx.reembolsosDe(pago!.id)).toMatchObject([{ motivo: 'TURNO_CANCELADO', monto: SENA }]);
     expect((await ctx.mensajes('reserva_cancelada'))[0]?.payload).toMatchObject({
-      reembolso: 'Te devolvemos la seña ($22.500).',
+      reembolso: 'te la devolvemos ($22.500)',
     });
     expect(await ctx.reembolsos.procesar()).toEqual({ hechos: 1, fallidos: 0 });
   });

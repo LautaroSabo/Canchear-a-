@@ -57,7 +57,14 @@ export class CanalWhatsApp implements CanalMensajes {
             name: plantilla,
             language: { code: this.c.idioma ?? 'es_AR' },
             components: [
-              { type: 'body', parameters: orden.map((k) => ({ type: 'text', text: parametros[k] ?? '' })) },
+              {
+                type: 'body',
+                // Meta rechaza parámetros vacíos o con saltos de línea.
+                parameters: orden.map((k) => ({
+                  type: 'text',
+                  text: (parametros[k] ?? '').replace(/\s+/g, ' ').trim() || '-',
+                })),
+              },
             ],
           },
         }),

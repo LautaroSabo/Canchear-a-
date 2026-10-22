@@ -6,7 +6,8 @@
     "dev": "node --env-file-if-exists=../../.env --watch --import tsx src/main.ts",
     "start": "node --env-file-if-exists=../../.env --import tsx src/main.ts",
     "typecheck": "tsc -p .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "whatsapp:plantillas": "node --env-file-if-exists=../../.env --import tsx src/cli/plantillas-whatsapp.ts"
   },
   "dependencies": {
     "@cancheria/db": "workspace:*",
