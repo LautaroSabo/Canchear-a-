@@ -65,6 +65,7 @@ import {
   paramsCliente,
   paramsFecha,
   paramsFijo,
+  paramsMensaje,
   paramsOmitido,
   paramsPago,
   paramsPremio,
@@ -79,6 +80,7 @@ import {
   queryAgenda,
   queryClientes,
   queryExportar,
+  queryMensajes,
   queryProductos,
   queryReembolsos,
   queryReporte,
@@ -228,6 +230,19 @@ export const rutasAdmin: FastifyPluginAsync<Opciones> = async (app, o) => {
       club.post('/checkin', async (req) => {
         const { qr, forzar } = cuerpoCheckin.parse(req.body);
         return o.operacion.checkin(clubIdDe(req), usuarioDe(req).id, qr, { forzar: forzar ?? false });
+      });
+
+      // --- Mensajes al cliente -------------------------------------------------------
+
+      club.get('/mensajes', async (req) => ({
+        whatsappConfigurado: o.config.whatsappConfigurado,
+        mensajes: await o.consultas.mensajes(clubIdDe(req), queryMensajes.parse(req.query).estado),
+      }));
+
+      club.post('/mensajes/:mensajeId/reintentar', async (req, reply) => {
+        const { clubId, mensajeId } = paramsMensaje.parse(req.params);
+        await o.consultas.reintentarMensaje(clubId, mensajeId);
+        return reply.status(204).send();
       });
 
       // --- Reportes ----------------------------------------------------------------

@@ -7,7 +7,8 @@
     "start": "node --env-file-if-exists=../../.env --import tsx src/server.ts",
     "typecheck": "tsc -p .",
     "test": "vitest run",
-    "admin:crear-usuario": "node --env-file-if-exists=../../.env --import tsx src/cli/crear-usuario.ts"
+    "admin:crear-usuario": "node --env-file-if-exists=../../.env --import tsx src/cli/crear-usuario.ts",
+    "demo:usuario": "node --env-file-if-exists=../../.env --import tsx src/cli/demo.ts"
   },
   "dependencies": {
     "@cancheria/core": "workspace:*",

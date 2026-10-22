@@ -458,3 +458,16 @@ export interface ReporteClub {
   };
   porDia: (BloqueOcupacion & { fecha: string; cobrado: number })[];
 }
+
+export interface MensajeCliente {
+  id: string;
+  plantilla: string;
+  destino: string;
+  estado: 'PENDIENTE' | 'ENVIADA' | 'FALLIDA';
+  intentos: number;
+  error: string | null;
+  creadoEn: string;
+  enviadaEn: string | null;
+  cliente: string | null;
+  texto: string;
+}

@@ -63,7 +63,7 @@ Si preferís cargarlas a mano en *WhatsApp Manager → Plantillas de mensajes*, 
 
 ## 6. Probar
 
-Con las plantillas aprobadas, hacé una reserva desde la página del club con tu propio WhatsApp y pagá la seña (o cargá un turno manual desde el panel): tiene que llegarte "Turno confirmado". Si no llega, el panel no lo muestra todavía; mirá la tabla `notificaciones` (columna `error`) o el log del worker. Los errores de Meta vienen con su mensaje (token vencido, número sin registrar, plantilla no aprobada…).
+Con las plantillas aprobadas, hacé una reserva desde la página del club con tu propio WhatsApp y pagá la seña (o cargá un turno manual desde el panel): tiene que llegarte "Turno confirmado". Si no llega, mirá **Mensajes** en el panel: cada mensaje muestra si salió y, si falló, el error de Meta (token vencido, número sin registrar, plantilla no aprobada…). Una vez resuelto, el botón **Reintentar** lo vuelve a mandar.
 
 ## Bueno saber
 

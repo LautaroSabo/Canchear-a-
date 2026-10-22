@@ -7,26 +7,29 @@ Gestión y reserva de turnos para complejos deportivos.
 - [API del panel de administración: sesiones, roles y operación](docs/api-admin.md)
 - [Esquema de base de datos (migración SQL)](packages/db/migrations/0001_init.sql)
 
-## Desarrollo local
+## Probarla en tu compu
 
 Requisitos: Node 22.12+, pnpm 10 (`corepack enable`) y Docker.
 
 ```bash
 pnpm install
 cp .env.example .env
-pnpm db:up        # Postgres 16 en Docker
-pnpm db:migrate   # aplica packages/db/migrations/*.sql
-pnpm db:seed      # club demo "la-canchita"
-pnpm test         # incluye la prueba de 50 reservas simultáneas
-pnpm --filter @cancheria/api dev      # API en http://localhost:3001
-pnpm --filter @cancheria/worker dev   # worker: expiraciones, mensajes (en consola), reembolsos
-pnpm dev:web                          # front en http://localhost:3000
+pnpm db:up            # Postgres 16 en Docker
+pnpm demo:preparar    # migra, carga el club demo "la-canchita" y un usuario dueño
+pnpm dev              # API (3001), worker y web (3000) juntos
 ```
 
-- Página pública del club demo: http://localhost:3000/la-canchita
-- Panel del club: http://localhost:3000/panel
+- Página pública del club: http://localhost:3000/la-canchita
+- Panel: http://localhost:3000/panel — usuario `demo@cancheria.local`, contraseña `demo-cancheria`
 
-Usuario para el panel (la contraseña se genera y se muestra una vez, o se toma de `CONTRASENA`):
+**Sin WhatsApp ni Mercado Pago funciona todo**, con dos diferencias:
+
+- Los mensajes al cliente no salen: se ven en el panel, en **Mensajes** (con el texto exacto que le llegaría), y en la consola del worker.
+- La seña se paga por **transferencia**: el cliente sube el comprobante y lo aprobás en **Transferencias**. También podés cobrarla en el club desde el detalle del turno, o configurar un horario sin seña en *Configuración → Seña*.
+
+Para probar desde el celular en la misma red (con la IP de tu compu, por ejemplo `192.168.0.10`): en `.env` poné `URL_WEB=http://192.168.0.10:3000`, `WEB_ORIGIN=http://192.168.0.10:3000` y `URL_API=http://192.168.0.10:3001`; en `apps/web/.env.local`, `NEXT_PUBLIC_API_URL=http://192.168.0.10:3001`. Reiniciá `pnpm dev` y abrí `http://192.168.0.10:3000/la-canchita` en el celular.
+
+Otros usuarios para el panel (la contraseña se genera y se muestra una vez, o se toma de `CONTRASENA`):
 
 ```bash
 pnpm --filter @cancheria/api admin:crear-usuario vos@mail.com "Tu nombre" la-canchita OWNER

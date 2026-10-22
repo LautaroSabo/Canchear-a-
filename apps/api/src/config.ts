@@ -16,6 +16,8 @@ const esquema = z.object({
   DIR_COMPROBANTES: z.string().default('./uploads'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  WHATSAPP_TOKEN: z.string().optional(),
+  WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
 });
 
 export interface Config {
@@ -41,6 +43,11 @@ export interface Config {
   anticipacionMinimaMin: number;
   /** Hasta cuántos días adelante se muestra la grilla pública. */
   diasMaximosAnticipacion: number;
+  /**
+   * El worker (con el mismo entorno) manda por WhatsApp. Sin esto los mensajes solo se
+   * imprimen en su consola; el panel lo avisa.
+   */
+  whatsappConfigurado: boolean;
 }
 
 export function cargarConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -57,6 +64,7 @@ export function cargarConfig(env: NodeJS.ProcessEnv = process.env): Config {
     nivelLog: e.LOG_LEVEL,
     logsLegibles: e.NODE_ENV === 'development',
     cookiesSeguras: e.NODE_ENV === 'production',
+    whatsappConfigurado: Boolean(e.WHATSAPP_TOKEN && e.WHATSAPP_PHONE_NUMBER_ID),
     reservasPorMinuto: 10,
     loginsPorMinuto: 10,
     cacheClubMs: 10_000,

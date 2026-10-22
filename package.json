@@ -11,6 +11,8 @@
     "test": "turbo run test --concurrency=1",
     "lint": "biome check .",
     "format": "biome check --write .",
+    "dev": "turbo run dev --filter=@cancheria/api --filter=@cancheria/worker --filter=@cancheria/web",
+    "demo:preparar": "pnpm db:migrate && pnpm db:seed && pnpm --filter @cancheria/api demo:usuario",
     "db:up": "docker compose up -d --wait postgres",
     "db:down": "docker compose down",
     "db:migrate": "pnpm --filter @cancheria/db migrate",

@@ -1,12 +1,22 @@
 import { instanteLocal, sumarDias, ventanasDeJornada } from '@cancheria/core';
 import type { Db } from '@cancheria/db';
-import { canchas, clientes, pagos, reembolsos, turnos, turnosEventos } from '@cancheria/db/schema';
+import {
+  canchas,
+  clientes,
+  notificaciones,
+  pagos,
+  reembolsos,
+  turnos,
+  turnosEventos,
+} from '@cancheria/db/schema';
 import {
   aCuenta,
   type ConfigClub,
   consumosDeTurnoSql,
   descuentosDeTurnoSql,
   ErrorNegocio,
+  PLANTILLAS,
+  type Plantilla,
   pagadoDeTurnoSql,
   type Reloj,
   saldoDe,
@@ -240,5 +250,48 @@ export class ConsultasAdmin {
       .limit(200);
     // Los de MP pendientes los ejecuta el worker; el resto se devuelve a mano.
     return filas.map((r) => ({ ...r, manual: r.medio !== 'MERCADO_PAGO' || r.estado === 'FALLIDO' }));
+  }
+
+  /** Últimos mensajes al cliente (outbox), con el texto como lo recibe. */
+  async mensajes(clubId: string, estado?: 'PENDIENTE' | 'ENVIADA' | 'FALLIDA') {
+    const filas = await this.db
+      .select({
+        id: notificaciones.id,
+        plantilla: notificaciones.plantilla,
+        destino: notificaciones.destino,
+        payload: notificaciones.payload,
+        estado: notificaciones.estado,
+        intentos: notificaciones.intentos,
+        error: notificaciones.error,
+        creadoEn: notificaciones.creadoEn,
+        enviadaEn: notificaciones.enviadaEn,
+        cliente: clientes.nombre,
+      })
+      .from(notificaciones)
+      .leftJoin(clientes, eq(clientes.id, notificaciones.clienteId))
+      .where(and(eq(notificaciones.clubId, clubId), estado ? eq(notificaciones.estado, estado) : undefined))
+      .orderBy(desc(notificaciones.creadoEn))
+      .limit(100);
+    return filas.map(({ payload, ...m }) => {
+      const p = PLANTILLAS[m.plantilla as Plantilla];
+      return { ...m, texto: p ? p.texto(payload as Record<string, string>) : JSON.stringify(payload) };
+    });
+  }
+
+  /** Vuelve a encolar un mensaje que falló (por ejemplo, después de aprobar la plantilla). */
+  async reintentarMensaje(clubId: string, id: string) {
+    const filas = await this.db
+      .update(notificaciones)
+      .set({ estado: 'PENDIENTE', intentos: 0, proximoIntento: this.reloj(), error: null })
+      .where(
+        and(
+          eq(notificaciones.id, id),
+          eq(notificaciones.clubId, clubId),
+          eq(notificaciones.estado, 'FALLIDA'),
+        ),
+      )
+      .returning({ id: notificaciones.id });
+    if (filas.length === 0)
+      throw new ErrorNegocio(404, 'MENSAJE_NO_ENCONTRADO', 'No hay un mensaje fallido con ese id');
   }
 }

@@ -16,6 +16,7 @@ const SECCIONES: { ruta: string; nombre: string; rol: Rol }[] = [
   { ruta: 'clientes', nombre: 'Clientes y puntos', rol: 'RECEPCION' },
   { ruta: 'transferencias', nombre: 'Transferencias', rol: 'RECEPCION' },
   { ruta: 'reembolsos', nombre: 'Reembolsos', rol: 'RECEPCION' },
+  { ruta: 'mensajes', nombre: 'Mensajes', rol: 'RECEPCION' },
   { ruta: 'reportes', nombre: 'Reportes', rol: 'ADMIN' },
   { ruta: 'configuracion', nombre: 'Configuración', rol: 'ADMIN' },
   { ruta: 'cuenta', nombre: 'Mi cuenta', rol: 'RECEPCION' },
