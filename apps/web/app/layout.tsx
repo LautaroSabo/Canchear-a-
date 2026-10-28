@@ -1,6 +1,3 @@
-import '@fontsource-variable/inter';
-import '@fontsource/barlow-condensed/600.css';
-import '@fontsource/barlow-condensed/700.css';
 import './globals.css';
 import type { Metadata, Viewport } from 'next';
 import { Providers } from './providers';
@@ -10,7 +7,7 @@ export const metadata: Metadata = {
   description: 'Reservá tu cancha online, sin crear cuenta.',
 };
 
-export const viewport: Viewport = { themeColor: '#0f1a14', width: 'device-width', initialScale: 1 };
+export const viewport: Viewport = { themeColor: '#0c1611', width: 'device-width', initialScale: 1 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

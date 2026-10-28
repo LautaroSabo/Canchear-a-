@@ -19,9 +19,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function PaginaClub({ params }: Props) {
   const club = await cargarClub((await params).slug);
   return (
-    <>
+    <div className="tema-noche min-h-screen bg-fondo text-tinta">
       <EncabezadoClub club={club} />
       <Reservar club={club} />
-    </>
+    </div>
   );
 }

@@ -4,7 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 import { ErrorApi, pedir } from '@/lib/api';
 import { fechaCorta } from '@/lib/formato';
-import { Aviso, Boton, Campo } from '../ui';
+import { Aviso, Boton, Campo, Selector } from '../ui';
 
 const HORAS = [
   ...Array.from({ length: 16 }, (_, i) => `${String(i + 8).padStart(2, '0')}:00`),
@@ -13,7 +13,18 @@ const HORAS = [
   '02:00',
 ];
 
-export function ListaEspera({ slug, fecha, tipo }: { slug: string; fecha: string; tipo: number }) {
+export function ListaEspera({
+  slug,
+  fecha,
+  tipo,
+  destacada = false,
+}: {
+  slug: string;
+  fecha: string;
+  tipo: number;
+  /** El día está completo: la lista de espera es la salida principal. */
+  destacada?: boolean;
+}) {
   const [abierta, setAbierta] = useState(false);
   const [f, setF] = useState({ desde: '19:00', hasta: '23:00', nombre: '', telefono: '' });
 
@@ -32,26 +43,29 @@ export function ListaEspera({ slug, fecha, tipo }: { slug: string; fecha: string
   });
 
   return (
-    <section aria-labelledby="titulo-espera" className="mt-6 rounded-2xl border border-linea bg-white p-5">
-      <div className="flex flex-wrap items-center gap-4">
-        <div className="min-w-0 flex-[1_1_380px]">
-          <h2 id="titulo-espera" className="text-[17px] font-bold">
+    <section
+      aria-labelledby="titulo-espera"
+      className={`mt-12 border-t pt-8 ${destacada ? 'border-cesped' : 'border-linea'}`}
+    >
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0 max-w-xl">
+          <h2 id="titulo-espera" className="font-display text-[28px] leading-none font-bold uppercase">
             ¿No encontrás horario?
           </h2>
-          <p className="mt-1 text-sm text-suave">
+          <p className="mt-2 text-base text-tenue">
             Anotate en la lista de espera: si se libera un turno en tu franja, te lo guardamos y te avisamos
             por WhatsApp.
           </p>
         </div>
         {!abierta ? (
-          <Boton variante="secundario" onClick={() => setAbierta(true)}>
+          <Boton variante={destacada ? 'primario' : 'secundario'} onClick={() => setAbierta(true)}>
             Anotarme en la lista de espera
           </Boton>
         ) : null}
       </div>
 
       {abierta && anotar.isSuccess ? (
-        <div className="mt-4">
+        <div className="mt-5 max-w-xl">
           <Aviso tipo="ok">
             Listo, te anotamos para el {fechaCorta(fecha)} entre las {f.desde} y las {f.hasta}. Si se libera
             un turno te escribimos.
@@ -59,39 +73,25 @@ export function ListaEspera({ slug, fecha, tipo }: { slug: string; fecha: string
         </div>
       ) : abierta ? (
         <form
-          className="mt-4 grid gap-3 sm:grid-cols-2"
+          className="mt-5 grid max-w-xl gap-4 sm:grid-cols-2"
           onSubmit={(e) => {
             e.preventDefault();
             anotar.mutate();
           }}
         >
-          <p className="text-sm font-semibold sm:col-span-2">
+          <p className="text-base font-semibold sm:col-span-2">
             Para el {fechaCorta(fecha)} · Fútbol {tipo}
           </p>
-          <label className="flex flex-col gap-1.5 text-sm font-semibold">
-            Desde
-            <select
-              value={f.desde}
-              onChange={(e) => setF({ ...f, desde: e.target.value })}
-              className="min-h-11 rounded-xl border border-[#c9d1cb] bg-white px-3 text-base font-normal"
-            >
-              {HORAS.map((h) => (
-                <option key={h}>{h}</option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1.5 text-sm font-semibold">
-            Hasta
-            <select
-              value={f.hasta}
-              onChange={(e) => setF({ ...f, hasta: e.target.value })}
-              className="min-h-11 rounded-xl border border-[#c9d1cb] bg-white px-3 text-base font-normal"
-            >
-              {HORAS.map((h) => (
-                <option key={h}>{h}</option>
-              ))}
-            </select>
-          </label>
+          <Selector etiqueta="Desde" value={f.desde} onChange={(e) => setF({ ...f, desde: e.target.value })}>
+            {HORAS.map((h) => (
+              <option key={h}>{h}</option>
+            ))}
+          </Selector>
+          <Selector etiqueta="Hasta" value={f.hasta} onChange={(e) => setF({ ...f, hasta: e.target.value })}>
+            {HORAS.map((h) => (
+              <option key={h}>{h}</option>
+            ))}
+          </Selector>
           <Campo
             etiqueta="Nombre"
             autoComplete="name"

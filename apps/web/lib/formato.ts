@@ -147,3 +147,6 @@ export const iniciales = (nombre: string) =>
     .slice(0, 2)
     .map((p) => p[0]?.toUpperCase())
     .join('');
+
+/** "2026-10-28" → "octubre". */
+export const nombreMes = (ymd: string) => MESES[Number(ymd.slice(5, 7)) - 1] ?? '';

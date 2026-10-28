@@ -55,3 +55,20 @@ export const IconoAlerta = ({ className, tamano }: P) => (
     <path d="M12 8v5M12 16.5v.5" />
   </svg>
 );
+export const IconoCalendario = ({ className, tamano }: P) => (
+  <svg aria-hidden="true" {...base(tamano)} className={className}>
+    <rect x="3" y="5" width="18" height="16" rx="1" />
+    <path d="M3 10h18M8 3v4M16 3v4" />
+  </svg>
+);
+export const IconoMapa = ({ className, tamano }: P) => (
+  <svg aria-hidden="true" {...base(tamano)} className={className}>
+    <path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z" />
+    <circle cx="12" cy="9.5" r="2.5" />
+  </svg>
+);
+export const IconoCerrar = ({ className, tamano }: P) => (
+  <svg aria-hidden="true" {...base(tamano)} className={className}>
+    <path d="M6 6l12 12M18 6L6 18" />
+  </svg>
+);

@@ -35,6 +35,8 @@ export interface Slot {
   precio: number;
   montoSena: number;
   requiereSena: boolean;
+  /** Minutos que se guarda el turno para pagar la seña; null sin seña. */
+  minutosParaPagar: number | null;
 }
 
 export interface Disponibilidad {

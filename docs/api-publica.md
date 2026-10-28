@@ -26,12 +26,13 @@ Grilla de la **jornada** `fecha` (fecha local del club). Una jornada que cierra 
   "canchas": [{
     "id": "…", "nombre": "Cancha 1", "jugadoresPorLado": 5, "duracionMin": 60,
     "slots": [{ "inicio": "2030-01-05T23:00:00.000Z", "fin": "…", "estado": "LIBRE",
-                "precio": 4500000, "montoSena": 2250000, "requiereSena": true }]
+                "precio": 4500000, "montoSena": 2250000, "requiereSena": true,
+                "minutosParaPagar": 30 }]
   }]
 }
 ```
 
-`estado`: `LIBRE` · `OCUPADO` · `PASADO`. Un hold vencido figura `LIBRE` en el mismo instante en que vence. Fechas aceptadas: desde ayer hasta 30 días adelante (`422 FECHA_FUERA_DE_RANGO`).
+`estado`: `LIBRE` · `OCUPADO` · `PASADO`. `minutosParaPagar`: cuánto se guardaría el turno para pagar la seña si se reservara ahora (`null` si no pide seña o si ya está demasiado cerca para reservarlo con seña). Un hold vencido figura `LIBRE` en el mismo instante en que vence. Fechas aceptadas: desde ayer hasta 30 días adelante (`422 FECHA_FUERA_DE_RANGO`).
 
 ## `POST /public/clubs/:slug/reservas`
 

@@ -14,6 +14,7 @@ interface Slot {
   precio: number;
   montoSena: number;
   requiereSena: boolean;
+  minutosParaPagar: number | null;
 }
 interface Cancha {
   id: string;
@@ -63,6 +64,7 @@ describe('GET /public/clubs/:slug/disponibilidad', () => {
       precio: 3_000_000,
       montoSena: 1_500_000,
       requiereSena: true,
+      minutosParaPagar: 10,
     });
     expect(slot(c1, iso('2030-01-05', '20:00'))).toMatchObject({ precio: 4_500_000, montoSena: 2_250_000 });
     expect(c1?.slots.at(-1)?.fin).toBe(iso('2030-01-06', '02:00'));

@@ -54,7 +54,7 @@ test('celular: grilla por horario, barra inferior y pago por transferencia', asy
   await page.getByRole('button', { name: 'Reservar y pagar la seña' }).click();
   await page.waitForURL(/\/r\/[0-9a-f]{32}$/);
 
-  await expect(page.getByText('Alias: la.canchita.mp')).toBeVisible();
+  await expect(page.getByText('la.canchita.mp')).toBeVisible();
   await page
     .locator('input[type=file]')
     .setInputFiles({ name: 'comprobante.png', mimeType: 'image/png', buffer: PNG });

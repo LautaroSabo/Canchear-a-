@@ -1,40 +1,191 @@
+@import "@fontsource-variable/big-shoulders-display/wght";
+@import "@fontsource-variable/schibsted-grotesk/wght";
 @import "tailwindcss";
 
-/* Tema del prototipo: verde cancha, tinta casi negra, números en Barlow Condensed. */
-@theme {
-  --color-cancha: #0a7a3d;
-  --color-cancha-oscuro: #075c2d;
-  --color-cancha-claro: #e8f5ec;
-  --color-cancha-suave: #ddf0e4;
-  --color-noche: #0f1a14;
-  --color-noche-2: #24352b;
-  --color-tinta: #111814;
-  --color-suave: #5b655f;
-  --color-medio: #4a544e;
-  --color-fondo: #f5f7f5;
-  --color-linea: #e3e7e4;
-  --color-borde: #d5dbd7;
-  --color-ocupado: #e9ecea;
-  --color-ambar-fondo: #fff4de;
-  --color-ambar-borde: #b07812;
-  --color-ambar-texto: #4d2f00;
-  --color-azul-fondo: #eaf3fb;
-  --color-azul-borde: #3f7fb3;
-  --color-azul-texto: #0c3f66;
-  --color-rojo: #a1200f;
-  --color-rojo-borde: #e2b4ac;
-  --color-mp: #009ee3;
+/*
+ * Canchería · "Cancha de noche".
+ * El fulbito es un ritual nocturno bajo los reflectores: el lado público es la noche
+ * (fondo casi negro verdoso, cal para el texto, el césped iluminado marca lo libre).
+ * El panel es la recepción con la luz prendida: claro, con la misma tipografía y los
+ * mismos estados. Los componentes usan solo roles (fondo, tinta, acento…); cada tema
+ * define sus valores.
+ */
 
-  --font-sans: "Inter Variable", system-ui, sans-serif;
-  --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+:root {
+  color-scheme: light;
+  --fondo: #f1f4f0;
+  --superficie: #ffffff;
+  --superficie-2: #e7ece6;
+  --tinta: #0c1611;
+  --tenue: #4f5d54;
+  --linea: #dce3dc;
+  --borde-control: #879489;
+  --acento: #1b7340;
+  --acento-hover: #145a32;
+  --acento-tinta: #ffffff;
+  --acento-texto: #1b7340;
+  --acento-suave: #e1f0e4;
+  --cesped: #1b7340;
+  --cesped-tinta: #ffffff;
+  --ocupado: #e7ece6;
+  --ocupado-tinta: #4f5d54;
+  --foco: #1b7340;
+
+  --ok-fondo: #ddf0e2;
+  --ok-texto: #0f4a27;
+  --ok-borde: #2e8b50;
+  --aviso-fondo: #fff1d6;
+  --aviso-texto: #4d3000;
+  --aviso-borde: #b5770f;
+  --info-fondo: #e3eef9;
+  --info-texto: #0c3f66;
+  --info-borde: #3f7fb3;
+  --error-fondo: #fbe5e1;
+  --error-texto: #7a1a0c;
+  --error-borde: #c4533f;
+  --peligro: #a1200f;
+}
+
+.tema-noche {
+  color-scheme: dark;
+  --fondo: #0c1611;
+  --superficie: #15231b;
+  --superficie-2: #1e3026;
+  --tinta: #eef2ea;
+  --tenue: #a8b8ad;
+  --linea: #2a3f33;
+  --borde-control: #6f8577;
+  --acento: #eef2ea;
+  --acento-hover: #ffffff;
+  --acento-tinta: #0c1611;
+  --acento-texto: #8ddba4;
+  --acento-suave: #22382b;
+  --cesped: #46ad65;
+  --cesped-tinta: #0c1611;
+  --ocupado: #15231b;
+  --ocupado-tinta: #8a9d90;
+  --foco: #f6cf7a;
+
+  --ok-fondo: #17331f;
+  --ok-texto: #a6e5b8;
+  --ok-borde: #46ad65;
+  --aviso-fondo: #33270c;
+  --aviso-texto: #f6cf7a;
+  --aviso-borde: #f2b441;
+  --info-fondo: #12283a;
+  --info-texto: #a9cdf0;
+  --info-borde: #5b9bd5;
+  --error-fondo: #3a1712;
+  --error-texto: #ffa592;
+  --error-borde: #ff8f7a;
+  --peligro: #ff8f7a;
+}
+
+@theme inline {
+  --color-fondo: var(--fondo);
+  --color-superficie: var(--superficie);
+  --color-superficie-2: var(--superficie-2);
+  --color-tinta: var(--tinta);
+  --color-tenue: var(--tenue);
+  --color-linea: var(--linea);
+  --color-borde-control: var(--borde-control);
+  --color-acento: var(--acento);
+  --color-acento-hover: var(--acento-hover);
+  --color-acento-tinta: var(--acento-tinta);
+  --color-acento-texto: var(--acento-texto);
+  --color-acento-suave: var(--acento-suave);
+  --color-cesped: var(--cesped);
+  --color-cesped-tinta: var(--cesped-tinta);
+  --color-ocupado: var(--ocupado);
+  --color-ocupado-tinta: var(--ocupado-tinta);
+  --color-foco: var(--foco);
+  --color-ok-fondo: var(--ok-fondo);
+  --color-ok-texto: var(--ok-texto);
+  --color-ok-borde: var(--ok-borde);
+  --color-aviso-fondo: var(--aviso-fondo);
+  --color-aviso-texto: var(--aviso-texto);
+  --color-aviso-borde: var(--aviso-borde);
+  --color-info-fondo: var(--info-fondo);
+  --color-info-texto: var(--info-texto);
+  --color-info-borde: var(--info-borde);
+  --color-error-fondo: var(--error-fondo);
+  --color-error-texto: var(--error-texto);
+  --color-error-borde: var(--error-borde);
+  --color-peligro: var(--peligro);
+
+  /* Alias de la paleta anterior, mientras se migra el panel. */
+  --color-cancha: var(--acento);
+  --color-cancha-oscuro: var(--acento-hover);
+  --color-cancha-claro: var(--acento-suave);
+  --color-cancha-suave: var(--ok-fondo);
+  --color-suave: var(--tenue);
+  --color-medio: var(--tenue);
+  --color-borde: var(--borde-control);
+  --color-ambar-fondo: var(--aviso-fondo);
+  --color-ambar-borde: var(--aviso-borde);
+  --color-ambar-texto: var(--aviso-texto);
+  --color-azul-fondo: var(--info-fondo);
+  --color-azul-borde: var(--info-borde);
+  --color-azul-texto: var(--info-texto);
+  --color-rojo: var(--peligro);
+  --color-rojo-borde: var(--error-borde);
+}
+
+@theme {
+  /* Fijos: la noche y la cal no cambian con el tema (riel del panel, QR, tickets). */
+  --color-noche: #0c1611;
+  --color-noche-2: #1e3026;
+  --color-cal: #eef2ea;
+  --color-mp: #0a6fb8;
+
+  --font-sans: "Schibsted Grotesk Variable", system-ui, sans-serif;
+  --font-display: "Big Shoulders Display Variable", "Arial Narrow", sans-serif;
 }
 
 html {
-  background: var(--color-fondo);
-  color: var(--color-tinta);
+  background: var(--fondo);
+  color: var(--tinta);
+  -webkit-text-size-adjust: 100%;
+}
+
+/* El lado público pinta también lo que se ve al estirar la página en el celular. */
+html:has(.tema-noche) {
+  background: #0c1611;
+}
+
+::selection {
+  background: var(--acento);
+  color: var(--acento-tinta);
+}
+
+body {
+  caret-color: var(--acento-texto);
+  scrollbar-color: var(--borde-control) transparent;
 }
 
 :focus-visible {
-  outline: 3px solid var(--color-cancha);
+  outline: 3px solid var(--foco);
   outline-offset: 2px;
+}
+
+/* Números que cambian (reloj, horas en columna) no bailan. Solo en la letra condensada:
+   en la de texto los dígitos tabulares separan de más el punto de los miles. */
+.cifras.font-display {
+  font-variant-numeric: tabular-nums;
+}
+
+/* La letra condensada pesa mucho: se ajusta el tracking en tamaños grandes. */
+.font-display {
+  letter-spacing: -0.01em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

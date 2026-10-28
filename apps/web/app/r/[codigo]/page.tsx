@@ -10,8 +10,16 @@ export default async function PaginaReserva({ params }: { params: Promise<{ codi
   const { codigo } = await params;
   if (!/^[0-9a-f]{32}$/.test(codigo)) notFound();
   return (
-    <Suspense fallback={<Cargando texto="Buscando tu reserva…" />}>
-      <Comprobante codigo={codigo} />
-    </Suspense>
+    <div className="tema-noche min-h-screen bg-fondo text-tinta">
+      <Suspense
+        fallback={
+          <main className="mx-auto max-w-xl px-4 py-10">
+            <Cargando texto="Buscando tu reserva…" />
+          </main>
+        }
+      >
+        <Comprobante codigo={codigo} />
+      </Suspense>
+    </div>
   );
 }

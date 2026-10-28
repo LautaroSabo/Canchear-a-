@@ -1,4 +1,5 @@
 import {
+  calcularExpiracion,
   type EstadoSlot,
   generarSlots,
   type Intervalo,
@@ -21,6 +22,8 @@ export interface SlotPublico {
   precio: number;
   montoSena: number;
   requiereSena: boolean;
+  /** Minutos que se guarda el turno para pagar la seña si se reserva ahora; null sin seña. */
+  minutosParaPagar: number | null;
 }
 
 export interface CanchaConSlots {
@@ -101,6 +104,7 @@ export class ServicioDisponibilidad {
         const cotizacion = cotizarTurno(cfg, cancha, s.inicio);
         // Un horario sin tarifa es un error de configuración del club: no se ofrece.
         if (!cotizacion) return [];
+        const expiracion = calcularExpiracion(ahora, s.inicio, cotizacion.regla, cotizacion.montoSena);
         return [
           {
             inicio: s.inicio.toISOString(),
@@ -109,6 +113,10 @@ export class ServicioDisponibilidad {
             precio: cotizacion.precio,
             montoSena: cotizacion.montoSena,
             requiereSena: cotizacion.montoSena > 0,
+            minutosParaPagar:
+              expiracion.tipo === 'HOLD'
+                ? Math.floor((expiracion.expiraEn.getTime() - ahora.getTime()) / 60_000)
+                : null,
           },
         ];
       }),
