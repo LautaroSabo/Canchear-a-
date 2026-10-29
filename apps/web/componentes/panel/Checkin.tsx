@@ -1,13 +1,14 @@
 'use client';
 
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import jsQR from 'jsqr';
 import { useEffect, useRef, useState } from 'react';
 import { ErrorApi, mensajeDe, panel } from '@/lib/api';
-import { hora, pesos } from '@/lib/formato';
-import type { ResumenCobro } from '@/lib/tipos';
+import { hora, hoyEn, pesos } from '@/lib/formato';
+import { useAhora } from '@/lib/hooks';
+import type { Agenda, DetalleTurno, ResumenCobro } from '@/lib/tipos';
 import { IconoAlerta, IconoCheck } from '../iconos';
-import { Aviso, Boton, Numero, Tarjeta } from '../ui';
+import { Aviso, Boton, EncabezadoPagina, EstadoVacio, Numero } from '../ui';
 import { useClubActual } from './sesion';
 
 type Resultado = ResumenCobro & { yaRegistrado: boolean; puntosGanados: number };
@@ -48,98 +49,177 @@ export function Checkin() {
   const r = checkin.data;
 
   return (
-    <div className="mx-auto flex max-w-xl flex-col gap-4">
-      <h1 className="font-display text-[30px] font-bold">Check-in</h1>
-      {!qr ? <Camara alLeer={leer} /> : null}
-      {!qr ? (
-        <form
-          className="flex gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (manual.trim()) leer(manual.trim());
-          }}
-        >
-          <label className="sr-only" htmlFor="codigo-manual">
-            Código o link de la reserva
-          </label>
-          <input
-            id="codigo-manual"
-            value={manual}
-            onChange={(e) => setManual(e.target.value)}
-            placeholder="O pegá el código / link de la reserva"
-            className="min-h-11 flex-1 rounded-xl border border-[#c9d1cb] bg-white px-3"
-          />
-          <Boton type="submit" variante="secundario">
-            Buscar
-          </Boton>
-        </form>
-      ) : null}
-
-      {qr && checkin.isPending ? <Tarjeta>Buscando la reserva…</Tarjeta> : null}
-
-      {r ? (
-        <Tarjeta className="flex flex-col gap-3.5">
-          <p className="flex items-center gap-2.5 text-xl font-bold text-cancha-oscuro">
-            <IconoCheck tamano={28} />
-            {r.cliente?.nombre ?? 'Reserva'} {r.yaRegistrado ? 'ya estaba en cancha' : 'está en cancha'}
-          </p>
-          {r.puntosGanados > 0 ? (
-            <p className="text-sm font-semibold text-cancha">Sumó {r.puntosGanados} puntos.</p>
-          ) : null}
-          <div className="flex justify-between gap-3 text-[15px]">
-            <div>
-              <div className="text-[13px] text-suave">Cancha</div>
-              <div className="font-bold">{r.cancha}</div>
-            </div>
-            <div className="text-right">
-              <div className="text-[13px] text-suave">Horario</div>
-              <div className="font-bold">
-                {hora(r.inicio, zona)} a {hora(r.fin, zona)}
+    <div className="flex flex-col gap-6">
+      <EncabezadoPagina
+        titulo="Check-in"
+        bajada="Escaneá el QR del comprobante, buscá por código o marcá la llegada desde la lista."
+      />
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,560px)_minmax(0,1fr)]">
+        <div className="flex flex-col gap-4">
+          {!qr ? <Camara alLeer={leer} /> : null}
+          {!qr ? (
+            <form
+              className="flex flex-col gap-1.5"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (manual.trim()) leer(manual.trim());
+              }}
+            >
+              <label className="text-sm font-semibold" htmlFor="codigo-manual">
+                Código o link de la reserva
+              </label>
+              <div className="flex gap-2">
+                <input
+                  id="codigo-manual"
+                  value={manual}
+                  onChange={(e) => setManual(e.target.value)}
+                  placeholder="Pegá el link o el código"
+                  className="min-h-11 min-w-0 flex-1 rounded-xs border border-borde-control bg-superficie px-3 text-base"
+                />
+                <Boton type="submit" variante="secundario">
+                  Buscar
+                </Boton>
               </div>
-            </div>
-          </div>
-          <div className="rounded-xl bg-fondo px-4 py-3.5">
-            <div className="flex justify-between text-sm text-medio">
-              <span>Precio</span>
-              <span>{pesos(r.precioTotal)}</span>
-            </div>
-            <div className="mt-1 flex justify-between text-sm text-medio">
-              <span>Ya pagado</span>
-              <span>− {pesos(r.pagado)}</span>
-            </div>
-            <div className="my-2.5 h-px bg-linea" />
-            <div className="flex items-baseline justify-between">
-              <span className="font-bold">Saldo a cobrar</span>
-              <Numero className="text-[34px]">{pesos(cobrado ? 0 : r.saldo)}</Numero>
-            </div>
-          </div>
-          {r.saldo > 0 && !cobrado ? (
-            <Boton grande disabled={cobrar.isPending} onClick={() => cobrar.mutate(r)}>
-              {cobrar.isPending ? 'Registrando…' : `Cobré ${pesos(r.saldo)} en efectivo`}
-            </Boton>
+            </form>
           ) : null}
-          {cobrado ? <Aviso tipo="ok">Cobro registrado.</Aviso> : null}
-          {cobrar.error ? <Aviso>{mensajeDe(cobrar.error)}</Aviso> : null}
-          <Boton variante="fantasma" grande onClick={siguiente}>
-            Escanear el siguiente
-          </Boton>
-        </Tarjeta>
-      ) : null}
 
-      {error ? (
-        <Tarjeta className="flex flex-col gap-3">
-          <p className="flex items-center gap-2 text-lg font-bold text-[#7a1a0c]">
-            <IconoAlerta /> {error.message}
-          </p>
-          {error.codigo === 'FUERA_DE_HORARIO' ? (
-            <Boton onClick={() => qr && checkin.mutate({ qr, forzar: true })}>Hacer el check-in igual</Boton>
-          ) : null}
-          <Boton variante="secundario" onClick={siguiente}>
-            Escanear otro
-          </Boton>
-        </Tarjeta>
-      ) : null}
+          <div aria-live="polite" className="flex flex-col gap-4">
+            {qr && checkin.isPending ? <p className="text-base text-tenue">Buscando la reserva…</p> : null}
+
+            {r ? (
+              <section className="flex flex-col gap-4 border border-ok-borde bg-superficie p-5">
+                <p className="flex items-center gap-2.5 font-display text-[30px] leading-none font-bold text-ok-texto">
+                  <IconoCheck tamano={28} />
+                  {r.cliente?.nombre ?? 'Reserva'} {r.yaRegistrado ? 'ya estaba en cancha' : 'está en cancha'}
+                </p>
+                {r.puntosGanados > 0 ? (
+                  <p className="text-base font-semibold text-acento-texto">Sumó {r.puntosGanados} puntos.</p>
+                ) : null}
+                <dl className="grid grid-cols-2 gap-3 text-base">
+                  <div>
+                    <dt className="text-sm text-tenue">Cancha</dt>
+                    <dd className="font-semibold">{r.cancha}</dd>
+                  </div>
+                  <div className="text-right">
+                    <dt className="text-sm text-tenue">Horario</dt>
+                    <dd className="font-semibold">
+                      {hora(r.inicio, zona)} a {hora(r.fin, zona)}
+                    </dd>
+                  </div>
+                </dl>
+                <dl className="grid grid-cols-[1fr_auto] gap-y-1 border-t border-linea pt-3 text-base">
+                  <dt className="text-tenue">Precio</dt>
+                  <dd className="text-right">{pesos(r.precioTotal)}</dd>
+                  <dt className="text-tenue">Ya pagado</dt>
+                  <dd className="text-right">− {pesos(r.pagado)}</dd>
+                  <dt className="self-end font-semibold">Saldo a cobrar</dt>
+                  <dd className="text-right">
+                    <Numero className="text-[36px]">{pesos(cobrado ? 0 : r.saldo)}</Numero>
+                  </dd>
+                </dl>
+                {r.saldo > 0 && !cobrado ? (
+                  <Boton grande disabled={cobrar.isPending} onClick={() => cobrar.mutate(r)}>
+                    {cobrar.isPending ? 'Registrando…' : `Cobré ${pesos(r.saldo)} en efectivo`}
+                  </Boton>
+                ) : null}
+                {cobrado ? <Aviso tipo="ok">Cobro registrado.</Aviso> : null}
+                {cobrar.error ? <Aviso>{mensajeDe(cobrar.error)}</Aviso> : null}
+                <Boton variante="secundario" grande onClick={siguiente}>
+                  Escanear el siguiente
+                </Boton>
+              </section>
+            ) : null}
+
+            {error ? (
+              <section className="flex flex-col gap-3 border border-error-borde bg-superficie p-5">
+                <p className="flex items-center gap-2 text-lg font-semibold text-error-texto">
+                  <IconoAlerta /> {error.message}
+                </p>
+                {error.codigo === 'FUERA_DE_HORARIO' ? (
+                  <Boton onClick={() => qr && checkin.mutate({ qr, forzar: true })}>
+                    Hacer el check-in igual
+                  </Boton>
+                ) : null}
+                <Boton variante="secundario" onClick={siguiente}>
+                  Escanear otro
+                </Boton>
+              </section>
+            ) : null}
+          </div>
+        </div>
+
+        <Llegadas alMarcar={leer} />
+      </div>
     </div>
+  );
+}
+
+/** Los que tendrían que estar llegando: confirmados que empiezan entre hace una hora y dentro de hora y media. */
+function Llegadas({ alMarcar }: { alMarcar: (codigo: string) => void }) {
+  const { clubId, zona } = useClubActual();
+  const ahora = useAhora(60_000);
+  const hoy = hoyEn(zona);
+  const agenda = useQuery({
+    queryKey: ['agenda', clubId, hoy],
+    queryFn: () => panel.get<Agenda>(`/clubs/${clubId}/agenda?fecha=${hoy}`),
+    refetchInterval: 60_000,
+  });
+  const [buscando, setBuscando] = useState<string | null>(null);
+  const marcar = useMutation({
+    mutationFn: (turnoId: string) => panel.get<DetalleTurno>(`/clubs/${clubId}/turnos/${turnoId}`),
+    onMutate: (id) => setBuscando(id),
+    onSuccess: (d) => alMarcar(d.codigo),
+    onSettled: () => setBuscando(null),
+  });
+  const canchas = new Map(agenda.data?.canchas.map((c) => [c.id, c.nombre]));
+  const proximos = (agenda.data?.turnos ?? [])
+    .filter(
+      (t) =>
+        t.estado === 'CONFIRMADO' &&
+        t.origen !== 'BLOQUEO' &&
+        Date.parse(t.inicio) >= ahora - 60 * 60_000 &&
+        Date.parse(t.inicio) <= ahora + 90 * 60_000,
+    )
+    .sort((a, b) => a.inicio.localeCompare(b.inicio));
+
+  return (
+    <section aria-labelledby="titulo-llegadas" className="flex flex-col gap-3">
+      <h2 id="titulo-llegadas" className="font-display text-[28px] leading-none font-bold">
+        Llegan ahora
+      </h2>
+      {proximos.length === 0 ? (
+        <EstadoVacio titulo="Nadie por llegar en la próxima hora y media.">
+          Los turnos confirmados aparecen acá un rato antes de empezar.
+        </EstadoVacio>
+      ) : (
+        <ul className="flex flex-col border border-linea bg-superficie">
+          {proximos.map((t) => (
+            <li
+              key={t.id}
+              className="flex items-center gap-3 border-b border-linea px-4 py-3 last:border-b-0"
+            >
+              <span className="w-14 shrink-0 font-display text-2xl font-bold">{hora(t.inicio, zona)}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-base font-semibold">{t.cliente?.nombre}</span>
+                <span className="block text-sm text-tenue">
+                  {canchas.get(t.canchaId)}
+                  {t.saldo > 0 ? ` · debe ${pesos(t.saldo)}` : ' · pagado'}
+                </span>
+              </span>
+              <Boton
+                variante="secundario"
+                disabled={buscando === t.id}
+                onClick={() => marcar.mutate(t.id)}
+                aria-label={`Marcar que llegó ${t.cliente?.nombre ?? ''}`}
+              >
+                Llegó
+              </Boton>
+            </li>
+          ))}
+        </ul>
+      )}
+      {marcar.error ? <Aviso>{mensajeDe(marcar.error)}</Aviso> : null}
+    </section>
   );
 }
 
@@ -206,14 +286,14 @@ function Camara({ alLeer }: { alLeer: (texto: string) => void }) {
 
   if (problema) return <Aviso tipo="ambar">{problema}</Aviso>;
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-[#1e2a23]">
+    <div className="relative overflow-hidden bg-noche">
       <video ref={video} playsInline muted className="aspect-[4/3] w-full object-cover" />
       <canvas ref={lienzo} className="hidden" />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 m-auto size-48 rounded-2xl border-4 border-[#4ade80]/80"
+        className="pointer-events-none absolute inset-0 m-auto size-48 border-4 border-[#46ad65]"
       />
-      <p className="absolute inset-x-0 bottom-3 text-center text-[13px] text-[#c9d3cc]">
+      <p className="absolute inset-x-0 bottom-3 text-center text-sm text-cal">
         Apuntá la cámara al QR del comprobante
       </p>
     </div>

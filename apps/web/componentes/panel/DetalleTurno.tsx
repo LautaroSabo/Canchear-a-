@@ -4,10 +4,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useState } from 'react';
 import { ErrorApi, mensajeDe, panel } from '@/lib/api';
-import { hora, linkWhatsApp, pesos, telefonoLegible } from '@/lib/formato';
+import { fechaCorta, fechaLocal, hora, linkWhatsApp, pesos, telefonoLegible } from '@/lib/formato';
 import type { DetalleTurno as TipoDetalle, VentaCantina } from '@/lib/tipos';
 import { IconoWhatsApp } from '../iconos';
-import { Aviso, Boton, Cargando, Numero } from '../ui';
+import { Aviso, Boton, BotonLink, Cargando, Numero } from '../ui';
 import { FormAnular } from './Cantina';
 import { Vendedor } from './cantina/Vendedor';
 import { Dialogo } from './Dialogo';
@@ -66,66 +66,111 @@ export function DetalleTurno({
   const fueraDeHorario = checkin.error instanceof ErrorApi && checkin.error.codigo === 'FUERA_DE_HORARIO';
   const error = [checkin.error, ausente.error].find(Boolean);
 
+  const esBloqueo = t.origen === 'BLOQUEO';
+  const cancelable = t.estado === 'PRE_RESERVADO' || t.estado === 'CONFIRMADO';
+  const diaTurno = fechaLocal(t.inicio, zona);
+
+  // Una sola acción principal según el momento del turno; el resto, secundarias.
+  let principal: React.ReactNode = null;
+  const secundarias: React.ReactNode[] = [];
+  if (t.estado === 'CONFIRMADO' && !esBloqueo) {
+    principal = (
+      <Boton key="checkin" disabled={checkin.isPending} onClick={() => checkin.mutate(fueraDeHorario)}>
+        {fueraDeHorario ? 'Hacer el check-in igual' : 'Hacer check-in'}
+      </Boton>
+    );
+    if (t.saldo > 0)
+      secundarias.push(
+        <Boton key="cobrar" variante="secundario" onClick={() => setDialogo('cobrar')}>
+          Cobrar saldo {pesos(t.saldo)}
+        </Boton>,
+      );
+    if (empezo)
+      secundarias.push(
+        <Boton
+          key="ausente"
+          variante="secundario"
+          disabled={ausente.isPending}
+          onClick={() => ausente.mutate()}
+        >
+          No vino (ausente)
+        </Boton>,
+      );
+  } else if (t.estado === 'PRESENTE' && t.saldo > 0) {
+    principal = <Boton onClick={() => setDialogo('cobrar')}>Cobrar saldo {pesos(t.saldo)}</Boton>;
+  } else if (t.estado === 'PRE_RESERVADO') {
+    principal = senaEnRevision ? (
+      <BotonLink href={`/panel/${clubId}/transferencias`}>Revisar el comprobante</BotonLink>
+    ) : (
+      <Boton onClick={() => setDialogo('cobrar')}>Cobrar la seña en el club ({pesos(t.montoSena)})</Boton>
+    );
+  }
+
   return (
     <div className="flex flex-col">
-      <div className="flex items-center justify-between gap-2">
-        <span className={`rounded-full px-2.5 py-1 text-xs font-bold no-underline ${CLASES[a]}`}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className={`rounded-xs px-2 py-0.5 text-sm font-semibold no-underline ${CLASES[a]}`}>
           {TEXTOS[a]}
           {a === 'pendiente' && t.expiraEn ? ` · vence ${hora(t.expiraEn, zona)}` : ''}
         </span>
         {t.origen === 'FIJO' ? (
-          <Link href={`/panel/${clubId}/turnos-fijos`} className="text-xs font-semibold text-cancha">
+          <Link
+            href={`/panel/${clubId}/turnos-fijos`}
+            className="text-sm font-semibold text-acento-texto underline"
+          >
             {ORIGENES[t.origen]}
           </Link>
         ) : (
-          <span className="text-xs text-suave">{ORIGENES[t.origen]}</span>
+          <span className="text-sm text-tenue">{ORIGENES[t.origen]}</span>
         )}
       </div>
-      <h2 className="mt-2.5 text-xl font-bold">{t.cliente?.nombre ?? 'Cancha bloqueada'}</h2>
-      <p className="text-sm text-medio">
-        {t.cancha} · {hora(t.inicio, zona)} a {hora(t.fin, zona)}
+      <h2 className="mt-3 font-display text-[32px] leading-none font-bold">
+        {t.cliente?.nombre ?? 'Cancha bloqueada'}
+      </h2>
+      <p className="mt-1 text-base text-tenue">
+        {t.cancha} · {fechaCorta(diaTurno)} · {hora(t.inicio, zona)} a {hora(t.fin, zona)}
       </p>
       {t.cliente ? (
         <a
           href={linkWhatsApp(t.cliente.telefono)}
-          className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-cancha"
+          className="mt-2 inline-flex min-h-11 items-center gap-1.5 self-start text-base font-semibold text-acento-texto"
         >
-          <IconoWhatsApp tamano={16} /> {telefonoLegible(t.cliente.telefono)}
+          <IconoWhatsApp tamano={18} /> {telefonoLegible(t.cliente.telefono)}
         </a>
       ) : null}
-      {t.nota ? <p className="mt-2.5 rounded-xl bg-fondo px-3 py-2.5 text-[13px]">Nota: {t.nota}</p> : null}
+      {t.nota ? <p className="mt-2 border-l-2 border-borde-control pl-3 text-sm">Nota: {t.nota}</p> : null}
 
-      {t.origen !== 'BLOQUEO' ? (
-        <dl className="mt-3.5 grid grid-cols-[1fr_auto] items-baseline gap-y-1.5 text-sm">
-          <dt className="text-suave">Precio</dt>
-          <dd className="font-semibold">{pesos(t.precioTotal)}</dd>
+      {!esBloqueo ? (
+        <dl className="mt-4 grid grid-cols-[1fr_auto] items-baseline gap-y-1.5 border-t border-linea pt-3 text-base">
+          <dt className="text-tenue">Precio</dt>
+          <dd className="text-right font-semibold">{pesos(t.precioTotal)}</dd>
           {t.consumos > 0 ? (
             <>
-              <dt className="text-suave">Cantina</dt>
-              <dd className="font-semibold">{pesos(t.consumos)}</dd>
+              <dt className="text-tenue">Cantina</dt>
+              <dd className="text-right font-semibold">{pesos(t.consumos)}</dd>
             </>
           ) : null}
           {t.descuentos > 0 ? (
             <>
-              <dt className="text-suave">Canje de puntos</dt>
-              <dd className="font-semibold">−{pesos(t.descuentos)}</dd>
+              <dt className="text-tenue">Canje de puntos</dt>
+              <dd className="text-right font-semibold">−{pesos(t.descuentos)}</dd>
             </>
           ) : null}
-          <dt className="text-suave">Pagado</dt>
-          <dd className="font-semibold">{pesos(t.pagado)}</dd>
-          <dt className="font-bold">Saldo a cobrar</dt>
-          <dd>
-            <Numero className="text-2xl">{pesos(t.saldo)}</Numero>
+          <dt className="text-tenue">Pagado</dt>
+          <dd className="text-right font-semibold">{pesos(t.pagado)}</dd>
+          <dt className="font-semibold">{t.saldo > 0 ? 'Debe' : 'Saldo'}</dt>
+          <dd className={`text-right ${t.saldo > 0 ? 'text-aviso-texto' : ''}`}>
+            <Numero className="text-[28px]">{t.saldo > 0 ? pesos(t.saldo) : 'Pagado'}</Numero>
           </dd>
         </dl>
       ) : null}
 
-      {t.origen !== 'BLOQUEO' ? (
+      {!esBloqueo ? (
         <section aria-label="Cantina del turno" className="mt-3 flex flex-col gap-1.5">
           {t.ventas
             .filter((v) => !v.anuladaEn)
             .map((v) => (
-              <div key={v.id} className="flex items-center justify-between gap-2 text-[13px]">
+              <div key={v.id} className="flex items-center justify-between gap-2 text-sm">
                 <span className="min-w-0 flex-1">
                   {v.items.map((i) => `${i.cantidad} × ${i.nombre}`).join(', ')}
                 </span>
@@ -133,7 +178,7 @@ export function DetalleTurno({
                 <button
                   type="button"
                   onClick={() => setAnulando(v)}
-                  className="text-suave underline"
+                  className="min-h-11 px-1 text-tenue underline"
                   aria-label={`Anular ${v.items.map((i) => i.nombre).join(', ')}`}
                 >
                   anular
@@ -141,7 +186,7 @@ export function DetalleTurno({
               </div>
             ))}
           {t.estado === 'CONFIRMADO' || t.estado === 'PRESENTE' ? (
-            <Boton variante="fantasma" className="self-start" onClick={() => setDialogo('cantina')}>
+            <Boton variante="fantasma" className="self-start px-0" onClick={() => setDialogo('cantina')}>
               + Cargar de la cantina
             </Boton>
           ) : null}
@@ -165,58 +210,47 @@ export function DetalleTurno({
         </div>
       ) : null}
 
-      <div className="mt-4 flex flex-col gap-2">
-        {t.estado === 'CONFIRMADO' && t.origen !== 'BLOQUEO' ? (
-          <>
-            <Boton disabled={checkin.isPending} onClick={() => checkin.mutate(fueraDeHorario)}>
-              {fueraDeHorario ? 'Hacer el check-in igual' : 'Hacer check-in'}
+      {principal || secundarias.length || (cancelable && esBloqueo) ? (
+        <div className="mt-4 flex flex-col gap-2">
+          {principal}
+          {secundarias}
+          {cancelable && esBloqueo ? (
+            <Boton variante="peligro" onClick={() => setDialogo('cancelar')}>
+              Quitar bloqueo
             </Boton>
-            {t.saldo > 0 ? (
-              <Boton variante="secundario" onClick={() => setDialogo('cobrar')}>
-                Cobrar saldo {pesos(t.saldo)}
-              </Boton>
-            ) : null}
-            {empezo ? (
-              <Boton variante="secundario" disabled={ausente.isPending} onClick={() => ausente.mutate()}>
-                No vino (ausente)
-              </Boton>
-            ) : null}
-          </>
-        ) : null}
-        {t.estado === 'PRESENTE' && t.saldo > 0 ? (
-          <Boton onClick={() => setDialogo('cobrar')}>Cobrar saldo {pesos(t.saldo)}</Boton>
-        ) : null}
-        {t.estado === 'PRE_RESERVADO' ? (
-          senaEnRevision ? (
-            <Link
-              href={`/panel/${clubId}/transferencias`}
-              className="inline-flex min-h-11 items-center justify-center rounded-xl bg-cancha px-4 text-sm font-bold text-white"
-            >
-              Revisar el comprobante
-            </Link>
-          ) : (
-            <Boton onClick={() => setDialogo('cobrar')}>
-              Cobrar la seña en el club ({pesos(t.montoSena)})
-            </Boton>
-          )
-        ) : null}
-        {t.estado === 'PRE_RESERVADO' || t.estado === 'CONFIRMADO' ? (
-          <Boton variante="peligro" onClick={() => setDialogo('cancelar')}>
-            {t.origen === 'BLOQUEO' ? 'Quitar bloqueo' : 'Cancelar turno'}
-          </Boton>
-        ) : null}
-      </div>
+          ) : null}
+        </div>
+      ) : null}
 
-      <h3 className="mb-2 mt-5 text-xs font-semibold uppercase tracking-wide text-suave">Historial</h3>
-      <ol className="flex flex-col gap-1.5 text-[13px]">
-        {t.historial.map((h) => (
-          <li key={`${h.en}${h.a}`} className="flex gap-2.5">
-            <span className="w-11 shrink-0 text-suave">{hora(h.en, zona)}</span>
-            <span>
-              {ESTADOS_HISTORIAL[h.a]} · <span className="text-suave">{actorLegible(h.actor)}</span>
-            </span>
-          </li>
-        ))}
+      {cancelable && !esBloqueo ? (
+        <details className="group mt-3">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center text-sm font-semibold text-tenue hover:text-tinta">
+            Más acciones
+          </summary>
+          <div className="flex flex-col gap-2 pt-1">
+            <Boton variante="peligro" onClick={() => setDialogo('cancelar')}>
+              Cancelar turno
+            </Boton>
+          </div>
+        </details>
+      ) : null}
+
+      <h3 className="mt-5 mb-2 text-base font-semibold">Historial</h3>
+      <ol className="flex flex-col gap-1.5 text-sm">
+        {t.historial.map((h) => {
+          const dia = fechaLocal(h.en, zona);
+          return (
+            <li key={`${h.en}${h.a}`} className="flex gap-3">
+              <span className="w-28 shrink-0 text-tenue">
+                {dia === diaTurno ? '' : `${fechaCorta(dia).split(' ')[1]} `}
+                {hora(h.en, zona)}
+              </span>
+              <span>
+                {ESTADOS_HISTORIAL[h.a]} · <span className="text-tenue">{actorLegible(h.actor)}</span>
+              </span>
+            </li>
+          );
+        })}
       </ol>
 
       <Dialogo
@@ -290,11 +324,11 @@ function CanjesDelTurno({
   return (
     <section
       aria-label="Canjes de puntos"
-      className="mt-3 flex flex-col gap-1.5 rounded-xl bg-cancha-suave px-3 py-2.5 text-[13px]"
+      className="mt-3 flex flex-col gap-1.5 border-l-2 border-ok-borde bg-ok-fondo px-3 py-2.5 text-sm text-ok-texto"
     >
       {canjes.aplicados.map((c) => (
         <div key={c.id}>
-          ✓ {c.premio.nombre}: −{pesos(c.montoAplicado)}
+          Canje aplicado · {c.premio.nombre}: −{pesos(c.montoAplicado)}
         </div>
       ))}
       {canjes.disponibles.map((c) => (

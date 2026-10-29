@@ -5,30 +5,29 @@ import { useState } from 'react';
 import { mensajeDe, panel } from '@/lib/api';
 import { fechaCorta, fechaLocal, hora, telefonoLegible } from '@/lib/formato';
 import type { MensajeCliente } from '@/lib/tipos';
-import { Aviso, Boton, Cargando } from '../ui';
+import { Aviso, Boton, Cargando, EncabezadoPagina, EstadoVacio, Insignia, Pestanas, type Tono } from '../ui';
 import { useClubActual } from './sesion';
 
-const FILTROS = [
-  { id: '', nombre: 'Todos' },
-  { id: 'FALLIDA', nombre: 'Con error' },
-  { id: 'PENDIENTE', nombre: 'Por salir' },
-] as const;
+type Filtro = 'todos' | 'FALLIDA' | 'PENDIENTE';
 
-const ESTADOS: Record<MensajeCliente['estado'], { texto: string; clase: string }> = {
-  ENVIADA: { texto: 'Enviado', clase: 'bg-cancha-suave text-cancha-oscuro' },
-  PENDIENTE: { texto: 'Por salir', clase: 'bg-ambar-fondo text-ambar-texto' },
-  FALLIDA: { texto: 'No se pudo mandar', clase: 'bg-[#fdecea] text-[#7a1a0c]' },
-};
+/** Sin WhatsApp configurado el worker los marca "enviados", pero al cliente no le llegó nada. */
+function estadoVisible(m: MensajeCliente, conWhatsapp: boolean): { texto: string; tono: Tono } {
+  if (m.estado === 'FALLIDA') return { texto: 'No se pudo mandar', tono: 'error' };
+  if (m.estado === 'PENDIENTE') return { texto: 'Por salir', tono: 'aviso' };
+  return conWhatsapp
+    ? { texto: 'Enviado', tono: 'ok' }
+    : { texto: 'No enviado · WhatsApp sin conectar', tono: 'neutro' };
+}
 
 export function Mensajes() {
   const { clubId, zona } = useClubActual();
   const qc = useQueryClient();
-  const [filtro, setFiltro] = useState<(typeof FILTROS)[number]['id']>('');
+  const [filtro, setFiltro] = useState<Filtro>('todos');
   const datos = useQuery({
     queryKey: ['mensajes', clubId, filtro],
     queryFn: () =>
       panel.get<{ whatsappConfigurado: boolean; mensajes: MensajeCliente[] }>(
-        `/clubs/${clubId}/mensajes${filtro ? `?estado=${filtro}` : ''}`,
+        `/clubs/${clubId}/mensajes${filtro !== 'todos' ? `?estado=${filtro}` : ''}`,
       ),
     refetchInterval: 10_000,
   });
@@ -36,77 +35,86 @@ export function Mensajes() {
     mutationFn: (id: string) => panel.post(`/clubs/${clubId}/mensajes/${id}/reintentar`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['mensajes', clubId] }),
   });
+  const conWhatsapp = datos.data?.whatsappConfigurado ?? true;
 
   return (
-    <div className="flex max-w-3xl flex-col gap-4">
-      <h1 className="font-display text-[30px] font-bold">Mensajes a clientes</h1>
+    <div className="flex max-w-3xl flex-col gap-6">
+      <EncabezadoPagina
+        titulo="Mensajes a clientes"
+        bajada="Todo lo que la app le manda a cada cliente por WhatsApp: confirmaciones, recordatorios y avisos."
+      />
       {datos.data && !datos.data.whatsappConfigurado ? (
         <Aviso tipo="ambar">
-          WhatsApp todavía no está configurado: los mensajes <strong>no les llegan a los clientes</strong>.
-          Figuran como enviados pero solo se registran acá (y en la consola del worker). Para activarlo, seguí
-          docs/whatsapp.md.
+          WhatsApp todavía no está conectado: estos mensajes <strong>no les llegan a los clientes</strong>,
+          solo quedan registrados acá. Para activarlo, seguí la guía de docs/whatsapp.md.
         </Aviso>
       ) : null}
-      <div role="tablist" aria-label="Filtrar mensajes" className="flex gap-1">
-        {FILTROS.map((f) => (
-          <button
-            key={f.id}
-            type="button"
-            role="tab"
-            aria-selected={filtro === f.id}
-            onClick={() => setFiltro(f.id)}
-            className={`min-h-11 rounded-xl px-3.5 text-sm font-semibold ${
-              filtro === f.id
-                ? 'bg-noche text-white'
-                : 'border border-linea bg-white text-medio hover:text-tinta'
-            }`}
-          >
-            {f.nombre}
-          </button>
-        ))}
+      <Pestanas
+        id="mensajes"
+        etiqueta="Filtrar mensajes"
+        valor={filtro}
+        onCambio={setFiltro}
+        opciones={[
+          { valor: 'todos', etiqueta: 'Todos' },
+          { valor: 'FALLIDA', etiqueta: 'Con error' },
+          { valor: 'PENDIENTE', etiqueta: 'Por salir' },
+        ]}
+      />
+      <div
+        id="mensajes-panel"
+        role="tabpanel"
+        aria-labelledby={`mensajes-tab-${filtro}`}
+        className="flex flex-col gap-4"
+      >
+        {reintentar.error ? <Aviso>{mensajeDe(reintentar.error)}</Aviso> : null}
+        {datos.isPending ? (
+          <Cargando />
+        ) : datos.isError ? (
+          <Aviso>{datos.error.message}</Aviso>
+        ) : datos.data.mensajes.length === 0 ? (
+          <EstadoVacio titulo="No hay mensajes acá." />
+        ) : (
+          <ul className="flex flex-col border border-linea bg-superficie">
+            {datos.data.mensajes.map((m) => {
+              const e = estadoVisible(m, conWhatsapp);
+              return (
+                <li
+                  key={m.id}
+                  className="flex min-w-0 flex-col gap-2 border-b border-linea px-4 py-4 last:border-b-0"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="min-w-0 text-base">
+                      <span className="font-semibold">{m.cliente ?? 'Cliente'}</span>{' '}
+                      <span className="text-tenue">{telefonoLegible(m.destino)}</span>
+                    </span>
+                    <span className="flex flex-wrap items-center gap-2 text-sm text-tenue">
+                      {fechaCorta(fechaLocal(m.creadoEn, zona))} {hora(m.creadoEn, zona)}
+                      <Insignia tono={e.tono}>{e.texto}</Insignia>
+                    </span>
+                  </div>
+                  <p className="border-l-2 border-linea pl-3 text-sm break-words whitespace-pre-wrap">
+                    {m.texto}
+                  </p>
+                  {m.estado === 'FALLIDA' ? (
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-error-texto">
+                      <span className="min-w-0 break-words">
+                        {m.intentos} intentos · {m.error}
+                      </span>
+                      <Boton
+                        variante="secundario"
+                        disabled={reintentar.isPending}
+                        onClick={() => reintentar.mutate(m.id)}
+                      >
+                        Reintentar
+                      </Boton>
+                    </div>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
-      {reintentar.error ? <Aviso>{mensajeDe(reintentar.error)}</Aviso> : null}
-      {datos.isPending ? (
-        <Cargando />
-      ) : datos.isError ? (
-        <Aviso>{datos.error.message}</Aviso>
-      ) : datos.data.mensajes.length === 0 ? (
-        <p className="text-sm text-suave">No hay mensajes.</p>
-      ) : (
-        <ul className="flex flex-col divide-y divide-linea rounded-2xl border border-linea bg-white">
-          {datos.data.mensajes.map((m) => (
-            <li key={m.id} className="flex flex-col gap-1.5 px-4 py-3">
-              <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-                <span className="font-bold">
-                  {m.cliente ?? 'Cliente'} ·{' '}
-                  <span className="font-normal text-medio">{telefonoLegible(m.destino)}</span>
-                </span>
-                <span className="flex items-center gap-2 text-[13px] text-suave">
-                  {fechaCorta(fechaLocal(m.creadoEn, zona))} {hora(m.creadoEn, zona)}
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${ESTADOS[m.estado].clase}`}>
-                    {ESTADOS[m.estado].texto}
-                  </span>
-                </span>
-              </div>
-              <p className="whitespace-pre-wrap rounded-xl bg-fondo px-3 py-2 text-sm">{m.texto}</p>
-              {m.estado === 'FALLIDA' ? (
-                <div className="flex flex-wrap items-center justify-between gap-2 text-[13px] text-[#7a1a0c]">
-                  <span className="min-w-0 break-words">
-                    {m.intentos} intentos · {m.error}
-                  </span>
-                  <Boton
-                    variante="secundario"
-                    disabled={reintentar.isPending}
-                    onClick={() => reintentar.mutate(m.id)}
-                  >
-                    Reintentar
-                  </Boton>
-                </div>
-              ) : null}
-            </li>
-          ))}
-        </ul>
-      )}
     </div>
   );
 }

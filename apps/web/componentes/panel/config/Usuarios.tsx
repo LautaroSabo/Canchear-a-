@@ -71,7 +71,7 @@ export function Usuarios() {
                   value={u.rol}
                   disabled={cambiarRol.isPending}
                   onChange={(e) => cambiarRol.mutate({ usuarioId: u.id, rol: e.target.value as Rol })}
-                  className="min-h-11 rounded-xl border border-[#c9d1cb] bg-white px-2 text-sm"
+                  className="min-h-11 rounded-xs border border-borde-control bg-superficie px-2 text-sm"
                 >
                   {Object.entries(ROLES).map(([v, r]) => (
                     <option key={v} value={v}>
@@ -105,7 +105,7 @@ export function Usuarios() {
         </Aviso>
       ) : null}
       <form
-        className="grid gap-3 rounded-xl bg-fondo p-4 sm:grid-cols-3"
+        className="grid gap-3 rounded-xs bg-fondo p-4 sm:grid-cols-3"
         onSubmit={(e) => {
           e.preventDefault();
           setCreado(null);

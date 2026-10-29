@@ -51,7 +51,7 @@ export function DiasEspeciales({ dias }: { dias: DiaEspecial[] }) {
         <p className="text-sm">No hay días especiales cargados.</p>
       )}
       <form
-        className="grid gap-3 rounded-xl bg-fondo p-4 sm:grid-cols-2"
+        className="grid gap-3 rounded-xs bg-fondo p-4 sm:grid-cols-2"
         onSubmit={(e) => {
           e.preventDefault();
           guardar.mutate();

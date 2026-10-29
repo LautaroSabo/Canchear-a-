@@ -39,6 +39,6 @@ export function GuardSesion({ children }: { children: React.ReactNode }) {
     if (sinSesion) router.replace('/panel/login');
   }, [sinSesion, router]);
   if (sesion.isPending || sinSesion) return <Cargando texto="Verificando tu sesión…" />;
-  if (sesion.isError) return <p className="p-6 text-[#7a1a0c]">{sesion.error.message}</p>;
+  if (sesion.isError) return <p className="p-6 text-error-texto">{sesion.error.message}</p>;
   return children;
 }

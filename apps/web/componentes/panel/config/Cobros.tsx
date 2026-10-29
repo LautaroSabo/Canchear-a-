@@ -69,11 +69,11 @@ function MercadoPago() {
               'Sin conectar: los clientes solo pueden pagar por transferencia.'
             )}
           </p>
-          <div className="rounded-xl bg-fondo px-4 py-3 text-sm">
+          <div className="rounded-xs bg-fondo px-4 py-3 text-sm">
             <div className="font-semibold">
               URL de notificaciones (cargala en Mercado Pago → Webhooks → Pagos):
             </div>
-            <code className="break-all text-[13px]">{estado.data.urlWebhook}</code>
+            <code className="break-all text-sm">{estado.data.urlWebhook}</code>
           </div>
           {guardar.data ? (
             <Aviso tipo="ok">Listo: cuenta {guardar.data.cuenta.nickname} conectada.</Aviso>

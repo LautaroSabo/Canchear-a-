@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { mensajeDe, panel } from '@/lib/api';
 import { hora, hoyEn, pesos } from '@/lib/formato';
 import type { CategoriaProducto, Producto, ResumenCantina, VentaCantina } from '@/lib/tipos';
-import { Aviso, Boton, Campo, Cargando, Casilla, Selector, Tarjeta } from '../ui';
+import { Aviso, Boton, Campo, Cargando, Casilla, EncabezadoPagina, Pestanas, Selector, Tarjeta } from '../ui';
 import { CATEGORIAS, MEDIOS } from './cantina/comunes';
 import { useProductos, Vendedor } from './cantina/Vendedor';
 import { aCentavos, aTextoPesos, pesosValidos } from './config/comunes';
@@ -24,30 +24,19 @@ export function Cantina() {
   ];
   return (
     <div className="flex max-w-5xl flex-col gap-4">
-      <h1 className="font-display text-[30px] font-bold">Cantina</h1>
-      <div role="tablist" aria-label="Secciones de la cantina" className="flex gap-1 overflow-x-auto pb-1">
-        {SECCIONES.map((s) => (
-          <button
-            key={s.id}
-            type="button"
-            role="tab"
-            aria-selected={seccion === s.id}
-            onClick={() => {
-              setSeccion(s.id);
-              setAviso(null);
-            }}
-            className={`min-h-11 shrink-0 rounded-xl px-3.5 text-sm font-semibold ${
-              seccion === s.id
-                ? 'bg-noche text-white'
-                : 'border border-linea bg-white text-medio hover:text-tinta'
-            }`}
-          >
-            {s.nombre}
-          </button>
-        ))}
-      </div>
+      <EncabezadoPagina titulo="Cantina" />
+      <Pestanas
+        id="cantina"
+        etiqueta="Secciones de la cantina"
+        valor={seccion}
+        onCambio={(v) => {
+          setSeccion(v);
+          setAviso(null);
+        }}
+        opciones={SECCIONES.map((s) => ({ valor: s.id, etiqueta: s.nombre }))}
+      />
       {aviso ? <Aviso tipo="ok">{aviso}</Aviso> : null}
-      <div role="tabpanel">
+      <div id="cantina-panel" role="tabpanel" aria-labelledby={`cantina-tab-${seccion}`}>
         {seccion === 'mostrador' ? (
           <Vendedor alVender={(v, destino) => setAviso(`Listo: ${pesos(v.total)}. ${destino}.`)} />
         ) : seccion === 'ventas' ? (
@@ -80,7 +69,7 @@ function VentasDelDia() {
           <div>
             <div className="text-sm text-suave">Cobrado hoy</div>
             <div className="font-display text-3xl font-bold">{pesos(resumen.data.cobrado)}</div>
-            <div className="text-[13px] text-medio">
+            <div className="text-sm text-medio">
               {Object.entries(resumen.data.cobradoPorMedio)
                 .map(([m, v]) => `${MEDIOS[m as keyof typeof MEDIOS]} ${pesos(v ?? 0)}`)
                 .join(' · ') || 'Sin ventas cobradas'}
@@ -89,7 +78,7 @@ function VentasDelDia() {
           <div>
             <div className="text-sm text-suave">A cuenta de turnos</div>
             <div className="font-display text-3xl font-bold">{pesos(resumen.data.aCuentaDeTurnos)}</div>
-            <div className="text-[13px] text-medio">Se cobra con el saldo de cada turno</div>
+            <div className="text-sm text-medio">Se cobra con el saldo de cada turno</div>
           </div>
           <div>
             <div className="text-sm text-suave">Más vendido</div>
@@ -117,7 +106,7 @@ function VentasDelDia() {
       ) : ventas.data.length === 0 ? (
         <p className="text-sm text-suave">Todavía no hubo ventas hoy.</p>
       ) : (
-        <ul className="flex flex-col divide-y divide-linea rounded-2xl border border-linea bg-white">
+        <ul className="flex flex-col divide-y divide-linea rounded-xs border border-linea bg-superficie">
           {ventas.data.map((v) => (
             <li
               key={v.id}
@@ -131,7 +120,7 @@ function VentasDelDia() {
                 <div className="text-sm text-medio">
                   {v.items.map((i) => `${i.cantidad} × ${i.nombre}`).join(', ')}
                 </div>
-                {v.anuladaEn ? <div className="text-[13px]">Anulada: {v.motivoAnulacion}</div> : null}
+                {v.anuladaEn ? <div className="text-sm">Anulada: {v.motivoAnulacion}</div> : null}
               </div>
               {v.anuladaEn ? null : (
                 <Boton variante="fantasma" onClick={() => setAnulando(v)}>
@@ -218,7 +207,7 @@ function Productos({ alHacer }: { alHacer: (m: string) => void }) {
       ) : productos.isError ? (
         <Aviso>{productos.error.message}</Aviso>
       ) : (
-        <ul className="flex flex-col divide-y divide-linea rounded-2xl border border-linea bg-white">
+        <ul className="flex flex-col divide-y divide-linea rounded-xs border border-linea bg-superficie">
           {productos.data.map((p) => {
             const bajo = p.controlaStock && p.stock <= p.stockMinimo;
             return (

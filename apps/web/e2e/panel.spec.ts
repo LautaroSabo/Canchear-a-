@@ -68,6 +68,7 @@ test('carga manual desde la agenda y cancelación', async ({ page }) => {
   await expect(page.getByText(/Turno cargado para Los del Jueves/)).toBeVisible();
 
   await page.getByRole('button', { name: 'Los del Jueves, 15:00, Confirmado' }).click();
+  await page.getByText('Más acciones').click();
   await page.getByRole('button', { name: 'Cancelar turno' }).click();
   const cancelar = page.getByRole('dialog', { name: 'Cancelar turno' });
   await cancelar.getByLabel('Motivo').fill('Lluvia');

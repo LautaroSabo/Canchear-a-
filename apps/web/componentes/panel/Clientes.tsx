@@ -55,7 +55,7 @@ export function Clientes() {
 
   return (
     <div className="flex max-w-5xl flex-col gap-4">
-      <h1 className="font-display text-[30px] font-bold">Clientes y puntos</h1>
+      <h1 className="font-display text-[40px] leading-none font-bold">Clientes y puntos</h1>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
         <div className="flex flex-col gap-3 lg:w-80 lg:flex-none">
           <Campo
@@ -75,7 +75,7 @@ export function Clientes() {
             <p className="text-sm text-suave">No encontramos a nadie con eso.</p>
           ) : (
             <ul
-              className="flex flex-col divide-y divide-linea rounded-2xl border border-linea bg-white"
+              className="flex flex-col divide-y divide-linea rounded-xs border border-linea bg-superficie"
               aria-label="Resultados"
             >
               {resultados.data.map((c) => (
@@ -88,7 +88,7 @@ export function Clientes() {
                   >
                     <span className="min-w-0">
                       <span className="block truncate font-bold">{c.nombre}</span>
-                      <span className="block text-[13px] text-medio">
+                      <span className="block text-sm text-medio">
                         {telefonoLegible(c.telefono)} · {c.partidos} partidos
                       </span>
                     </span>
@@ -168,7 +168,7 @@ function Ficha({ clienteId }: { clienteId: string }) {
               <li key={x.id} className="flex flex-wrap items-center justify-between gap-2">
                 <span>
                   {x.premio.nombre} · código <code className="font-bold">{x.codigo}</code>
-                  <span className="block text-[13px] text-suave">
+                  <span className="block text-sm text-suave">
                     Se aplica desde el detalle del turno, en la agenda.
                   </span>
                 </span>
@@ -196,7 +196,7 @@ function Ficha({ clienteId }: { clienteId: string }) {
                     : ''}
                   {m.premio ? `: ${m.premio}` : ''}
                   {m.promocion ? ` (${m.promocion})` : ''}
-                  {m.motivo ? <span className="block text-[13px] text-suave">{m.motivo}</span> : null}
+                  {m.motivo ? <span className="block text-sm text-suave">{m.motivo}</span> : null}
                 </span>
                 <span className={`shrink-0 font-bold ${m.puntos > 0 ? 'text-cancha' : 'text-rojo'}`}>
                   {m.puntos > 0 ? '+' : ''}
@@ -283,7 +283,7 @@ function FormCanje({ cliente, alCanjear }: { cliente: FichaCliente; alCanjear: (
           return (
             <label
               key={p.id}
-              className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm ${premioId === p.id ? 'border-cancha bg-cancha-suave' : 'border-linea'} ${!alcanzaPuntos || agotado ? 'opacity-50' : ''}`}
+              className={`flex items-center gap-3 rounded-xs border px-3 py-2.5 text-sm ${premioId === p.id ? 'border-cancha bg-cancha-suave' : 'border-linea'} ${!alcanzaPuntos || agotado ? 'opacity-50' : ''}`}
             >
               <input
                 type="radio"
@@ -296,7 +296,7 @@ function FormCanje({ cliente, alCanjear }: { cliente: FichaCliente; alCanjear: (
               />
               <span className="min-w-0 flex-1">
                 <span className="block font-bold">{p.nombre}</span>
-                <span className="block text-[13px] text-medio">
+                <span className="block text-sm text-medio">
                   {detallePremio(p)}
                   {agotado ? ' · agotado' : ''}
                 </span>

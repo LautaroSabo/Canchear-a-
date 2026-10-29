@@ -1,10 +1,11 @@
-import { BarraLateral } from '@/componentes/panel/BarraLateral';
+import { BarraLateral, NavegacionMovil } from '@/componentes/panel/BarraLateral';
 
 export default function LayoutClub({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen flex-wrap">
+    <div className="min-h-screen lg:flex">
       <BarraLateral />
-      <main className="min-w-0 flex-[999_1_760px] px-4 py-5 sm:px-6">{children}</main>
+      <NavegacionMovil />
+      <main className="min-w-0 flex-1 px-4 pt-6 pb-28 sm:px-6 lg:px-10 lg:pt-8 lg:pb-12">{children}</main>
     </div>
   );
 }

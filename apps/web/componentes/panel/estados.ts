@@ -11,14 +11,14 @@ export type Apariencia =
 
 /** Cada estado se distingue también por forma (borde punteado, rayado, relleno), no solo por color. */
 export const CLASES: Record<Apariencia, string> = {
-  confirmado: 'bg-cancha-claro text-[#0a3f20] border-[1.5px] border-cancha',
-  presente: 'bg-cancha text-white border-[1.5px] border-cancha',
-  pendiente: 'bg-ambar-fondo text-ambar-texto border-[1.5px] border-dashed border-ambar-borde',
-  revision: 'bg-azul-fondo text-azul-texto border-[1.5px] border-azul-borde',
+  confirmado: 'bg-ok-fondo text-ok-texto border border-ok-borde',
+  presente: 'bg-acento text-acento-tinta border border-acento',
+  pendiente: 'bg-aviso-fondo text-aviso-texto border border-dashed border-aviso-borde',
+  revision: 'bg-info-fondo text-info-texto border border-info-borde',
   bloqueo:
-    'text-[#2e363d] border-[1.5px] border-[#9aa3ab] bg-[repeating-linear-gradient(135deg,#e4e7ea_0,#e4e7ea_8px,#eceef0_8px,#eceef0_16px)]',
-  ausente: 'bg-[#fdecea] text-[#7a1a0c] border-[1.5px] border-[#f1b5ab]',
-  cancelado: 'bg-white text-suave border-[1.5px] border-linea line-through',
+    'text-tenue border border-borde-control bg-[repeating-linear-gradient(135deg,var(--superficie-2)_0,var(--superficie-2)_8px,var(--superficie)_8px,var(--superficie)_16px)]',
+  ausente: 'bg-error-fondo text-error-texto border border-error-borde',
+  cancelado: 'bg-superficie text-tenue border border-linea line-through',
 };
 
 export const TEXTOS: Record<Apariencia, string> = {

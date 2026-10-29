@@ -41,7 +41,7 @@ export function TurnosFijos() {
   return (
     <div className="flex max-w-3xl flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-[30px] font-bold">Turnos fijos</h1>
+        <h1 className="font-display text-[40px] leading-none font-bold">Turnos fijos</h1>
         <Boton onClick={() => setNuevo(true)}>+ Nuevo turno fijo</Boton>
       </div>
       <p className="text-sm text-suave">
@@ -61,7 +61,7 @@ export function TurnosFijos() {
       ) : (
         ORDEN_SEMANA.filter((d) => activos.some((f) => f.diaSemana === d)).map((d) => (
           <section key={d} aria-label={DIAS[d]} className="flex flex-col gap-2">
-            <h2 className="text-xs font-semibold uppercase tracking-wide text-suave">{DIAS[d]}</h2>
+            <h2 className="text-xs font-semibold text-suave">{DIAS[d]}</h2>
             {activos
               .filter((f) => f.diaSemana === d)
               .map((f) => (
@@ -154,7 +154,7 @@ function FichaFijo({
             </a>
             {f.proximo ? ` · próximo: ${fechaCorta(hoyEn(zona, new Date(f.proximo)))}` : ''}
           </div>
-          {f.nota ? <div className="mt-1 text-[13px]">Nota: {f.nota}</div> : null}
+          {f.nota ? <div className="mt-1 text-sm">Nota: {f.nota}</div> : null}
         </div>
         <div className="flex gap-1">
           <Boton variante="fantasma" onClick={() => setDialogo('precio')}>
@@ -167,7 +167,7 @@ function FichaFijo({
       </div>
       {f.omitidos.length ? (
         <ul
-          className="flex flex-col gap-2 rounded-xl bg-ambar-fondo p-3 text-sm text-ambar-texto"
+          className="flex flex-col gap-2 rounded-xs bg-ambar-fondo p-3 text-sm text-ambar-texto"
           aria-label="Fechas sin agendar"
         >
           {f.omitidos.map((o) => (
@@ -515,7 +515,7 @@ function FormNuevo({ zona, alCrear }: { zona: string; alCrear: (r: ResultadoFijo
 
       <section
         aria-label="Próximas fechas"
-        className="flex flex-col gap-1.5 rounded-xl bg-fondo p-3 text-sm sm:col-span-2"
+        className="flex flex-col gap-1.5 rounded-xs bg-fondo p-3 text-sm sm:col-span-2"
       >
         {!completa ? (
           <span className="text-suave">Elegí cancha, día y hora para ver las fechas.</span>

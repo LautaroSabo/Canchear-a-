@@ -5,63 +5,118 @@ import { useEffect, useState } from 'react';
 import { API_URL, mensajeDe, panel } from '@/lib/api';
 import { fechaCorta, fechaLocal, hora, pesos, telefonoLegible } from '@/lib/formato';
 import type { Transferencia } from '@/lib/tipos';
-import { Aviso, Boton, Cargando, Tarjeta } from '../ui';
+import { Aviso, Boton, Cargando, EncabezadoPagina, EstadoVacio, Pestanas } from '../ui';
 import { useClubActual } from './sesion';
 
 type Estado = 'EN_REVISION' | 'APROBADO' | 'RECHAZADO';
-const PESTANAS: { estado: Estado; nombre: string }[] = [
-  { estado: 'EN_REVISION', nombre: 'Para revisar' },
-  { estado: 'APROBADO', nombre: 'Aprobadas' },
-  { estado: 'RECHAZADO', nombre: 'Rechazadas' },
-];
 
 export function Transferencias() {
   const { clubId } = useClubActual();
   const [estado, setEstado] = useState<Estado>('EN_REVISION');
+  const [elegida, setElegida] = useState<string | null>(null);
   const lista = useQuery({
     queryKey: ['transferencias', clubId, estado],
     queryFn: () => panel.get<Transferencia[]>(`/clubs/${clubId}/transferencias?estado=${estado}`),
   });
+  const pendientes = useQuery({
+    queryKey: ['transferencias', clubId, 'EN_REVISION'],
+    queryFn: () => panel.get<Transferencia[]>(`/clubs/${clubId}/transferencias?estado=EN_REVISION`),
+  });
+  const datos = lista.data ?? [];
+  const actual = datos.find((t) => t.pagoId === elegida) ?? datos[0];
 
   return (
-    <div className="flex flex-col gap-4">
-      <h1 className="font-display text-[30px] font-bold">Transferencias</h1>
-      <div role="tablist" aria-label="Estado" className="flex w-fit gap-1 rounded-xl bg-[#eef1ee] p-1">
-        {PESTANAS.map((p) => (
-          <button
-            key={p.estado}
-            type="button"
-            role="tab"
-            aria-selected={estado === p.estado}
-            onClick={() => setEstado(p.estado)}
-            className={`min-h-10 rounded-lg px-4 text-sm font-semibold ${estado === p.estado ? 'bg-white shadow-sm' : 'text-medio'}`}
+    <div className="flex flex-col gap-6">
+      <EncabezadoPagina
+        titulo="Transferencias"
+        bajada="Mirá el comprobante, compará el monto con la seña y aprobá o rechazá. El cliente se entera por WhatsApp."
+      />
+      <Pestanas
+        id="transferencias"
+        etiqueta="Estado"
+        valor={estado}
+        onCambio={(v) => {
+          setEstado(v);
+          setElegida(null);
+        }}
+        opciones={[
+          { valor: 'EN_REVISION', etiqueta: 'Para revisar', cuenta: pendientes.data?.length ?? 0 },
+          { valor: 'APROBADO', etiqueta: 'Aprobadas' },
+          { valor: 'RECHAZADO', etiqueta: 'Rechazadas' },
+        ]}
+      />
+      <div id="transferencias-panel" role="tabpanel" aria-labelledby={`transferencias-tab-${estado}`}>
+        {lista.isPending ? (
+          <Cargando />
+        ) : lista.isError ? (
+          <Aviso>{lista.error.message}</Aviso>
+        ) : !actual ? (
+          <EstadoVacio
+            titulo={
+              estado === 'EN_REVISION' ? 'No hay comprobantes para revisar.' : 'No hay transferencias acá.'
+            }
           >
-            {p.nombre}
-          </button>
-        ))}
+            {estado === 'EN_REVISION'
+              ? 'Cuando un cliente suba un comprobante aparece acá y en el menú se marca la cantidad.'
+              : null}
+          </EstadoVacio>
+        ) : (
+          <div className="grid items-start gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
+            <ul aria-label="Comprobantes" className="flex flex-col border border-linea bg-superficie">
+              {datos.map((t) => (
+                <li key={t.pagoId} className="border-b border-linea last:border-b-0">
+                  <FilaCola
+                    t={t}
+                    elegida={t.pagoId === actual.pagoId}
+                    onElegir={() => setElegida(t.pagoId)}
+                  />
+                </li>
+              ))}
+            </ul>
+            <Revision
+              key={actual.pagoId}
+              t={actual}
+              revisable={estado === 'EN_REVISION'}
+              alTerminar={() => setElegida(null)}
+            />
+          </div>
+        )}
       </div>
-      {lista.isPending ? (
-        <Cargando />
-      ) : lista.isError ? (
-        <Aviso>{lista.error.message}</Aviso>
-      ) : lista.data.length === 0 ? (
-        <p className="text-suave">
-          {estado === 'EN_REVISION' ? 'No hay comprobantes para revisar.' : 'No hay transferencias acá.'}
-        </p>
-      ) : (
-        <ul className="grid gap-4 lg:grid-cols-2">
-          {lista.data.map((t) => (
-            <li key={t.pagoId}>
-              <ItemTransferencia t={t} revisable={estado === 'EN_REVISION'} />
-            </li>
-          ))}
-        </ul>
-      )}
     </div>
   );
 }
 
-function ItemTransferencia({ t, revisable }: { t: Transferencia; revisable: boolean }) {
+function FilaCola({ t, elegida, onElegir }: { t: Transferencia; elegida: boolean; onElegir: () => void }) {
+  const { zona } = useClubActual();
+  return (
+    <button
+      type="button"
+      aria-pressed={elegida}
+      onClick={onElegir}
+      className={`flex w-full flex-col gap-0.5 border-l-[3px] px-4 py-3 text-left ${
+        elegida ? 'border-acento bg-acento-suave' : 'border-transparent hover:bg-fondo'
+      }`}
+    >
+      <span className="flex items-baseline justify-between gap-2">
+        <span className="truncate text-base font-semibold">{t.cliente?.nombre ?? 'Cliente'}</span>
+        <span className="shrink-0 text-base font-semibold">{pesos(t.monto)}</span>
+      </span>
+      <span className="text-sm text-tenue">
+        {fechaCorta(fechaLocal(t.turno.inicio, zona))} {hora(t.turno.inicio, zona)} · {t.cancha}
+      </span>
+    </button>
+  );
+}
+
+function Revision({
+  t,
+  revisable,
+  alTerminar,
+}: {
+  t: Transferencia;
+  revisable: boolean;
+  alTerminar: () => void;
+}) {
   const { clubId, zona } = useClubActual();
   const qc = useQueryClient();
   const [rechazando, setRechazando] = useState(false);
@@ -72,39 +127,90 @@ function ItemTransferencia({ t, revisable }: { t: Transferencia; revisable: bool
   };
   const aprobar = useMutation({
     mutationFn: () => panel.post<{ tipo: string }>(`/clubs/${clubId}/pagos/${t.pagoId}/aprobar`),
-    onSuccess: refrescar,
+    onSuccess: (r) => {
+      refrescar();
+      if (r.tipo !== 'REEMBOLSO') alTerminar();
+    },
   });
   const rechazar = useMutation({
     mutationFn: () => panel.post(`/clubs/${clubId}/pagos/${t.pagoId}/rechazar`, { motivo: motivo.trim() }),
-    onSuccess: refrescar,
+    onSuccess: () => {
+      refrescar();
+      alTerminar();
+    },
   });
-  const montoOk = t.monto >= t.turno.montoSena;
+  const coincide = t.monto >= t.turno.montoSena;
+
+  // Atajos para revisar de corrido: A aprueba, R abre el rechazo (no mientras se escribe).
+  useEffect(() => {
+    if (!revisable) return;
+    const tecla = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement;
+      if (e.metaKey || e.ctrlKey || e.altKey || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName)) return;
+      if (document.querySelector('[role="dialog"]')) return;
+      if (e.key === 'a' || e.key === 'A') {
+        e.preventDefault();
+        if (!aprobar.isPending) aprobar.mutate();
+      } else if (e.key === 'r' || e.key === 'R') {
+        e.preventDefault();
+        setRechazando(true);
+      }
+    };
+    window.addEventListener('keydown', tecla);
+    return () => window.removeEventListener('keydown', tecla);
+  }, [revisable, aprobar]);
 
   return (
-    <Tarjeta className="flex flex-col gap-3">
-      <div className="flex items-start justify-between gap-3">
+    <section
+      aria-label={`Comprobante de ${t.cliente?.nombre ?? 'cliente'}`}
+      className="flex flex-col gap-4 border border-linea bg-superficie p-5"
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="font-bold">{t.cliente?.nombre ?? 'Cliente'}</h2>
-          {t.cliente ? <p className="text-sm text-suave">{telefonoLegible(t.cliente.telefono)}</p> : null}
+          <h2 className="font-display text-[32px] leading-none font-bold">
+            {t.cliente?.nombre ?? 'Cliente'}
+          </h2>
+          {t.cliente ? (
+            <p className="mt-1 text-base text-tenue">{telefonoLegible(t.cliente.telefono)}</p>
+          ) : null}
         </div>
-        <div className="text-right text-sm">
-          <div className="font-semibold">
+        <div className="text-right">
+          <p className="text-base font-semibold">
             {t.cancha} · {fechaCorta(fechaLocal(t.turno.inicio, zona))} {hora(t.turno.inicio, zona)}
-          </div>
-          <div className="text-suave">
+          </p>
+          <p className="text-sm text-tenue">
             Enviada {fechaCorta(fechaLocal(t.enviadaEn, zona))} {hora(t.enviadaEn, zona)}
-          </div>
+          </p>
         </div>
       </div>
-      <p className="text-sm">
-        Tiene que haber transferido <strong>{pesos(t.monto)}</strong>
-        {!montoOk ? ' (menos que la seña)' : ''}.
-      </p>
+
+      <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="border border-linea px-3 py-2">
+          <dt className="text-sm text-tenue">Seña del turno</dt>
+          <dd className="font-display text-[28px] leading-tight font-bold">{pesos(t.turno.montoSena)}</dd>
+        </div>
+        <div className="border border-linea px-3 py-2">
+          <dt className="text-sm text-tenue">Tiene que haber transferido</dt>
+          <dd className="font-display text-[28px] leading-tight font-bold">{pesos(t.monto)}</dd>
+        </div>
+        <div
+          className={`col-span-2 border px-3 py-2 sm:col-span-1 ${
+            coincide
+              ? 'border-ok-borde bg-ok-fondo text-ok-texto'
+              : 'border-aviso-borde bg-aviso-fondo text-aviso-texto'
+          }`}
+        >
+          <dt className="text-sm">Control</dt>
+          <dd className="text-base font-semibold">{coincide ? 'Cubre la seña' : 'Es menos que la seña'}</dd>
+        </div>
+      </dl>
+
       <VistaComprobante pagoId={t.pagoId} />
+
       {revisable ? (
         rechazando ? (
           <form
-            className="flex flex-col gap-2"
+            className="flex flex-col gap-3"
             onSubmit={(e) => {
               e.preventDefault();
               rechazar.mutate();
@@ -117,8 +223,10 @@ function ItemTransferencia({ t, revisable }: { t: Transferencia; revisable: bool
                 onChange={(e) => setMotivo(e.target.value)}
                 required
                 minLength={2}
+                // biome-ignore lint/a11y/noAutofocus: el foco va al motivo al abrir el rechazo.
+                autoFocus
                 placeholder="El monto no coincide, no se ve el comprobante…"
-                className="min-h-11 rounded-xl border border-[#c9d1cb] px-3 font-normal"
+                className="min-h-11 rounded-xs border border-borde-control bg-superficie px-3 text-base font-normal"
               />
             </label>
             <div className="flex gap-2">
@@ -131,13 +239,17 @@ function ItemTransferencia({ t, revisable }: { t: Transferencia; revisable: bool
             </div>
           </form>
         ) : (
-          <div className="flex gap-2">
-            <Boton className="flex-1" disabled={aprobar.isPending} onClick={() => aprobar.mutate()}>
+          <div className="flex flex-wrap items-center gap-2">
+            <Boton grande className="flex-1" disabled={aprobar.isPending} onClick={() => aprobar.mutate()}>
               {aprobar.isPending ? 'Aprobando…' : 'Aprobar y confirmar el turno'}
             </Boton>
-            <Boton variante="peligro" onClick={() => setRechazando(true)}>
+            <Boton grande variante="peligro" onClick={() => setRechazando(true)}>
               Rechazar
             </Boton>
+            <p className="w-full text-sm text-tenue">
+              Atajos: <kbd className="font-semibold text-tinta">A</kbd> aprueba,{' '}
+              <kbd className="font-semibold text-tinta">R</kbd> rechaza.
+            </p>
           </div>
         )
       ) : null}
@@ -147,7 +259,7 @@ function ItemTransferencia({ t, revisable }: { t: Transferencia; revisable: bool
         </Aviso>
       ) : null}
       {aprobar.error || rechazar.error ? <Aviso>{mensajeDe(aprobar.error ?? rechazar.error)}</Aviso> : null}
-    </Tarjeta>
+    </section>
   );
 }
 
@@ -179,26 +291,26 @@ function VistaComprobante({ pagoId }: { pagoId: string }) {
   }, [clubId, pagoId]);
 
   if (error) return <Aviso>No se pudo cargar el comprobante.</Aviso>;
-  if (!url) return <div className="h-48 animate-pulse rounded-xl bg-fondo" />;
+  if (!url) return <div className="h-96 animate-pulse bg-fondo" />;
   if (tipo === 'application/pdf') {
     return (
       <a
         href={url}
         target="_blank"
         rel="noopener"
-        className="inline-flex min-h-11 items-center font-semibold text-cancha underline"
+        className="inline-flex min-h-11 items-center font-semibold text-acento-texto underline"
       >
         Abrir el comprobante (PDF)
       </a>
     );
   }
   return (
-    <a href={url} target="_blank" rel="noopener">
+    <a href={url} target="_blank" rel="noopener" className="block bg-fondo">
       {/* biome-ignore lint/performance/noImgElement: imagen privada servida desde un blob local, no optimizable por next/image */}
       <img
         src={url}
         alt="Comprobante de transferencia"
-        className="max-h-80 w-full rounded-xl border border-linea object-contain"
+        className="mx-auto max-h-[60vh] min-h-48 w-full object-contain"
       />
     </a>
   );

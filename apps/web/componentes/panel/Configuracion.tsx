@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { hoyEn } from '@/lib/formato';
-import { Aviso, Cargando } from '../ui';
+import { Aviso, Cargando, EncabezadoPagina, Pestanas } from '../ui';
 import { Canchas } from './config/Canchas';
 import { Cobros } from './config/Cobros';
 import { useConfig } from './config/comunes';
@@ -46,7 +46,10 @@ export function Configuracion() {
 
   return (
     <div className="flex max-w-3xl flex-col gap-4">
-      <h1 className="font-display text-[30px] font-bold">Configuración</h1>
+      <EncabezadoPagina
+        titulo="Configuración"
+        bajada="Canchas, horarios, precios y reglas del club. Los cambios se ven al instante en la página de reservas."
+      />
       {config.data?.avisos.length ? (
         <section className="flex flex-col gap-2" aria-label="Avisos de configuración">
           {config.data.avisos.map((a) => (
@@ -56,29 +59,19 @@ export function Configuracion() {
           ))}
         </section>
       ) : null}
+      <Pestanas
+        id="config"
+        etiqueta="Secciones de configuración"
+        valor={seccion}
+        onCambio={ir}
+        opciones={visibles.map((s) => ({ valor: s.id, etiqueta: s.nombre }))}
+      />
       <div
-        role="tablist"
-        aria-label="Secciones de configuración"
-        className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1"
+        id="config-panel"
+        role="tabpanel"
+        aria-labelledby={`config-tab-${seccion}`}
+        className="flex flex-col gap-4"
       >
-        {visibles.map((s) => (
-          <button
-            key={s.id}
-            type="button"
-            role="tab"
-            aria-selected={seccion === s.id}
-            onClick={() => ir(s.id)}
-            className={`min-h-11 shrink-0 rounded-xl px-3.5 text-sm font-semibold ${
-              seccion === s.id
-                ? 'bg-noche text-white'
-                : 'bg-white text-medio border border-linea hover:text-tinta'
-            }`}
-          >
-            {s.nombre}
-          </button>
-        ))}
-      </div>
-      <div role="tabpanel" className="flex flex-col gap-4">
         {seccion === 'cobros' ? (
           <Cobros />
         ) : seccion === 'puntos' ? (

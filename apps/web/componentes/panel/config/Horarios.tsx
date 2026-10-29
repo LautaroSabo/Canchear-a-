@@ -6,7 +6,7 @@ import type { FranjaHorario } from '@/lib/tipos';
 import { Aviso, Boton, Tarjeta } from '../../ui';
 import { DIAS, ORDEN_SEMANA, useGuardar } from './comunes';
 
-const claseHora = 'min-h-11 rounded-xl border border-[#c9d1cb] bg-white px-3 text-base';
+const claseHora = 'min-h-11 rounded-xs border border-borde-control bg-superficie px-3 text-base';
 
 export function Horarios({ horarios }: { horarios: FranjaHorario[] }) {
   const [franjas, setFranjas] = useState(horarios);

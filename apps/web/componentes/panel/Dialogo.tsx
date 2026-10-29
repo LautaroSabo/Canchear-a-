@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useId, useRef } from 'react';
+import { IconoCerrar } from '../iconos';
 
 /** <dialog> nativo: foco atrapado, Escape y fondo modal sin dependencias. */
 export function Dialogo({
@@ -15,6 +16,7 @@ export function Dialogo({
   children: React.ReactNode;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const idTitulo = useId();
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
@@ -26,32 +28,22 @@ export function Dialogo({
     <dialog
       ref={ref}
       onClose={alCerrar}
-      aria-labelledby="titulo-dialogo"
-      className="m-auto w-[min(520px,calc(100vw-32px))] rounded-2xl bg-white p-0 text-tinta shadow-xl backdrop:bg-black/40"
+      aria-labelledby={idTitulo}
+      className="m-auto max-h-[90dvh] w-[min(560px,calc(100vw-32px))] overflow-y-auto rounded-xs border border-linea bg-superficie p-0 text-tinta backdrop:bg-black/50 max-sm:mb-0 max-sm:w-full max-sm:max-w-full"
     >
       {abierto ? (
-        <div className="flex flex-col gap-4 p-5">
+        <div className="flex flex-col gap-4 p-5 pb-[calc(env(safe-area-inset-bottom)+20px)] sm:p-6">
           <div className="flex items-center justify-between gap-3">
-            <h2 id="titulo-dialogo" className="text-lg font-bold">
+            <h2 id={idTitulo} className="font-display text-[28px] leading-none font-bold">
               {titulo}
             </h2>
             <button
               type="button"
               onClick={alCerrar}
               aria-label="Cerrar"
-              className="flex size-10 items-center justify-center rounded-lg text-suave hover:bg-fondo"
+              className="flex size-11 shrink-0 items-center justify-center rounded-xs text-tenue hover:bg-fondo hover:text-tinta"
             >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                aria-hidden="true"
-              >
-                <path d="M6 6l12 12M18 6L6 18" />
-              </svg>
+              <IconoCerrar />
             </button>
           </div>
           {children}

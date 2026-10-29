@@ -6,7 +6,7 @@ import { mensajeDe, panel } from '@/lib/api';
 import { hora, hoyEn, pesos } from '@/lib/formato';
 import type { Agenda, MedioCantina, Producto, VentaCantina } from '@/lib/tipos';
 import { uuid } from '@/lib/uuid';
-import { Aviso, Boton, Cargando, Selector } from '../../ui';
+import { Aviso, Boton, Cargando, Segmentado, Selector } from '../../ui';
 import { useClubActual } from '../sesion';
 import { CATEGORIAS, MEDIOS } from './comunes';
 
@@ -96,10 +96,8 @@ export function Vendedor({
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         {categorias.map((c) => (
           <section key={c} aria-label={CATEGORIAS[c as keyof typeof CATEGORIAS]}>
-            <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-suave">
-              {CATEGORIAS[c as keyof typeof CATEGORIAS]}
-            </h3>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <h3 className="mb-2 text-base font-semibold">{CATEGORIAS[c as keyof typeof CATEGORIAS]}</h3>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
               {productos.data
                 .filter((p) => p.categoria === c)
                 .map((p) => {
@@ -111,12 +109,18 @@ export function Vendedor({
                       disabled={agotado}
                       onClick={() => cambiar(p.id, 1)}
                       aria-label={`Agregar ${p.nombre}, ${pesos(p.precio)}`}
-                      className="flex min-h-16 flex-col items-start justify-center rounded-xl border border-linea bg-white px-3 py-2 text-left hover:border-cancha disabled:opacity-50"
+                      className="flex min-h-24 flex-col items-start justify-between gap-2 rounded-xs border border-linea bg-superficie px-3 py-3 text-left hover:border-acento active:bg-acento-suave disabled:opacity-50"
                     >
-                      <span className="text-sm font-bold">{p.nombre}</span>
-                      <span className="text-[13px] text-medio">
-                        {pesos(p.precio)}
-                        {p.controlaStock ? ` · ${agotado ? 'sin stock' : `quedan ${p.stock}`}` : ''}
+                      <span className="text-base font-semibold">{p.nombre}</span>
+                      <span className="flex w-full items-baseline justify-between gap-2">
+                        <span className="font-display text-2xl leading-none font-bold">
+                          {pesos(p.precio)}
+                        </span>
+                        {p.controlaStock ? (
+                          <span className={`text-sm ${agotado ? 'text-peligro' : 'text-tenue'}`}>
+                            {agotado ? 'sin stock' : `quedan ${p.stock}`}
+                          </span>
+                        ) : null}
                       </span>
                     </button>
                   );
@@ -128,9 +132,9 @@ export function Vendedor({
 
       <section
         aria-label="Pedido"
-        className="flex flex-col gap-3 rounded-2xl border border-linea bg-white p-4 lg:w-80 lg:flex-none"
+        className="flex flex-col gap-3 rounded-xs border border-linea bg-superficie p-4 lg:sticky lg:top-8 lg:w-80 lg:flex-none"
       >
-        <h3 className="font-bold">Pedido</h3>
+        <h3 className="text-lg font-semibold">Pedido</h3>
         {renglones.length === 0 ? (
           <p className="text-sm text-suave">Tocá los productos para agregarlos.</p>
         ) : (
@@ -143,7 +147,7 @@ export function Vendedor({
                     type="button"
                     aria-label={`Sacar un ${p.nombre}`}
                     onClick={() => cambiar(p.id, -1)}
-                    className="size-8 rounded-lg border border-linea"
+                    className="size-11 rounded-xs border border-borde-control text-lg"
                   >
                     −
                   </button>
@@ -152,7 +156,7 @@ export function Vendedor({
                     type="button"
                     aria-label={`Sumar un ${p.nombre}`}
                     onClick={() => cambiar(p.id, 1)}
-                    className="size-8 rounded-lg border border-linea"
+                    className="size-11 rounded-xs border border-borde-control text-lg"
                   >
                     +
                   </button>
@@ -164,31 +168,22 @@ export function Vendedor({
         )}
         <div className="flex items-baseline justify-between border-t border-linea pt-2">
           <span className="font-bold">Total</span>
-          <span className="font-display text-2xl font-bold">{pesos(total)}</span>
+          <span aria-live="polite" className="font-display text-[32px] leading-none font-bold">
+            {pesos(total)}
+          </span>
         </div>
 
         {turnoId ? null : (
-          <fieldset className="flex min-w-0 flex-col gap-2">
-            <legend className="mb-1 text-sm font-semibold">¿Cómo se paga?</legend>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="radio"
-                checked={destino === 'ahora'}
-                onChange={() => setDestino('ahora')}
-                className="accent-cancha"
-              />
-              Cobrar ahora
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="radio"
-                checked={destino === 'turno'}
-                onChange={() => setDestino('turno')}
-                className="accent-cancha"
-              />
-              A la cuenta de un turno de hoy
-            </label>
-          </fieldset>
+          <Segmentado
+            etiqueta="¿Cómo se paga?"
+            className="w-full"
+            valor={destino}
+            onCambio={setDestino}
+            opciones={[
+              { valor: 'ahora', etiqueta: 'Cobrar ahora' },
+              { valor: 'turno', etiqueta: 'A un turno de hoy' },
+            ]}
+          />
         )}
         {!turnoId && destino === 'ahora' ? (
           <Selector

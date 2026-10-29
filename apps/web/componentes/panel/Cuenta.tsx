@@ -18,7 +18,7 @@ export function Cuenta() {
 
   return (
     <div className="flex max-w-xl flex-col gap-4">
-      <h1 className="font-display text-[30px] font-bold">Mi cuenta</h1>
+      <h1 className="font-display text-[40px] leading-none font-bold">Mi cuenta</h1>
       <Tarjeta>
         <div className="font-bold">{usuario?.nombre}</div>
         <div className="text-sm text-medio">{usuario?.email}</div>

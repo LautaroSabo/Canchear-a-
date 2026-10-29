@@ -35,7 +35,7 @@ export function Reembolsos() {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h1 className="font-display text-[30px] font-bold">Reembolsos</h1>
+        <h1 className="font-display text-[40px] leading-none font-bold">Reembolsos</h1>
         <p className="text-sm text-suave">
           Los de Mercado Pago se devuelven solos. Los de transferencia o efectivo los devuelve el club y los
           marca acá.
@@ -49,9 +49,9 @@ export function Reembolsos() {
       ) : lista.data.length === 0 ? (
         <p className="text-suave">No hay reembolsos.</p>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-linea bg-white">
+        <div className="overflow-x-auto rounded-xs border border-linea bg-superficie">
           <table className="w-full min-w-[720px] text-left text-sm">
-            <thead className="border-b border-linea text-xs uppercase tracking-wide text-suave">
+            <thead className="border-b border-linea text-xs text-suave">
               <tr>
                 <th className="px-4 py-3 font-semibold">Cliente</th>
                 <th className="px-4 py-3 font-semibold">Motivo</th>

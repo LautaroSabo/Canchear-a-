@@ -10,7 +10,8 @@ import { Aviso, Boton, Campo } from '../ui';
 import { Dialogo } from './Dialogo';
 import { useClubActual } from './sesion';
 
-const claseSelect = 'min-h-11 rounded-xl border border-[#c9d1cb] bg-white px-3 text-base font-normal';
+const claseSelect =
+  'min-h-11 rounded-xs border border-borde-control bg-superficie px-3 text-base font-normal';
 
 export interface Prefill {
   canchaId: string;
@@ -119,7 +120,7 @@ function FormNuevo({
         crear.mutate();
       }}
     >
-      <fieldset className="flex min-w-0 gap-1 rounded-xl bg-[#eef1ee] p-1">
+      <fieldset className="flex min-w-0 gap-1 rounded-xs bg-superficie-2 p-1">
         <legend className="sr-only">Tipo</legend>
         {(['turno', 'bloqueo'] as const).map((tipo) => (
           <button
@@ -127,7 +128,7 @@ function FormNuevo({
             type="button"
             aria-pressed={f.tipo === tipo}
             onClick={() => setF({ ...f, tipo })}
-            className={`min-h-10 flex-1 rounded-lg text-sm font-semibold ${f.tipo === tipo ? 'bg-white shadow-sm' : 'text-medio'}`}
+            className={`min-h-10 flex-1 rounded-xs text-sm font-semibold ${f.tipo === tipo ? 'bg-superficie' : 'text-medio'}`}
           >
             {tipo === 'turno' ? 'Turno para un cliente' : 'Bloquear la cancha'}
           </button>

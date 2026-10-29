@@ -42,7 +42,7 @@ export function Tarifas({
       {borrar.error ? <Aviso>{mensajeDe(borrar.error)}</Aviso> : null}
       {grupos.map((g) => (
         <section key={g.id ?? 'general'} aria-label={g.nombre}>
-          <h3 className="mb-1 mt-2 text-xs font-semibold uppercase tracking-wide text-suave">{g.nombre}</h3>
+          <h3 className="mb-1 mt-2 text-xs font-semibold text-suave">{g.nombre}</h3>
           <ul className="flex flex-col divide-y divide-linea">
             {g.tarifas.map((t) => {
               const vencida = t.vigenteHasta !== null && t.vigenteHasta < hoy;

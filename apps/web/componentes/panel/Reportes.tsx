@@ -11,9 +11,9 @@ import { DIAS, ORDEN_SEMANA } from './config/comunes';
 import { useClubActual } from './sesion';
 
 /** Rampa secuencial de un solo tono (verde de la marca), validada: monótona y el paso más claro a 2.1:1 del fondo. */
-const RAMPA = ['#79c295', '#4fab74', '#2c9057', '#17743e', '#075c2d'];
-const SIN_OCUPAR = '#e3e7e4';
-const COLOR_BARRA = '#0a7a3d';
+const RAMPA = ['#8fcca3', '#5fb07d', '#348f57', '#1b7340', '#0f5a30'];
+const SIN_OCUPAR = 'var(--superficie-2)';
+const COLOR_BARRA = 'var(--acento)';
 
 const ESTADOS: Record<string, string> = {
   PRESENTE: 'Jugados',
@@ -88,7 +88,7 @@ export function Reportes() {
 
   return (
     <div className="flex max-w-6xl flex-col gap-4">
-      <h1 className="font-display text-[30px] font-bold">Reportes</h1>
+      <h1 className="font-display text-[40px] leading-none font-bold">Reportes</h1>
 
       <search className="flex flex-wrap items-end gap-2" aria-label="Período">
         {opciones.map((o) => {
@@ -99,8 +99,10 @@ export function Reportes() {
               type="button"
               aria-pressed={activo}
               onClick={() => setPeriodo(o.p)}
-              className={`min-h-11 rounded-xl px-3.5 text-sm font-semibold ${
-                activo ? 'bg-noche text-white' : 'border border-linea bg-white text-medio hover:text-tinta'
+              className={`min-h-11 rounded-xs px-3.5 text-sm font-semibold ${
+                activo
+                  ? 'bg-noche text-white'
+                  : 'border border-linea bg-superficie text-medio hover:text-tinta'
               }`}
             >
               {o.nombre}
@@ -137,7 +139,7 @@ export function Reportes() {
             <Tarjeta className="col-span-2">
               <div className="text-sm text-suave">Cobrado</div>
               <div className="text-[44px] font-semibold leading-tight">{pesos(r.dinero.cobrado)}</div>
-              <div className="text-[13px] text-medio">
+              <div className="text-sm text-medio">
                 Turnos {pesos(r.dinero.cobradoTurnos)} · Cantina {pesos(r.dinero.cobradoCantina)}
               </div>
             </Tarjeta>
@@ -165,13 +167,13 @@ export function Reportes() {
 
           <Tarjeta>
             <h2 className="font-bold">Cobrado por día</h2>
-            <p className="mb-2 text-[13px] text-suave">Turnos y cantina, neto de devoluciones.</p>
+            <p className="mb-2 text-sm text-suave">Turnos y cantina, neto de devoluciones.</p>
             <ColumnasPorDia dias={r.porDia} />
           </Tarjeta>
 
           <Tarjeta>
             <h2 className="font-bold">Ocupación por día y hora</h2>
-            <p className="mb-3 text-[13px] text-suave">
+            <p className="mb-3 text-sm text-suave">
               Qué parte del horario abierto estuvo reservado, sumando todas las canchas del período.
             </p>
             <MapaOcupacion mapa={r.ocupacion.mapa} />
@@ -245,7 +247,7 @@ function Dato({ etiqueta, valor, pie }: { etiqueta: string; valor: string; pie: 
     <Tarjeta>
       <div className="text-sm text-suave">{etiqueta}</div>
       <div className="text-3xl font-semibold leading-tight">{valor}</div>
-      <div className="text-[13px] text-medio">{pie}</div>
+      <div className="text-sm text-medio">{pie}</div>
     </Tarjeta>
   );
 }
@@ -269,7 +271,7 @@ function Tabla({
       ) : (
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-[13px] text-suave">
+            <tr className="text-left text-sm text-suave">
               {columnas.map((c, i) => (
                 <th key={c} scope="col" className={`pb-1.5 font-semibold ${i > 0 ? 'text-right' : ''}`}>
                   {c}
@@ -282,7 +284,7 @@ function Tabla({
               <tr key={String(f[0])} className="border-t border-linea">
                 {f.map((v, i) => (
                   // biome-ignore lint/suspicious/noArrayIndexKey: las columnas son fijas.
-                  <td key={i} className={`py-1.5 ${i > 0 ? 'text-right tabular-nums' : ''}`}>
+                  <td key={i} className={`py-1.5 ${i > 0 ? 'text-right' : ''}`}>
                     {v}
                   </td>
                 ))}
@@ -291,7 +293,7 @@ function Tabla({
           </tbody>
         </table>
       )}
-      {pie ? <p className="mt-2 text-[13px] text-suave">{pie}</p> : null}
+      {pie ? <p className="mt-2 text-sm text-suave">{pie}</p> : null}
     </Tarjeta>
   );
 }
@@ -322,8 +324,15 @@ function ColumnasPorDia({ dias }: { dias: ReporteClub['porDia'] }) {
           <svg width={ancho} height={alto} role="img" aria-label={`Cobrado por día, máximo ${pesos(maximo)}`}>
             {marcas.map((m) => (
               <g key={m}>
-                <line x1={izq} x2={ancho} y1={y(m) + 0.5} y2={y(m) + 0.5} stroke="#e3e7e4" strokeWidth={1} />
-                <text x={izq - 8} y={y(m) + 4} textAnchor="end" fontSize={12} fill="#5b655f">
+                <line
+                  x1={izq}
+                  x2={ancho}
+                  y1={y(m) + 0.5}
+                  y2={y(m) + 0.5}
+                  stroke="var(--linea)"
+                  strokeWidth={1}
+                />
+                <text x={izq - 8} y={y(m) + 4} textAnchor="end" fontSize={12} fill="var(--tenue)">
                   {pesosCortos(m)}
                 </text>
               </g>
@@ -345,7 +354,15 @@ function ColumnasPorDia({ dias }: { dias: ReporteClub['porDia'] }) {
                   onBlur={() => setFoco(null)}
                   className="outline-none"
                 >
-                  <rect x={izq + i * banda} y={0} width={banda} height={alto - abajo} fill="transparent" />
+                  <rect
+                    x={izq + i * banda + 1}
+                    y={1}
+                    width={Math.max(0, banda - 2)}
+                    height={alto - abajo - 2}
+                    fill="transparent"
+                    stroke={foco === i ? 'var(--foco)' : 'none'}
+                    strokeWidth={2}
+                  />
                   {h > 0 ? (
                     <path
                       d={`M${x},${alto - abajo} V${y(d.cobrado) + r} Q${x},${y(d.cobrado)} ${x + r},${y(d.cobrado)} H${x + grosor - r} Q${x + grosor},${y(d.cobrado)} ${x + grosor},${y(d.cobrado) + r} V${alto - abajo} Z`}
@@ -359,7 +376,7 @@ function ColumnasPorDia({ dias }: { dias: ReporteClub['porDia'] }) {
                       y={alto - 8}
                       textAnchor="middle"
                       fontSize={11}
-                      fill="#5b655f"
+                      fill="var(--tenue)"
                     >
                       {d.fecha.slice(8)}/{d.fecha.slice(5, 7)}
                     </text>
@@ -367,7 +384,13 @@ function ColumnasPorDia({ dias }: { dias: ReporteClub['porDia'] }) {
                 </g>
               );
             })}
-            <line x1={izq} x2={ancho} y1={alto - abajo + 0.5} y2={alto - abajo + 0.5} stroke="#d5dbd7" />
+            <line
+              x1={izq}
+              x2={ancho}
+              y1={alto - abajo + 0.5}
+              y2={alto - abajo + 0.5}
+              stroke="var(--borde-control)"
+            />
           </svg>
         ) : (
           <div style={{ height: alto }} />
@@ -375,13 +398,13 @@ function ColumnasPorDia({ dias }: { dias: ReporteClub['porDia'] }) {
         {activo && foco !== null ? (
           <div
             role="status"
-            className="pointer-events-none absolute top-2 rounded-lg bg-noche px-3 py-2 text-white shadow-lg"
+            className="pointer-events-none absolute top-2 rounded-xs bg-noche px-3 py-2 text-white"
             style={{
               left: Math.min(Math.max(izq + foco * banda + banda / 2 - 70, 0), Math.max(0, ancho - 150)),
             }}
           >
             <div className="text-base font-semibold">{pesos(activo.cobrado)}</div>
-            <div className="text-xs text-[#c9d3cc]">
+            <div className="text-xs text-[#c9d5cc]">
               {fechaCorta(activo.fecha)} · ocupación{' '}
               {activo.disponible ? porcentaje(activo.ocupado / activo.disponible) : '—'}
             </div>
@@ -394,7 +417,7 @@ function ColumnasPorDia({ dias }: { dias: ReporteClub['porDia'] }) {
       {tabla ? (
         <table className="mt-2 w-full text-sm">
           <thead>
-            <tr className="text-left text-[13px] text-suave">
+            <tr className="text-left text-sm text-suave">
               <th scope="col" className="font-semibold">
                 Día
               </th>
@@ -410,8 +433,8 @@ function ColumnasPorDia({ dias }: { dias: ReporteClub['porDia'] }) {
             {dias.map((d) => (
               <tr key={d.fecha} className="border-t border-linea">
                 <td className="py-1">{fechaCorta(d.fecha)}</td>
-                <td className="py-1 text-right tabular-nums">{pesos(d.cobrado)}</td>
-                <td className="py-1 text-right tabular-nums">
+                <td className="py-1 text-right">{pesos(d.cobrado)}</td>
+                <td className="py-1 text-right">
                   {d.disponible ? porcentaje(d.ocupado / d.disponible) : '—'}
                 </td>
               </tr>
@@ -460,7 +483,7 @@ function MapaOcupacion({ mapa }: { mapa: ReporteClub['ocupacion']['mapa'] }) {
           <tbody>
             {ORDEN_SEMANA.map((d) => (
               <tr key={d}>
-                <th scope="row" className="pr-2 text-left text-[13px] font-semibold">
+                <th scope="row" className="pr-2 text-left text-sm font-semibold">
                   {DIAS[d]?.slice(0, 3)}
                 </th>
                 {orden.map((h) => {
@@ -489,7 +512,7 @@ function MapaOcupacion({ mapa }: { mapa: ReporteClub['ocupacion']['mapa'] }) {
           </tbody>
         </table>
       </div>
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] text-medio">
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-medio">
         <p role="status" className="min-h-5 w-full font-semibold text-tinta">
           {foco && celda
             ? celda.disponible
