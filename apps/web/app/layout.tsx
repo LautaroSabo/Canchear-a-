@@ -1,3 +1,6 @@
+// Las letras se importan desde JS (el bundler resuelve el paquete igual en Windows y Linux).
+import '@fontsource-variable/big-shoulders-display';
+import '@fontsource-variable/schibsted-grotesk';
 import './globals.css';
 import type { Metadata, Viewport } from 'next';
 import { Providers } from './providers';
