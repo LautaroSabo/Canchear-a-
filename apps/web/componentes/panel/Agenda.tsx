@@ -2,7 +2,7 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { API_URL, panel } from '@/lib/api';
 import { fechaLarga, fechaLocal, hora, hoyEn, pesos, sumarDias } from '@/lib/formato';
 import { useAhora, useEventosTurnos } from '@/lib/hooks';
@@ -31,12 +31,16 @@ const CUMPLE: Record<Filtro, (t: TurnoAgenda) => boolean> = {
 };
 
 function useEsAncho(consulta: string) {
-  return useSyncExternalStore(
-    (cb) => {
+  const suscribir = useCallback(
+    (cb: () => void) => {
       const m = window.matchMedia(consulta);
       m.addEventListener('change', cb);
       return () => m.removeEventListener('change', cb);
     },
+    [consulta],
+  );
+  return useSyncExternalStore(
+    suscribir,
     () => window.matchMedia(consulta).matches,
     () => true,
   );
@@ -83,9 +87,24 @@ export function Agenda() {
   const rel = relativo(fecha, hoy);
   const hojaAbierta = Boolean(sel) && !ancho;
 
+  // Hoja del detalle en el celular: Escape la cierra y al cerrar el foco vuelve al turno.
+  const volverA = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    if (!hojaAbierta) return;
+    volverA.current = document.activeElement as HTMLElement | null;
+    const cerrar = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSel(null);
+    };
+    window.addEventListener('keydown', cerrar);
+    return () => {
+      window.removeEventListener('keydown', cerrar);
+      volverA.current?.focus();
+    };
+  }, [hojaAbierta]);
+
   return (
     <div className="flex flex-col gap-5">
-      <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+      <header inert={hojaAbierta} className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
         <div className="min-w-0">
           <h1 className="font-display text-[40px] leading-none font-bold">
             {rel ? `${rel} · ` : ''}
@@ -141,7 +160,7 @@ export function Agenda() {
           <button
             type="button"
             onClick={() => setAviso(null)}
-            className="min-h-11 rounded-xs border border-[#3a5244] px-3 text-sm font-semibold"
+            className="min-h-11 rounded-xs border border-[#6f8577] px-3 text-sm font-semibold"
           >
             Cerrar
           </button>
@@ -154,9 +173,12 @@ export function Agenda() {
         <Aviso>{agenda.error.message}</Aviso>
       ) : (
         <>
-          <Resumen agenda={agenda.data} filtro={filtro} setFiltro={setFiltro} />
+          <div inert={hojaAbierta}>
+            <Resumen agenda={agenda.data} filtro={filtro} setFiltro={setFiltro} />
+          </div>
           <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
             <Linea
+              inerte={hojaAbierta}
               agenda={agenda.data}
               esHoy={fecha === hoy}
               sel={sel}
@@ -169,13 +191,14 @@ export function Agenda() {
               <button
                 type="button"
                 tabIndex={-1}
-                aria-label="Cerrar detalle"
+                aria-hidden="true"
                 onClick={() => setSel(null)}
                 className="fixed inset-0 z-30 bg-black/50 lg:hidden"
               />
             ) : null}
             <aside
               aria-label="Detalle del turno"
+              {...(hojaAbierta ? { role: 'dialog', 'aria-modal': true } : {})}
               className={
                 hojaAbierta
                   ? 'fixed inset-x-0 bottom-0 z-40 max-h-[88dvh] overflow-y-auto border-t border-linea bg-superficie px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+20px)]'
@@ -189,6 +212,8 @@ export function Agenda() {
                       <button
                         type="button"
                         onClick={() => setSel(null)}
+                        // biome-ignore lint/a11y/noAutofocus: al abrir la hoja el foco entra al detalle.
+                        autoFocus
                         aria-label="Cerrar detalle"
                         className="flex size-11 items-center justify-center rounded-xs border border-linea"
                       >
@@ -293,6 +318,7 @@ function Resumen({
 }
 
 function Linea({
+  inerte,
   agenda,
   esHoy,
   sel,
@@ -300,6 +326,7 @@ function Linea({
   filtro,
   nuevo,
 }: {
+  inerte: boolean;
   agenda: TipoAgenda;
   esHoy: boolean;
   sel: string | null;
@@ -349,7 +376,7 @@ function Linea({
   }, [agenda.fecha]);
 
   return (
-    <section aria-label="Agenda por cancha" className="min-w-0">
+    <section aria-label="Agenda por cancha" inert={inerte} className="min-w-0">
       {!ancho && agenda.canchas.length > 1 ? (
         <Segmentado
           etiqueta="Cancha"
@@ -489,10 +516,12 @@ function Bloque({
       type="button"
       onClick={onClick}
       aria-pressed={elegido}
-      aria-label={`${t.cliente?.nombre ?? 'Bloqueo'}, ${hora(t.inicio, zona)}, ${TEXTOS[a]}`}
+      aria-label={`${t.cliente?.nombre ?? 'Bloqueo'}, ${hora(t.inicio, zona)}, ${TEXTOS[a]}${
+        plata !== TEXTOS[a] && a !== 'bloqueo' ? `, ${plata.toLowerCase()}` : ''
+      }`}
       className={`absolute inset-x-1 z-[5] overflow-hidden rounded-xs px-2.5 py-1.5 text-left transition-opacity ${CLASES[a]} ${
         elegido ? 'outline-3 outline-offset-1 outline-tinta' : ''
-      } ${atenuado ? 'opacity-25' : ''}`}
+      } ${atenuado ? 'opacity-50' : ''}`}
       style={{ top: top + 2, height: Math.max(alto - 4, 24) }}
     >
       <span className="flex items-baseline justify-between gap-2">

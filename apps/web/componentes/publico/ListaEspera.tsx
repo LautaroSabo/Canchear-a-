@@ -40,7 +40,10 @@ export function ListaEspera({
           jugadores: tipo,
         },
       }),
+    onSuccess: () => setAnotado({ fecha, desde: f.desde, hasta: f.hasta }),
   });
+  // Lo anotado queda fijo aunque después cambie el día elegido arriba.
+  const [anotado, setAnotado] = useState<{ fecha: string; desde: string; hasta: string } | null>(null);
 
   return (
     <section
@@ -64,11 +67,11 @@ export function ListaEspera({
         ) : null}
       </div>
 
-      {abierta && anotar.isSuccess ? (
+      {abierta && anotado ? (
         <div className="mt-5 max-w-xl">
           <Aviso tipo="ok">
-            Listo, te anotamos para el {fechaCorta(fecha)} entre las {f.desde} y las {f.hasta}. Si se libera
-            un turno te escribimos.
+            Listo, te anotamos para el {fechaCorta(anotado.fecha)} entre las {anotado.desde} y las{' '}
+            {anotado.hasta}. Si se libera un turno te escribimos.
           </Aviso>
         </div>
       ) : abierta ? (

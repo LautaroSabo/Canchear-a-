@@ -59,6 +59,7 @@ export function Reservar({ club }: { club: ClubPublico }) {
   const idempotencia = useRef(uuid());
   const idTituloForm = useId();
   const refAside = useRef<HTMLElement>(null);
+  const refContinuar = useRef<HTMLButtonElement>(null);
 
   const dias = useMemo(() => proximosDias(hoy, DIAS_VISIBLES), [hoy]);
 
@@ -109,7 +110,11 @@ export function Reservar({ club }: { club: ClubPublico }) {
       if (e.key === 'Escape') setHoja(false);
     };
     window.addEventListener('keydown', cerrar);
-    return () => window.removeEventListener('keydown', cerrar);
+    return () => {
+      window.removeEventListener('keydown', cerrar);
+      // Al cerrar, el foco vuelve a "Continuar" (si sigue habiendo un horario elegido).
+      requestAnimationFrame(() => refContinuar.current?.focus());
+    };
   }, [hoja]);
 
   const elegir = (s: Seleccion) => {
@@ -175,10 +180,12 @@ export function Reservar({ club }: { club: ClubPublico }) {
 
   return (
     <main className="mx-auto max-w-6xl px-4 pt-6 pb-36 sm:px-6 md:pb-16">
-      <Condiciones club={club} />
+      <div inert={hoja}>
+        <Condiciones club={club} />
+      </div>
 
       <div className="mt-6 grid items-start gap-8 md:mt-0 md:grid-cols-[minmax(0,1fr)_340px] lg:grid-cols-[minmax(0,1fr)_380px]">
-        <section aria-labelledby="titulo-grilla" className="min-w-0">
+        <section aria-labelledby="titulo-grilla" inert={hoja} className="min-w-0">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 id="titulo-grilla" className="font-display text-[32px] leading-none font-bold uppercase">
               Elegí día y horario
@@ -270,7 +277,7 @@ export function Reservar({ club }: { club: ClubPublico }) {
         {hoja ? (
           <button
             type="button"
-            aria-label="Cerrar"
+            aria-hidden="true"
             tabIndex={-1}
             onClick={() => setHoja(false)}
             className="fixed inset-0 z-20 bg-black/70 md:hidden"
@@ -412,10 +419,16 @@ export function Reservar({ club }: { club: ClubPublico }) {
         </aside>
       </div>
 
-      <ListaEspera slug={club.slug} fecha={fecha} tipo={tipo} destacada={completo} />
+      <div inert={hoja}>
+        <ListaEspera slug={club.slug} fecha={fecha} tipo={tipo} destacada={completo} />
+      </div>
 
-      {elegido && !hoja ? (
-        <div className="fixed inset-x-0 bottom-0 z-10 border-t border-linea bg-superficie px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+14px)] md:hidden">
+      {elegido ? (
+        <div
+          className={`fixed inset-x-0 bottom-0 z-10 border-t border-linea bg-superficie px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+14px)] md:hidden ${
+            hoja ? 'invisible' : ''
+          }`}
+        >
           <div className="flex items-center gap-3">
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm text-tenue">
@@ -428,7 +441,7 @@ export function Reservar({ club }: { club: ClubPublico }) {
                 <p className="text-sm text-tenue">Seña {pesos(elegido.slot.montoSena)}</p>
               ) : null}
             </div>
-            <Boton grande onClick={() => setHoja(true)}>
+            <Boton ref={refContinuar} grande onClick={() => setHoja(true)}>
               Continuar
             </Boton>
           </div>

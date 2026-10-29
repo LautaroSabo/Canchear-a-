@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { API_URL, mensajeDe, panel } from '@/lib/api';
 import { fechaCorta, fechaLocal, hora, pesos, telefonoLegible } from '@/lib/formato';
 import type { Transferencia } from '@/lib/tipos';
@@ -140,28 +140,30 @@ function Revision({
     },
   });
   const coincide = t.monto >= t.turno.montoSena;
+  const refRevision = useRef<HTMLElement>(null);
 
-  // Atajos para revisar de corrido: A aprueba, R abre el rechazo (no mientras se escribe).
-  useEffect(() => {
-    if (!revisable) return;
-    const tecla = (e: KeyboardEvent) => {
-      const el = e.target as HTMLElement;
-      if (e.metaKey || e.ctrlKey || e.altKey || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName)) return;
-      if (document.querySelector('[role="dialog"]')) return;
-      if (e.key === 'a' || e.key === 'A') {
-        e.preventDefault();
-        if (!aprobar.isPending) aprobar.mutate();
-      } else if (e.key === 'r' || e.key === 'R') {
-        e.preventDefault();
-        setRechazando(true);
-      }
-    };
-    window.addEventListener('keydown', tecla);
-    return () => window.removeEventListener('keydown', tecla);
-  }, [revisable, aprobar]);
+  // Atajos para revisar de corrido: con el foco dentro de esta revisión, A aprueba y R abre
+  // el rechazo. No mientras se escribe ni con la tecla sostenida.
+  const tecla = (e: React.KeyboardEvent) => {
+    if (!revisable || rechazando || e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
+    const el = e.target as HTMLElement;
+    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName) || el.isContentEditable) return;
+    if (e.key === 'a' || e.key === 'A') {
+      e.preventDefault();
+      if (!aprobar.isPending) aprobar.mutate();
+    } else if (e.key === 'r' || e.key === 'R') {
+      e.preventDefault();
+      setRechazando(true);
+    }
+  };
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: atajos de teclado para los botones de adentro.
     <section
+      onKeyDown={tecla}
+      tabIndex={-1}
+      ref={refRevision}
+      id="revision-transferencia"
       aria-label={`Comprobante de ${t.cliente?.nombre ?? 'cliente'}`}
       className="flex flex-col gap-4 border border-linea bg-superficie p-5"
     >
@@ -247,7 +249,7 @@ function Revision({
               Rechazar
             </Boton>
             <p className="w-full text-sm text-tenue">
-              Atajos: <kbd className="font-semibold text-tinta">A</kbd> aprueba,{' '}
+              Con el foco en este comprobante: <kbd className="font-semibold text-tinta">A</kbd> aprueba,{' '}
               <kbd className="font-semibold text-tinta">R</kbd> rechaza.
             </p>
           </div>

@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { panel } from '@/lib/api';
 import type { Rol, Transferencia } from '@/lib/tipos';
 import { IconoCerrar } from '../iconos';
@@ -121,6 +121,7 @@ function ListaSecciones({ nav, alElegir }: { nav: ReturnType<typeof useNavegacio
                   >
                     {s.nombre}
                     <Contador n={nav.badge(s.ruta)} />
+                    {nav.badge(s.ruta) > 0 ? <span className="sr-only"> pendientes</span> : null}
                   </Link>
                 </li>
               );
@@ -141,7 +142,7 @@ function PieCuenta({ nav }: { nav: ReturnType<typeof useNavegacion> }) {
           <select
             value={nav.clubId}
             onChange={(e) => nav.router.push(`/panel/${e.target.value}/agenda`)}
-            className="min-h-11 rounded-xs border border-[#3a5244] bg-noche-2 px-2 text-base text-cal"
+            className="min-h-11 rounded-xs border border-borde-control bg-noche-2 px-2 text-base text-cal"
           >
             {nav.sesion.data?.clubs.map((c) => (
               <option key={c.id} value={c.id}>
@@ -171,7 +172,7 @@ export function BarraLateral() {
   return (
     <nav
       aria-label="Secciones del panel"
-      className="sticky top-0 hidden h-screen w-60 flex-none flex-col gap-6 overflow-y-auto bg-noche py-5 lg:flex"
+      className="tema-noche sticky top-0 hidden h-screen w-60 flex-none flex-col gap-6 overflow-y-auto bg-noche py-5 lg:flex"
     >
       <Link
         href={nav.href('agenda')}
@@ -191,6 +192,12 @@ export function BarraLateral() {
 export function NavegacionMovil() {
   const nav = useNavegacion();
   const [abierto, setAbierto] = useState(false);
+  const refMas = useRef<HTMLButtonElement>(null);
+  const yaAbrio = useRef(false);
+  useEffect(() => {
+    if (abierto) yaAbrio.current = true;
+    else if (yaAbrio.current) refMas.current?.focus();
+  }, [abierto]);
   const rutaActual = usePathname();
   // biome-ignore lint/correctness/useExhaustiveDependencies: cerrar el menú al navegar.
   useEffect(() => setAbierto(false), [rutaActual]);
@@ -208,7 +215,7 @@ export function NavegacionMovil() {
 
   return (
     <>
-      <header className="sticky top-0 z-20 flex min-h-14 items-center bg-noche px-4 lg:hidden">
+      <header className="tema-noche sticky top-0 z-20 flex min-h-14 items-center bg-noche px-4 lg:hidden">
         <span className="truncate font-display text-2xl font-extrabold text-cal uppercase">
           {nav.club?.nombre ?? '—'}
         </span>
@@ -216,7 +223,7 @@ export function NavegacionMovil() {
 
       <nav
         aria-label="Secciones principales"
-        className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t border-[#2a3f33] bg-noche pb-[env(safe-area-inset-bottom)] lg:hidden"
+        className="tema-noche fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t border-[#2a3f33] bg-noche pb-[env(safe-area-inset-bottom)] lg:hidden"
       >
         {abajo.map((s) => {
           const actual = nav.actual(s.ruta);
@@ -242,8 +249,9 @@ export function NavegacionMovil() {
         })}
         <button
           type="button"
+          ref={refMas}
           aria-expanded={abierto}
-          aria-controls="menu-mas"
+          aria-haspopup="dialog"
           onClick={() => setAbierto(true)}
           className={`flex min-h-15 flex-col items-center justify-center border-t-[3px] text-sm font-semibold ${
             masActivo ? 'border-[#46ad65] text-cal' : 'border-transparent text-[#c9d5cc]'
@@ -254,11 +262,11 @@ export function NavegacionMovil() {
       </nav>
 
       {abierto ? (
-        <div className="fixed inset-0 z-30 lg:hidden">
+        <div className="tema-noche fixed inset-0 z-30 lg:hidden">
           <button
             type="button"
             tabIndex={-1}
-            aria-label="Cerrar menú"
+            aria-hidden="true"
             onClick={() => setAbierto(false)}
             className="absolute inset-0 bg-black/60"
           />

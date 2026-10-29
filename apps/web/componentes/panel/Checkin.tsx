@@ -252,7 +252,10 @@ function Camara({ alLeer }: { alLeer: (texto: string) => void }) {
         return;
       }
       const v = video.current;
-      if (!v || !vivo) return;
+      if (!v || !vivo) {
+        for (const pista of flujo.getTracks()) pista.stop();
+        return;
+      }
       v.srcObject = flujo;
       await v.play().catch(() => {});
       const analizar = () => {

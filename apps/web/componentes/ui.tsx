@@ -40,7 +40,7 @@ export function Boton({
   grande = false,
   className = '',
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variante?: Variante; grande?: boolean }) {
+}: ComponentProps<'button'> & { variante?: Variante; grande?: boolean }) {
   return <button type="button" {...props} className={`${clasesBoton(variante, grande)} ${className}`} />;
 }
 
@@ -184,8 +184,12 @@ export function Cargando({ texto = 'Cargando…' }: { texto?: string }) {
   );
 }
 
-export function Numero({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <span className={`cifras font-display font-bold leading-none ${className}`}>{children}</span>;
+export function Numero({ children, className = '', ...props }: ComponentProps<'span'>) {
+  return (
+    <span {...props} className={`cifras font-display font-bold leading-none ${className}`}>
+      {children}
+    </span>
+  );
 }
 
 /* ---------- Piezas compartidas nuevas ---------- */
@@ -291,8 +295,11 @@ export function Copiable({
         aria-label={`Copiar ${etiqueta.toLowerCase()}`}
         className="min-h-11 min-w-24 shrink-0 rounded-xs border border-borde-control px-3 text-sm font-semibold hover:border-tinta"
       >
-        <span aria-live="polite">{copiado ? 'Copiado' : 'Copiar'}</span>
+        {copiado ? 'Copiado' : 'Copiar'}
       </button>
+      <span role="status" className="sr-only">
+        {copiado ? `${etiqueta} copiado` : ''}
+      </span>
     </div>
   );
 }
@@ -380,7 +387,9 @@ export function Segmentado<T extends string>({
   className?: string;
 }) {
   return (
-    <fieldset className={`inline-flex rounded-xs border border-borde-control p-0.5 ${className}`}>
+    <fieldset
+      className={`inline-flex max-w-full overflow-x-auto rounded-xs border border-borde-control p-0.5 ${className}`}
+    >
       <legend className="sr-only">{etiqueta}</legend>
       {opciones.map((o) => {
         const activa = o.valor === valor;
@@ -390,7 +399,7 @@ export function Segmentado<T extends string>({
             type="button"
             aria-pressed={activa}
             onClick={() => onCambio(o.valor)}
-            className={`min-h-10 flex-1 rounded-xs px-3 text-sm font-semibold whitespace-nowrap ${
+            className={`min-h-11 flex-1 shrink-0 rounded-xs px-3 text-sm font-semibold whitespace-nowrap ${
               activa ? 'bg-tinta text-fondo' : 'text-tenue hover:text-tinta'
             }`}
           >
