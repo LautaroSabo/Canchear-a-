@@ -14,6 +14,8 @@ export const PNG = Buffer.from(
 
 /** El último sábado de la tira de 14 días: siempre está a 7+ días (nunca "muy cerca"). */
 export async function elegirUltimoSabado(page: Page) {
+  // El último sábado dentro de 14 días siempre cae en la segunda semana de la tira.
+  await page.getByRole('button', { name: 'Semana siguiente' }).click();
   const sabados = page.getByRole('button', { name: /^Sábado \d\d\/\d\d$/ });
   await expect(sabados.first()).toBeVisible();
   await sabados.last().click();

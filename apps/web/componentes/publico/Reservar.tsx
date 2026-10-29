@@ -17,11 +17,12 @@ import {
 import { useEventosTurnos } from '@/lib/hooks';
 import type { Alternativa, ClubPublico, Disponibilidad, ReservaPublica, Slot } from '@/lib/tipos';
 import { uuid } from '@/lib/uuid';
-import { IconoCerrar } from '../iconos';
+import { IconoCerrar, IconoDerecha, IconoIzquierda } from '../iconos';
 import { Aviso, Boton, Campo, Cargando, Numero, Segmentado } from '../ui';
 import { ListaEspera } from './ListaEspera';
 
-const DIAS_VISIBLES = 14;
+// Cuatro semanas, de a una por vez: siete días entran siempre en el ancho de un celular.
+const SEMANAS = 4;
 const nombreTipo = (n: number) => `Fútbol ${n}`;
 
 interface Seleccion {
@@ -61,7 +62,9 @@ export function Reservar({ club }: { club: ClubPublico }) {
   const refAside = useRef<HTMLElement>(null);
   const refContinuar = useRef<HTMLButtonElement>(null);
 
-  const dias = useMemo(() => proximosDias(hoy, DIAS_VISIBLES), [hoy]);
+  const todos = useMemo(() => proximosDias(hoy, SEMANAS * 7), [hoy]);
+  const [semana, setSemana] = useState(0);
+  const dias = todos.slice(semana * 7, semana * 7 + 7);
 
   const disponibilidad = useQuery({
     queryKey: ['disponibilidad', club.slug, fecha, tipo],
@@ -125,6 +128,8 @@ export function Reservar({ club }: { club: ClubPublico }) {
   };
 
   const cambiarDia = (d: string) => {
+    const i = todos.findIndex((x) => x.fecha === d);
+    if (i >= 0) setSemana(Math.floor(i / 7));
     setFecha(d);
     setSel(null);
     setHoja(false);
@@ -175,8 +180,8 @@ export function Reservar({ club }: { club: ClubPublico }) {
       : null) ?? [];
 
   const meses = [...new Set([nombreMes(dias[0]?.fecha ?? hoy), nombreMes(dias.at(-1)?.fecha ?? hoy)])];
-  const indiceDia = dias.findIndex((d) => d.fecha === fecha);
-  const siguiente = dias[indiceDia + 1];
+  const indiceDia = todos.findIndex((d) => d.fecha === fecha);
+  const siguiente = todos[indiceDia + 1];
 
   return (
     <main className="mx-auto max-w-6xl px-4 pt-6 pb-36 sm:px-6 md:pb-16">
@@ -205,8 +210,33 @@ export function Reservar({ club }: { club: ClubPublico }) {
           </div>
 
           <fieldset className="mt-5 min-w-0">
-            <legend className="mb-2 text-sm text-tenue first-letter:uppercase">{meses.join(' y ')}</legend>
-            <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
+            <legend className="sr-only">Día</legend>
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <p className="text-sm text-tenue first-letter:uppercase" aria-live="polite">
+                {meses.join(' y ')}
+              </p>
+              <div className="flex gap-1.5">
+                <button
+                  type="button"
+                  aria-label="Semana anterior"
+                  disabled={semana === 0}
+                  onClick={() => setSemana(semana - 1)}
+                  className="flex size-11 items-center justify-center rounded-xs border border-linea hover:border-borde-control disabled:opacity-40"
+                >
+                  <IconoIzquierda tamano={18} />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Semana siguiente"
+                  disabled={semana === SEMANAS - 1}
+                  onClick={() => setSemana(semana + 1)}
+                  className="flex min-h-11 items-center gap-1 rounded-xs border border-linea px-3 text-sm font-semibold hover:border-borde-control disabled:opacity-40"
+                >
+                  Más días <IconoDerecha tamano={18} />
+                </button>
+              </div>
+            </div>
+            <div className="grid grid-cols-7 gap-1.5">
               {dias.map((d) => {
                 const activo = d.fecha === fecha;
                 return (
@@ -216,14 +246,14 @@ export function Reservar({ club }: { club: ClubPublico }) {
                     aria-pressed={activo}
                     aria-label={fechaCorta(d.fecha)}
                     onClick={() => cambiarDia(d.fecha)}
-                    className={`flex min-h-17 w-15 shrink-0 flex-col items-center justify-center rounded-xs border ${
+                    className={`flex min-h-17 min-w-0 flex-col items-center justify-center rounded-xs border ${
                       activo
                         ? 'border-acento bg-acento text-acento-tinta'
                         : 'border-linea text-tinta hover:border-borde-control'
                     }`}
                   >
                     <span className={`text-sm ${activo ? '' : 'text-tenue'}`}>{d.nombre}</span>
-                    <Numero className="block text-[28px]">{d.numero}</Numero>
+                    <Numero className="block text-[26px]">{d.numero}</Numero>
                   </button>
                 );
               })}
