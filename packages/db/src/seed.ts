@@ -81,12 +81,16 @@ export function crearClubDemo(db: Db, slug = SLUG_DEMO) {
         ),
       );
 
-    // Precio general del club para F5 (cancha null) y precio propio para la F7
+    // Precio general del club para F5 (cancha null) y precio propio para la F7.
+    // Vigencia explícita: el default es la fecha de la base en UTC, que de 21 a 24 h de
+    // Buenos Aires ya es "mañana" y dejaba sin precio los turnos de esa noche.
+    const desde = { vigenteDesde: '2020-01-01' };
     await tx.insert(tarifas).values([
-      { clubId, horaDesde: '00:00', horaHasta: '18:00', precio: pesos(30_000), etiqueta: 'Valle' },
-      { clubId, horaDesde: '18:00', horaHasta: '00:00', precio: pesos(45_000), etiqueta: 'Pico' },
+      { clubId, ...desde, horaDesde: '00:00', horaHasta: '18:00', precio: pesos(30_000), etiqueta: 'Valle' },
+      { clubId, ...desde, horaDesde: '18:00', horaHasta: '00:00', precio: pesos(45_000), etiqueta: 'Pico' },
       {
         clubId,
+        ...desde,
         canchaId: c3.id,
         horaDesde: '00:00',
         horaHasta: '18:00',
@@ -95,6 +99,7 @@ export function crearClubDemo(db: Db, slug = SLUG_DEMO) {
       },
       {
         clubId,
+        ...desde,
         canchaId: c3.id,
         horaDesde: '18:00',
         horaHasta: '00:00',
