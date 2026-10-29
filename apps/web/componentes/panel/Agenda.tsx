@@ -262,7 +262,7 @@ function Resumen({
   ];
   return (
     <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-      <fieldset className="flex flex-wrap gap-1.5">
+      <fieldset className="-mx-4 flex max-w-[100vw] gap-1.5 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0">
         <legend className="sr-only">Mostrar</legend>
         {opciones.map((o) => {
           const activo = filtro === o.valor;
@@ -272,7 +272,7 @@ function Resumen({
               type="button"
               aria-pressed={activo}
               onClick={() => setFiltro(activo && o.valor !== 'todos' ? 'todos' : o.valor)}
-              className={`inline-flex min-h-11 items-center gap-2 rounded-xs border px-3 text-sm font-semibold ${
+              className={`inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xs border px-3 text-sm font-semibold ${
                 activo
                   ? 'border-tinta bg-tinta text-fondo'
                   : 'border-borde-control bg-superficie hover:border-tinta'

@@ -138,7 +138,7 @@ export function Reportes() {
           <section aria-label="Resumen" className="grid grid-cols-2 gap-3 lg:grid-cols-6">
             <Tarjeta className="col-span-2">
               <div className="text-sm text-suave">Cobrado</div>
-              <div className="text-[44px] font-semibold leading-tight">{pesos(r.dinero.cobrado)}</div>
+              <div className="font-display text-[56px] leading-none font-bold">{pesos(r.dinero.cobrado)}</div>
               <div className="text-sm text-medio">
                 Turnos {pesos(r.dinero.cobradoTurnos)} · Cantina {pesos(r.dinero.cobradoCantina)}
               </div>

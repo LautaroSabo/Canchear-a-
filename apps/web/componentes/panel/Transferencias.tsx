@@ -290,7 +290,17 @@ function VistaComprobante({ pagoId }: { pagoId: string }) {
     };
   }, [clubId, pagoId]);
 
-  if (error) return <Aviso>No se pudo cargar el comprobante.</Aviso>;
+  if (error)
+    return (
+      <Aviso>
+        No pudimos mostrar el comprobante.{' '}
+        {url ? (
+          <a href={url} target="_blank" rel="noopener" className="font-semibold underline">
+            Abrirlo en otra pestaña
+          </a>
+        ) : null}
+      </Aviso>
+    );
   if (!url) return <div className="h-96 animate-pulse bg-fondo" />;
   if (tipo === 'application/pdf') {
     return (
@@ -310,6 +320,7 @@ function VistaComprobante({ pagoId }: { pagoId: string }) {
       <img
         src={url}
         alt="Comprobante de transferencia"
+        onError={() => setError(true)}
         className="mx-auto max-h-[60vh] min-h-48 w-full object-contain"
       />
     </a>

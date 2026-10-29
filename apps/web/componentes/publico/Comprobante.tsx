@@ -145,7 +145,7 @@ function Banda({
 }) {
   return (
     <section aria-labelledby="estado-reserva" className="flex flex-col gap-5">
-      <div className={`border-l-4 pl-4 ${TONOS[tono]}`}>
+      <div className={TONOS[tono]}>
         <h1
           id="estado-reserva"
           className="font-display text-[44px] leading-[0.95] font-extrabold uppercase sm:text-[56px]"
@@ -159,7 +159,15 @@ function Banda({
   );
 }
 
-function Temporizador({ hasta, texto }: { hasta: string; texto: string }) {
+function Temporizador({
+  hasta,
+  texto,
+  tono = 'aviso',
+}: {
+  hasta: string;
+  texto: string;
+  tono?: 'aviso' | 'info';
+}) {
   const ahora = useAhora();
   const qc = useQueryClient();
   const segundos = segundosHasta(hasta, ahora);
@@ -167,7 +175,13 @@ function Temporizador({ hasta, texto }: { hasta: string; texto: string }) {
     if (segundos === 0) qc.invalidateQueries({ queryKey: ['reserva'] });
   }, [segundos, qc]);
   return (
-    <div className="flex items-center justify-between gap-3 border border-aviso-borde bg-aviso-fondo px-4 py-3 text-aviso-texto">
+    <div
+      className={`flex items-center justify-between gap-3 border px-4 py-3 ${
+        tono === 'info'
+          ? 'border-info-borde bg-info-fondo text-info-texto'
+          : 'border-aviso-borde bg-aviso-fondo text-aviso-texto'
+      }`}
+    >
       <p className="text-base font-semibold">{texto}</p>
       <Numero className="text-[40px]" aria-live="off">
         {reloj(segundos)}
@@ -292,7 +306,9 @@ function EnRevision({ reserva: r }: { reserva: ReservaPublica }) {
       titulo="Comprobante recibido"
       tono="info"
       extra={
-        r.expiraEn ? <Temporizador hasta={r.expiraEn} texto="Turno guardado mientras lo revisan" /> : null
+        r.expiraEn ? (
+          <Temporizador hasta={r.expiraEn} texto="Turno guardado mientras lo revisan" tono="info" />
+        ) : null
       }
     >
       El turno es tuyo mientras el club revisa la transferencia. Te avisamos por WhatsApp apenas la confirmen.

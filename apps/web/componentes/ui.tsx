@@ -165,7 +165,7 @@ export function Aviso({ tipo = 'error', children }: { tipo?: keyof typeof AVISOS
   return (
     <div
       role={tipo === 'error' ? 'alert' : 'status'}
-      className={`rounded-xs border-l-4 px-4 py-3 text-sm ${AVISOS[tipo]}`}
+      className={`rounded-xs border px-4 py-3 text-sm ${AVISOS[tipo]}`}
     >
       {children}
     </div>

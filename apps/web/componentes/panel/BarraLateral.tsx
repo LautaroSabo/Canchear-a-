@@ -103,7 +103,7 @@ function ListaSecciones({ nav, alElegir }: { nav: ReturnType<typeof useNavegacio
     <div className="flex flex-col gap-5">
       {nav.grupos.map((g) => (
         <div key={g.nombre}>
-          <p className="px-3 pb-1 text-sm text-[#8fa196]">{g.nombre}</p>
+          <p className="px-3 pb-1 text-sm text-[#a8b8ad]">{g.nombre}</p>
           <ul className="flex flex-col">
             {g.secciones.map((s) => {
               const actual = nav.actual(s.ruta);
@@ -136,7 +136,7 @@ function PieCuenta({ nav }: { nav: ReturnType<typeof useNavegacion> }) {
   return (
     <div className="flex flex-col gap-2 border-t border-[#2a3f33] pt-4">
       {(nav.sesion.data?.clubs.length ?? 0) > 1 ? (
-        <label className="flex flex-col gap-1 px-3 text-sm text-[#8fa196]">
+        <label className="flex flex-col gap-1 px-3 text-sm text-[#a8b8ad]">
           Club
           <select
             value={nav.clubId}
@@ -151,7 +151,7 @@ function PieCuenta({ nav }: { nav: ReturnType<typeof useNavegacion> }) {
           </select>
         </label>
       ) : null}
-      <p className="px-3 text-sm text-[#8fa196]">
+      <p className="px-3 text-sm text-[#a8b8ad]">
         {nav.sesion.data?.usuario.nombre} · {nav.rol ? ROLES[nav.rol] : ''}
       </p>
       <button

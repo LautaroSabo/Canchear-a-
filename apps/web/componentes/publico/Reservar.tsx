@@ -177,7 +177,7 @@ export function Reservar({ club }: { club: ClubPublico }) {
     <main className="mx-auto max-w-6xl px-4 pt-6 pb-36 sm:px-6 md:pb-16">
       <Condiciones club={club} />
 
-      <div className="mt-8 grid items-start gap-8 md:grid-cols-[minmax(0,1fr)_340px] lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="mt-6 grid items-start gap-8 md:mt-0 md:grid-cols-[minmax(0,1fr)_340px] lg:grid-cols-[minmax(0,1fr)_380px]">
         <section aria-labelledby="titulo-grilla" className="min-w-0">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 id="titulo-grilla" className="font-display text-[32px] leading-none font-bold uppercase">
@@ -452,11 +452,9 @@ function Condiciones({ club }: { club: ClubPublico }) {
     'El resto lo pagás en el club. Al llegar mostrás el QR.',
   ];
   return (
-    <ul className="grid gap-x-8 gap-y-2 text-sm text-tenue sm:grid-cols-3" aria-label="Cómo funciona">
+    <ul className="grid gap-y-2 text-sm text-tenue md:hidden" aria-label="Cómo funciona">
       {items.map((t) => (
-        <li key={t} className="border-l-2 border-cesped pl-3">
-          {t}
-        </li>
+        <li key={t}>{t}</li>
       ))}
     </ul>
   );
@@ -492,9 +490,9 @@ type PropsGrilla = {
 };
 
 function claseSlot(slot: Slot, elegido: boolean) {
-  if (elegido) return 'bg-acento text-acento-tinta outline-2 outline-offset-2 outline-acento';
-  if (slot.estado !== 'LIBRE') return 'border border-linea text-ocupado-tinta cursor-not-allowed';
-  return 'bg-cesped text-cesped-tinta hover:brightness-110';
+  if (elegido) return 'bg-cesped text-cesped-tinta outline-2 outline-offset-2 outline-cesped';
+  if (slot.estado !== 'LIBRE') return 'text-ocupado-tinta opacity-60 cursor-not-allowed';
+  return 'bg-superficie border-t-4 border-cesped text-tinta hover:bg-superficie-2';
 }
 
 const textoSlot = (s: Slot) => (s.estado === 'LIBRE' ? pesos(s.precio) : 'Ocupado');

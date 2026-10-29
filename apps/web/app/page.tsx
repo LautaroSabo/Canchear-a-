@@ -24,11 +24,13 @@ export default function Inicio() {
   return (
     <div className="tema-noche min-h-screen bg-fondo text-tinta">
       <header className="relative overflow-hidden border-b border-linea">
-        <LineasCancha className="text-cal opacity-[0.08]" />
-        <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 pt-12 pb-14 sm:px-6 md:grid-cols-[1.1fr_1fr] md:pt-20 md:pb-20">
+        <LineasCancha className="text-cal opacity-[0.04] md:opacity-[0.08]" />
+        <div className="relative mx-auto max-w-6xl px-4 pt-5 sm:px-6">
+          <span className="font-display text-2xl font-bold uppercase">Canchería</span>
+        </div>
+        <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 pt-10 pb-14 sm:px-6 md:grid-cols-[1.1fr_1fr] md:pt-16 md:pb-20">
           <div>
-            <p className="font-display text-2xl font-bold uppercase text-acento-texto">Canchería</p>
-            <h1 className="mt-4 font-display text-[56px] leading-[0.9] font-extrabold uppercase sm:text-[84px]">
+            <h1 className="font-display text-[56px] leading-[0.9] font-extrabold uppercase sm:text-[84px]">
               Reservá cancha sin llamar a nadie
             </h1>
             <p className="mt-5 max-w-md text-lg text-tenue">
@@ -40,7 +42,7 @@ export default function Inicio() {
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-6xl gap-12 px-4 py-14 sm:px-6 md:grid-cols-2">
+      <main className="mx-auto grid max-w-6xl gap-12 px-4 py-14 sm:px-6 md:grid-cols-[1fr_1.3fr]">
         <section aria-labelledby="jugadores" className="flex flex-col items-start gap-4">
           <h2 id="jugadores" className="font-display text-[40px] leading-none font-bold uppercase">
             Si vas a jugar
@@ -60,7 +62,7 @@ export default function Inicio() {
           </h2>
           <ul className="flex flex-col gap-3">
             {PARA_CLUBES.map(([titulo, texto]) => (
-              <li key={titulo} className="border-l-2 border-cesped pl-3">
+              <li key={titulo}>
                 <p className="text-base font-semibold">{titulo}</p>
                 <p className="text-sm text-tenue">{texto}</p>
               </li>
@@ -95,7 +97,9 @@ function MuestraGrilla() {
           ))}
         </div>
       </div>
-      <figcaption className="mt-3 text-sm text-tenue">Verde es libre, con el precio a la vista.</figcaption>
+      <figcaption className="mt-3 text-sm text-tenue">
+        Lo libre lleva la raya verde y el precio a la vista.
+      </figcaption>
     </figure>
   );
 }
@@ -104,14 +108,14 @@ function Fila({ hora, c1, c2 }: { hora: string; c1: string | null; c2: string | 
   const celda = (precio: string | null, elegido = false) =>
     precio ? (
       <span
-        className={`cifras flex min-h-11 items-center justify-center rounded-xs ${
-          elegido ? 'bg-acento text-acento-tinta' : 'bg-cesped text-cesped-tinta'
+        className={`flex min-h-11 items-center justify-center rounded-xs font-semibold ${
+          elegido ? 'bg-cesped text-cesped-tinta' : 'border-t-4 border-cesped bg-superficie-2'
         }`}
       >
         {precio}
       </span>
     ) : (
-      <span className="flex min-h-11 items-center justify-center rounded-xs border border-linea text-ocupado-tinta">
+      <span className="flex min-h-11 items-center justify-center rounded-xs text-ocupado-tinta opacity-60">
         Ocupado
       </span>
     );

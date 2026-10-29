@@ -26,9 +26,8 @@ export default function Login() {
       <LineasCancha className="text-cal opacity-[0.07]" />
       <main className="relative mx-auto grid w-full max-w-5xl items-center gap-10 px-4 py-12 sm:px-6 md:grid-cols-[1fr_400px]">
         <div>
-          <p className="font-display text-2xl font-bold text-acento-texto uppercase">Canchería</p>
-          <h1 className="mt-3 font-display text-[56px] leading-[0.9] font-extrabold uppercase sm:text-[72px]">
-            Panel del club
+          <h1 className="font-display text-[56px] leading-[0.9] font-extrabold uppercase sm:text-[72px]">
+            Canchería · panel del club
           </h1>
           <p className="mt-4 max-w-sm text-lg text-tenue">Ingresá con el usuario que te dio el club.</p>
         </div>

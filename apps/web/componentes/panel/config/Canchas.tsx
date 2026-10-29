@@ -49,7 +49,18 @@ export function Canchas({ canchas }: { canchas: CanchaConfig[] }) {
               <Boton variante="fantasma" onClick={() => setEditando(c)}>
                 Editar
               </Boton>
-              <Boton variante="fantasma" disabled={activar.isPending} onClick={() => activar.mutate(c)}>
+              <Boton
+                variante="fantasma"
+                className={c.activa ? 'text-peligro hover:bg-error-fondo' : ''}
+                disabled={activar.isPending}
+                onClick={() => {
+                  if (
+                    !c.activa ||
+                    window.confirm(`¿Desactivar ${c.nombre}? Deja de aparecer en la página de reservas.`)
+                  )
+                    activar.mutate(c);
+                }}
+              >
                 {c.activa ? 'Desactivar' : 'Activar'}
               </Boton>
             </div>
