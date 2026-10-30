@@ -41,6 +41,14 @@ export async function pedir<T>(ruta: string, o: Opciones = {}): Promise<T> {
       signal: o.signal ?? null,
     });
   } catch {
+    // En el servidor el problema no es la conexión del usuario sino que la API no responde.
+    if (typeof window === 'undefined') {
+      throw new ErrorApi(
+        0,
+        'SIN_CONEXION',
+        `La web no pudo conectarse con la API en ${o.base ?? API_URL}. Fijate que esté corriendo (pnpm dev la levanta en el puerto 3001) y que la base de datos esté prendida.`,
+      );
+    }
     throw new ErrorApi(0, 'SIN_CONEXION', 'No pudimos conectarnos. Revisá tu conexión y probá de nuevo.');
   }
   if (res.status === 204) return undefined as T;
