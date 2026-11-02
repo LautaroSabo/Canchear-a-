@@ -25,7 +25,7 @@ export function cargarConfig(env: NodeJS.ProcessEnv = process.env) {
     urlWeb: e.URL_WEB,
     whatsapp,
     nivelLog: e.LOG_LEVEL,
-    logsLegibles: e.NODE_ENV === 'development',
+    logsLegibles: e.NODE_ENV === 'development' && Boolean(process.stdout.isTTY),
     intervalos: {
       expiracionMs: 30_000,
       notificacionesMs: 5_000,

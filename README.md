@@ -5,6 +5,7 @@ Gestión y reserva de turnos para complejos deportivos.
 - [Arquitectura, stack y control de concurrencia](docs/arquitectura.md)
 - [API pública: endpoints, errores y reglas de negocio](docs/api-publica.md)
 - [API del panel de administración: sesiones, roles y operación](docs/api-admin.md)
+- [Publicar la app y dar de alta clubes](docs/publicar.md)
 - [Esquema de base de datos (migración SQL)](packages/db/migrations/0001_init.sql)
 
 ## Probarla en tu compu
@@ -29,10 +30,11 @@ pnpm dev              # API (3001), worker y web (3000) juntos
 
 Para probar desde el celular en la misma red (con la IP de tu compu, por ejemplo `192.168.0.10`): en `.env` poné `URL_WEB=http://192.168.0.10:3000`, `WEB_ORIGIN=http://192.168.0.10:3000` y `URL_API=http://192.168.0.10:3001`; en `apps/web/.env.local`, `NEXT_PUBLIC_API_URL=http://192.168.0.10:3001`. Reiniciá `pnpm dev` y abrí `http://192.168.0.10:3000/la-canchita` en el celular.
 
-Otros usuarios para el panel (la contraseña se genera y se muestra una vez, o se toma de `CONTRASENA`):
+Un club nuevo con su dueño, u otros usuarios para el panel (la contraseña se genera y se muestra una vez, o se toma de `CONTRASENA`):
 
 ```bash
-pnpm --filter @cancheria/api admin:crear-usuario vos@mail.com "Tu nombre" la-canchita OWNER
+pnpm club:crear el-potrero "El Potrero" vos@mail.com "Tu nombre"
+pnpm usuario:crear recepcion@mail.com "Recepción" el-potrero RECEPCION
 ```
 
 Para probar Mercado Pago con credenciales de prueba de tu cuenta:

@@ -62,8 +62,10 @@ export function cargarConfig(env: NodeJS.ProcessEnv = process.env): Config {
     claveCredenciales: e.CLAVE_CREDENCIALES,
     dirComprobantes: e.DIR_COMPROBANTES,
     nivelLog: e.LOG_LEVEL,
-    logsLegibles: e.NODE_ENV === 'development',
-    cookiesSeguras: e.NODE_ENV === 'production',
+    // Logs con colores solo en una terminal de desarrollo; en el hosting, JSON.
+    logsLegibles: e.NODE_ENV === 'development' && Boolean(process.stdout.isTTY),
+    // Publicada detrás de HTTPS la cookie va siempre con Secure, aunque no se defina NODE_ENV.
+    cookiesSeguras: e.NODE_ENV === 'production' || e.URL_API.startsWith('https://'),
     whatsappConfigurado: Boolean(e.WHATSAPP_TOKEN && e.WHATSAPP_PHONE_NUMBER_ID),
     reservasPorMinuto: 10,
     loginsPorMinuto: 10,

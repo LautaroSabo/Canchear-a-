@@ -1,6 +1,12 @@
 import { LineasCancha } from '@/componentes/publico/LineasCancha';
 import { BotonLink } from '@/componentes/ui';
 
+// Club de ejemplo para el botón de la portada: en desarrollo, el demo; publicado, el que se
+// configure en NEXT_PUBLIC_CLUB_EJEMPLO (si no hay ninguno, el botón no aparece).
+const CLUB_EJEMPLO =
+  process.env.NEXT_PUBLIC_CLUB_EJEMPLO ??
+  (process.env.NODE_ENV === 'development' ? 'la-canchita' : undefined);
+
 // Muestra de grilla para la portada: es la pieza que el jugador va a usar, así que es la imagen.
 const MUESTRA = [
   { hora: '19:00', c1: '$38.000', c2: null },
@@ -48,12 +54,14 @@ export default function Inicio() {
             Si vas a jugar
           </h2>
           <p className="text-base text-tenue">
-            Pedile el link de reservas a tu club (suele estar en su Instagram o en el estado de WhatsApp). Si
-            querés ver cómo funciona antes, probá con el club de ejemplo.
+            Pedile el link de reservas a tu club (suele estar en su Instagram o en el estado de WhatsApp).
+            {CLUB_EJEMPLO ? ' Si querés ver cómo funciona antes, probá con el club de ejemplo.' : ''}
           </p>
-          <BotonLink href="/la-canchita" grande>
-            Ver el club de ejemplo
-          </BotonLink>
+          {CLUB_EJEMPLO ? (
+            <BotonLink href={`/${CLUB_EJEMPLO}`} grande>
+              Ver el club de ejemplo
+            </BotonLink>
+          ) : null}
         </section>
 
         <section aria-labelledby="clubes" className="flex flex-col items-start gap-4">
