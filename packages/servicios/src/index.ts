@@ -5,6 +5,7 @@ export * from './cifrado.ts';
 export * from './clientes.ts';
 export * from './config-club.ts';
 export * from './configuracion.ts';
+export * from './correo.ts';
 export * from './cotizacion.ts';
 export * from './credenciales.ts';
 export * from './cuenta.ts';

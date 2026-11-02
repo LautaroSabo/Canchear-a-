@@ -1,13 +1,17 @@
 import { usuarios } from '@cancheria/db/schema';
 import { eq } from 'drizzle-orm';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { type Contexto, crearContexto, iso, pedido, usuarioPanel } from './helpers.ts';
 
 let ctx: Contexto;
 let superadmin: string;
 let dueno: string;
 beforeAll(async () => {
-  ctx = await crearContexto({ abonoMensual: 2_500_000, comoPagarAbono: 'Alias: cancheria.abono' });
+  ctx = await crearContexto({
+    abonoMensual: 2_500_000,
+    comoPagarAbono: 'Alias: cancheria.abono',
+    avisosEmail: 'yo@gmail.com',
+  });
   const sa = await usuarioPanel(ctx, 'OWNER');
   await ctx.db.update(usuarios).set({ esSuperadmin: true }).where(eq(usuarios.id, sa.usuario.id));
   superadmin = sa.cookie;
@@ -46,6 +50,14 @@ describe('registro de un club', () => {
       { nombre: 'Ana Dueña', email: 'ana@potrero.test', contrasena: 'una-clave-larga' },
     );
     expect(res.statusCode).toBe(201);
+    // Te llega el aviso por mail para aprobarlo.
+    await vi.waitFor(() => expect(ctx.correo.enviados).toHaveLength(1));
+    expect(ctx.correo.enviados[0]).toMatchObject({
+      para: 'yo@gmail.com',
+      asunto: 'Nuevo club para aprobar: El Potrero',
+    });
+    expect(ctx.correo.enviados[0]?.texto).toContain('Email: ana@potrero.test');
+    expect(ctx.correo.enviados[0]?.texto).toContain('https://cancheria.test/panel/plataforma');
     const cookie = res.cookies.find((c) => c.name === 'cancheria_sesion');
     expect(cookie).toBeDefined();
     nuevo = { clubId: res.json().clubId, cookie: `cancheria_sesion=${cookie?.value}` };

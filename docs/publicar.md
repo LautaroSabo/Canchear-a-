@@ -136,6 +136,45 @@ ABONO_COMO_PAGAR=Transferí al alias tu.alias.abono y mandanos el comprobante po
 
 `ABONO_MENSUAL` va en pesos.
 
+### Aviso por mail cuando se registra un club
+
+En la **api** agregá `AVISOS_EMAIL` con tu Gmail y una de estas dos formas de mandarlo.
+
+**Con Resend (recomendado en Railway).** Railway bloquea el envío por SMTP en el plan
+Hobby, y Resend manda por HTTPS. Es gratis hasta 3.000 mails por mes.
+
+1. Creá una cuenta en [resend.com](https://resend.com) **con el mismo Gmail** donde querés
+   recibir los avisos.
+2. En *API Keys → Create API Key*, con permiso *Sending access*, copiá la clave (`re_…`).
+3. En la api:
+   ```
+   AVISOS_EMAIL=tu@gmail.com
+   RESEND_API_KEY=re_...
+   ```
+
+Sin un dominio verificado en Resend, los mails salen de `onboarding@resend.dev` y solo
+pueden ir al email de tu cuenta de Resend. Para un aviso a vos alcanza. Si después
+verificás tu dominio, agregá `CORREO_REMITENTE=Canchería <avisos@tudominio.com.ar>`.
+
+**Con Gmail directo (SMTP).** Anda en tu compu o en un hosting que permita SMTP (en
+Railway, solo en el plan Pro).
+
+1. En tu cuenta de Google activá la verificación en dos pasos.
+2. Entrá a [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords),
+   creá una contraseña de aplicación ("Canchería") y copiá los 16 caracteres.
+3. En la api:
+   ```
+   AVISOS_EMAIL=tu@gmail.com
+   SMTP_HOST=smtp.gmail.com
+   SMTP_PUERTO=465
+   SMTP_USUARIO=tu@gmail.com
+   SMTP_CONTRASENA=xxxx xxxx xxxx xxxx
+   ```
+
+El mail trae el club, su página, el WhatsApp, el nombre y el email del dueño, y el link a
+**Administrar plataforma**. Si el envío falla, el registro igual queda hecho: el club
+aparece en *Por aprobar* y el error queda en los logs de la api.
+
 **Alta manual (opcional):** si preferís crear vos un club, ya aprobado y con dueño:
 
 ```powershell

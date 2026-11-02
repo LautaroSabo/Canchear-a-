@@ -43,6 +43,8 @@ pnpm --filter @cancheria/api admin:crear-usuario recepcion@club.com "Recepción"
 | POST | `/admin/plataforma/clubs/:id/reactivar` | superadmin | 204 |
 | GET / POST | `/admin/plataforma/clubs/:id/pagos` | superadmin | Historial / `{ meses, monto, medio (TRANSFERENCIA · MERCADO_PAGO · EFECTIVO · OTRO), nota? }` → 201. Extiende `abonoHasta` desde el día siguiente al último cubierto (o desde hoy, si estaba vencido) |
 
+Cada registro manda un mail a `AVISOS_EMAIL` (por Resend con `RESEND_API_KEY`, o por SMTP con `SMTP_*`), en segundo plano: si falla, se loguea y el alta queda igual.
+
 Para quien no es superadmin, las rutas de `/plataforma` responden 404. Se marca con `pnpm superadmin <email>`.
 
 ## Operación diaria — `/admin/clubs/:clubId/…` (RECEPCION)

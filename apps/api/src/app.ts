@@ -3,6 +3,8 @@ import {
   type AlmacenArchivos,
   AlmacenLocal,
   Cifrador,
+  type Correo,
+  crearCorreo,
   type PasarelaMp,
   PasarelaMpHttp,
   type Reloj,
@@ -48,6 +50,8 @@ export interface Dependencias {
   logger?: boolean;
   /** Mercado Pago real por defecto; los tests inyectan una pasarela falsa. */
   pasarela?: PasarelaMp;
+  /** Avisos por mail a la plataforma; por defecto, según la config (o ninguno). */
+  correo?: Correo | null;
   almacen?: AlmacenArchivos;
 }
 
@@ -59,6 +63,7 @@ export async function construirApp({
   logger = true,
   pasarela = new PasarelaMpHttp(),
   almacen = new AlmacenLocal(config.dirComprobantes),
+  correo = crearCorreo(config.correo),
 }: Dependencias) {
   const app = Fastify({
     logger: logger && {
@@ -150,6 +155,7 @@ export async function construirApp({
     pagos,
     reembolsos,
     plataforma,
+    correo,
     reportes,
     turnosFijos,
     pasarela,

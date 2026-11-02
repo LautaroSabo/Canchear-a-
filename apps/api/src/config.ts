@@ -22,6 +22,17 @@ const esquema = z.object({
   ABONO_MENSUAL: z.coerce.number().int().min(0).optional(),
   /** Cómo pagar el abono (alias, CBU, link): texto libre que ve cada club. */
   ABONO_COMO_PAGAR: z.string().optional(),
+  /** Adónde avisar cuando se registra un club (por ejemplo, tu Gmail). */
+  AVISOS_EMAIL: z.email().optional(),
+  /** Envío por Resend (HTTPS): recomendado, anda en hostings que bloquean SMTP. */
+  RESEND_API_KEY: z.string().optional(),
+  /** O por SMTP: con Gmail, smtp.gmail.com, puerto 465 y una contraseña de aplicación. */
+  SMTP_HOST: z.string().optional(),
+  SMTP_PUERTO: z.coerce.number().int().positive().default(465),
+  SMTP_USUARIO: z.string().optional(),
+  SMTP_CONTRASENA: z.string().optional(),
+  /** Remitente, por ejemplo "Canchería <avisos@tudominio.com.ar>" (opcional). */
+  CORREO_REMITENTE: z.string().optional(),
 });
 
 export interface Config {
@@ -55,6 +66,13 @@ export interface Config {
   /** Abono mensual en centavos, o null si no se configuró. */
   abonoMensual: number | null;
   comoPagarAbono: string | null;
+  /** Destinatario de los avisos internos (registro de clubes). */
+  avisosEmail: string | null;
+  correo: {
+    resendApiKey?: string | undefined;
+    remitente?: string | undefined;
+    smtp?: { host: string; puerto: number; usuario: string; contrasena: string } | undefined;
+  };
 }
 
 export function cargarConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -76,6 +94,20 @@ export function cargarConfig(env: NodeJS.ProcessEnv = process.env): Config {
     whatsappConfigurado: Boolean(e.WHATSAPP_TOKEN && e.WHATSAPP_PHONE_NUMBER_ID),
     abonoMensual: e.ABONO_MENSUAL !== undefined ? e.ABONO_MENSUAL * 100 : null,
     comoPagarAbono: e.ABONO_COMO_PAGAR?.trim() || null,
+    avisosEmail: e.AVISOS_EMAIL ?? null,
+    correo: {
+      resendApiKey: e.RESEND_API_KEY,
+      remitente: e.CORREO_REMITENTE,
+      smtp:
+        e.SMTP_HOST && e.SMTP_USUARIO && e.SMTP_CONTRASENA
+          ? {
+              host: e.SMTP_HOST,
+              puerto: e.SMTP_PUERTO,
+              usuario: e.SMTP_USUARIO,
+              contrasena: e.SMTP_CONTRASENA,
+            }
+          : undefined,
+    },
     reservasPorMinuto: 10,
     loginsPorMinuto: 10,
     cacheClubMs: 10_000,

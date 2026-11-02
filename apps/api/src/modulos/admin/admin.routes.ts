@@ -4,6 +4,7 @@ import {
   type AlmacenArchivos,
   aCsv,
   type Cifrador,
+  type Correo,
   detectarTipoComprobante,
   ErrorMp,
   ErrorNegocio,
@@ -112,6 +113,7 @@ interface Opciones {
   operacion: ServicioOperacion;
   pagos: ServicioPagos;
   plataforma: ServicioPlataforma;
+  correo: Correo | null;
   reembolsos: ServicioReembolsos;
   reportes: ServicioReportes;
   turnosFijos: ServicioTurnosFijos;

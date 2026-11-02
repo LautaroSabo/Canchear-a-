@@ -1,4 +1,5 @@
 import {
+  type Correo,
   ErrorNegocio,
   type RepoClubs,
   type ServicioAuth,
@@ -14,6 +15,7 @@ interface Opciones {
   auth: ServicioAuth;
   clubs: RepoClubs;
   plataforma: ServicioPlataforma;
+  correo: Correo | null;
 }
 
 const cuerpoRegistro = z.object({
@@ -51,6 +53,29 @@ export function abonoPublico(config: Config) {
   return { abonoMensual: config.abonoMensual, comoPagarAbono: config.comoPagarAbono };
 }
 
+/** Mail a la plataforma cuando un club se registra solo. */
+async function avisarRegistro(o: Opciones, d: z.infer<typeof cuerpoRegistro>) {
+  if (!o.correo || !o.config.avisosEmail) return;
+  const web = o.config.urlWeb.replace(/\/$/, '');
+  await o.correo.enviar({
+    para: o.config.avisosEmail,
+    asunto: `Nuevo club para aprobar: ${d.club.nombre}`,
+    texto: [
+      'Se registró un club nuevo y espera tu aprobación.',
+      '',
+      `Club: ${d.club.nombre}`,
+      `Página: ${web}/${d.club.slug.trim().toLowerCase()}`,
+      `WhatsApp: ${d.club.telefono}`,
+      ...(d.club.direccion ? [`Dirección: ${d.club.direccion}`] : []),
+      '',
+      `Dueño: ${d.dueno.nombre}`,
+      `Email: ${d.dueno.email}`,
+      '',
+      `Aprobalo en ${web}/panel/plataforma`,
+    ].join('\n'),
+  });
+}
+
 /** Registro de clubes nuevos (público) y administración de la plataforma (superadmin). */
 export async function rutasPlataforma(app: FastifyInstance, o: Opciones) {
   app.get('/registro/slug', { config: { rateLimit: { max: 60, timeWindow: '1 minute' } } }, async (req) =>
@@ -67,6 +92,10 @@ export async function rutasPlataforma(app: FastifyInstance, o: Opciones) {
     });
     setCookieSesion(reply, r.token, r.expiraEn, o.config.cookiesSeguras);
     req.log.info({ clubId, slug: datos.club.slug }, 'club nuevo registrado: espera aprobación');
+    // El aviso sale en segundo plano: si el mail falla, el alta igual queda (y se ve en el panel).
+    avisarRegistro(o, datos).catch((err) =>
+      req.log.error({ err, clubId }, 'no se pudo mandar el aviso de registro'),
+    );
     return reply.status(201).send({ clubId, usuario: r.usuario, clubs: await o.auth.clubsDe(r.usuario.id) });
   });
 
