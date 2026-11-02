@@ -123,7 +123,12 @@ interface Opciones {
   sse: StreamsSse;
 }
 
+/** Fallas de login por cuenta: frena a quien prueba contraseñas desde muchas IPs. */
+const FALLAS_MAXIMAS_POR_CUENTA = 10;
+const VENTANA_FALLAS_MS = 15 * 60_000;
+
 export const rutasAdmin: FastifyPluginAsync<Opciones> = async (app, o) => {
+  const fallas = new Map<string, { cantidad: number; desde: number }>();
   app.addHook('onRequest', exigirCsrf);
   app.addHook('onSend', async (_req, reply) => {
     reply.header('cache-control', 'no-store');
@@ -136,7 +141,32 @@ export const rutasAdmin: FastifyPluginAsync<Opciones> = async (app, o) => {
     { config: { rateLimit: { max: o.config.loginsPorMinuto, timeWindow: '1 minute' } } },
     async (req, reply) => {
       const { email, contrasena } = cuerpoLogin.parse(req.body);
-      const r = await o.auth.login(email, contrasena, { ip: req.ip, userAgent: req.headers['user-agent'] });
+      const clave = email.trim().toLowerCase();
+      const previas = fallas.get(clave);
+      const vigentes = previas && Date.now() - previas.desde < VENTANA_FALLAS_MS ? previas : null;
+      if (vigentes && vigentes.cantidad >= FALLAS_MAXIMAS_POR_CUENTA) {
+        throw new ErrorNegocio(
+          429,
+          'DEMASIADOS_INTENTOS',
+          'Demasiados intentos fallidos con esta cuenta. Esperá 15 minutos y probá de nuevo.',
+        );
+      }
+      let r: Awaited<ReturnType<typeof o.auth.login>>;
+      try {
+        r = await o.auth.login(email, contrasena, { ip: req.ip, userAgent: req.headers['user-agent'] });
+      } catch (err) {
+        if (err instanceof ErrorNegocio && err.codigo === 'CREDENCIALES_INVALIDAS') {
+          if (fallas.size > 10_000) {
+            for (const [k, v] of fallas) if (Date.now() - v.desde >= VENTANA_FALLAS_MS) fallas.delete(k);
+          }
+          fallas.set(clave, {
+            cantidad: (vigentes?.cantidad ?? 0) + 1,
+            desde: vigentes?.desde ?? Date.now(),
+          });
+        }
+        throw err;
+      }
+      fallas.delete(clave);
       setCookieSesion(reply, r.token, r.expiraEn, o.config.cookiesSeguras);
       return { usuario: r.usuario, clubs: await o.auth.clubsDe(r.usuario.id), ...abonoPublico(o.config) };
     },

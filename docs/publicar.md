@@ -60,6 +60,9 @@ WEB_ORIGIN=https://tudominio.com.ar
 DIR_COMPROBANTES=/data/comprobantes
 ```
 
+Railway pone un proxy delante de la API; el default `PROXIES_CONFIABLES=1` es el correcto.
+Con eso, los límites de intentos usan la IP real del visitante.
+
 **worker**:
 
 ```
@@ -200,6 +203,11 @@ de prueba de Mercado Pago.
 Cada push a la rama principal vuelve a desplegar solo los servicios afectados (por los
 `watchPatterns` de cada `railway.json`). Las migraciones se aplican antes de que la API
 nueva reciba tráfico.
+
+## Seguridad
+
+Antes de abrirla a clubes, leé [seguridad.md](seguridad.md): clave de cifrado, backups,
+verificación en dos pasos en Railway y GitHub, y cómo resetear contraseñas.
 
 ## Si algo falla
 

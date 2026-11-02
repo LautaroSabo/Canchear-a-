@@ -14,6 +14,8 @@ const esquema = z.object({
   CLAVE_CREDENCIALES: z.string().min(1),
   /** Carpeta local para comprobantes de transferencia (en producción: S3/R2). */
   DIR_COMPROBANTES: z.string().default('./uploads'),
+  /** Proxies delante de la API (el del hosting). 0 en local; 1 en Railway, Render, etc. */
+  PROXIES_CONFIABLES: z.coerce.number().int().min(0).max(5).default(1),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   WHATSAPP_TOKEN: z.string().optional(),
@@ -44,6 +46,7 @@ export interface Config {
   urlApi: string;
   claveCredenciales: string;
   dirComprobantes: string;
+  proxiesConfiables: number;
   nivelLog: z.infer<typeof esquema>['LOG_LEVEL'];
   logsLegibles: boolean;
   /** Cookie de sesión con Secure (HTTPS). Siempre en producción. */
@@ -86,6 +89,7 @@ export function cargarConfig(env: NodeJS.ProcessEnv = process.env): Config {
     urlApi: e.URL_API,
     claveCredenciales: e.CLAVE_CREDENCIALES,
     dirComprobantes: e.DIR_COMPROBANTES,
+    proxiesConfiables: e.PROXIES_CONFIABLES,
     nivelLog: e.LOG_LEVEL,
     // Logs con colores solo en una terminal de desarrollo; en el hosting, JSON.
     logsLegibles: e.NODE_ENV === 'development' && Boolean(process.stdout.isTTY),

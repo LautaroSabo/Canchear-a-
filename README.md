@@ -6,6 +6,7 @@ Gestión y reserva de turnos para complejos deportivos.
 - [API pública: endpoints, errores y reglas de negocio](docs/api-publica.md)
 - [API del panel de administración: sesiones, roles y operación](docs/api-admin.md)
 - [Publicar la app y dar de alta clubes](docs/publicar.md)
+- [Seguridad: qué está protegido y qué falta](docs/seguridad.md)
 - [Esquema de base de datos (migración SQL)](packages/db/migrations/0001_init.sql)
 
 ## Probarla en tu compu

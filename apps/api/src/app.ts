@@ -71,13 +71,23 @@ export async function construirApp({
       redact: ['req.headers.authorization', 'req.headers.cookie', 'req.headers["x-signature"]'],
       ...(config.logsLegibles ? { transport: { target: 'pino-pretty' } } : {}),
     },
-    trustProxy: true,
+    // Cuántos proxies hay delante (el del hosting). Con `true` se tomaría la primera IP de
+    // X-Forwarded-For, que la escribe el cliente: cualquiera podría saltear los límites por IP.
+    trustProxy: (_direccion: string, salto: number) => salto < config.proxiesConfiables,
     bodyLimit: 64 * 1024,
     // Al apagar se cortan también las conexiones SSE abiertas (el navegador reconecta solo).
     forceCloseConnections: true,
   });
 
   app.setErrorHandler(manejadorErrores);
+  // Encabezados de seguridad básicos en todas las respuestas de la API.
+  app.addHook('onSend', async (_req, reply) => {
+    reply.header('x-content-type-options', 'nosniff');
+    reply.header('x-frame-options', 'DENY');
+    reply.header('referrer-policy', 'no-referrer');
+    if (config.cookiesSeguras)
+      reply.header('strict-transport-security', 'max-age=31536000; includeSubDomains');
+  });
   // JSON vacío = sin cuerpo. Por defecto Fastify responde 400, y un front que manda
   // `content-type: application/json` en todos sus fetch rompería los POST sin datos
   // (logout, aprobar, confirmar, pedir el link de MP).
