@@ -167,7 +167,7 @@ export const rutasAdmin: FastifyPluginAsync<Opciones> = async (app, o) => {
         throw err;
       }
       fallas.delete(clave);
-      setCookieSesion(reply, r.token, r.expiraEn, o.config.cookiesSeguras);
+      setCookieSesion(reply, r.token, r.expiraEn, o.config);
       return { usuario: r.usuario, clubs: await o.auth.clubsDe(r.usuario.id), ...abonoPublico(o.config) };
     },
   );
@@ -176,7 +176,7 @@ export const rutasAdmin: FastifyPluginAsync<Opciones> = async (app, o) => {
 
   app.post('/auth/logout', async (req, reply) => {
     await o.auth.logout(req.cookies[COOKIE_SESION]);
-    reply.clearCookie(COOKIE_SESION, { path: '/admin' });
+    reply.clearCookie(COOKIE_SESION, { path: o.config.rutaCookie });
     return reply.status(204).send();
   });
 

@@ -10,6 +10,7 @@ coverage/
 .DS_Store
 uploads/
 .next-e2e/
+.next-e2e-origen/
 test-results/
 playwright-report/
 next-env.d.ts

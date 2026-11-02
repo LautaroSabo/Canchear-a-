@@ -13,11 +13,21 @@ const ENCABEZADOS = [
   { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' },
 ];
 
+// Sin dominio propio: el navegador le habla a la API en /api de este mismo sitio y Next
+// la reenvía por la red interna (API_URL_INTERNA). Mismo origen = la cookie del panel anda
+// aunque el hosting dé dos subdominios distintos. Con dominio propio no hace falta.
+const API_INTERNA = process.env.API_URL_INTERNA?.replace(/\/$/, '');
+const API_EN_ESTE_SITIO = process.env.NEXT_PUBLIC_API_URL?.startsWith('/') ?? false;
+
 const config: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   // Los e2e compilan en su propia carpeta (con otra URL de API) sin pisar el build normal.
   distDir: process.env.NEXT_DIST_DIR ?? '.next',
+  async rewrites() {
+    if (!API_EN_ESTE_SITIO || !API_INTERNA) return [];
+    return [{ source: `${process.env.NEXT_PUBLIC_API_URL}/:ruta*`, destination: `${API_INTERNA}/:ruta*` }];
+  },
   async headers() {
     return [{ source: '/:ruta*', headers: ENCABEZADOS }];
   },

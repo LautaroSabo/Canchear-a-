@@ -90,7 +90,7 @@ export async function rutasPlataforma(app: FastifyInstance, o: Opciones) {
       ip: req.ip,
       userAgent: req.headers['user-agent'],
     });
-    setCookieSesion(reply, r.token, r.expiraEn, o.config.cookiesSeguras);
+    setCookieSesion(reply, r.token, r.expiraEn, o.config);
     req.log.info({ clubId, slug: datos.club.slug }, 'club nuevo registrado: espera aprobación');
     // El aviso sale en segundo plano: si el mail falla, el alta igual queda (y se ve en el panel).
     avisarRegistro(o, datos).catch((err) =>

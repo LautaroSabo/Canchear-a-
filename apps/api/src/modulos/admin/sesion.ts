@@ -71,12 +71,18 @@ export function usuarioDe(req: FastifyRequest): UsuarioSesion {
   return req.usuario;
 }
 
-export function setCookieSesion(reply: FastifyReply, token: string, expiraEn: Date, seguras: boolean) {
+export function setCookieSesion(
+  reply: FastifyReply,
+  token: string,
+  expiraEn: Date,
+  c: { cookiesSeguras: boolean; rutaCookie: string },
+) {
   reply.setCookie(COOKIE_SESION, token, {
     httpOnly: true,
-    secure: seguras,
+    secure: c.cookiesSeguras,
     sameSite: 'lax',
-    path: '/admin',
+    // Con la API detrás de la web (/api/…), el navegador ve /api/admin.
+    path: c.rutaCookie,
     expires: expiraEn,
   });
 }

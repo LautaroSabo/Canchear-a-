@@ -54,6 +54,10 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @cancheria/web exec playwright install --with-deps chromium
       - run: pnpm test:e2e
+      # Igual que en Railway sin dominio propio: la web sirve la API en /api.
+      - run: pnpm test:e2e
+        env:
+          E2E_MISMO_ORIGEN: "1"
       - if: failure()
         uses: actions/upload-artifact@v4
         with:

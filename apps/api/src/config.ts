@@ -15,6 +15,11 @@ const esquema = z.object({
   /** Carpeta local para comprobantes de transferencia (en producción: S3/R2). */
   DIR_COMPROBANTES: z.string().default('./uploads'),
   /** Proxies delante de la API (el del hosting). 0 en local; 1 en Railway, Render, etc. */
+  /**
+   * Ruta de la cookie del panel tal como la ve el navegador: /admin si la API tiene su
+   * propio dominio; /api/admin si la web la sirve en /api (mismo dominio, sin comprar uno).
+   */
+  COOKIE_RUTA: z.string().startsWith('/').default('/admin'),
   PROXIES_CONFIABLES: z.coerce.number().int().min(0).max(5).default(1),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -47,6 +52,7 @@ export interface Config {
   claveCredenciales: string;
   dirComprobantes: string;
   proxiesConfiables: number;
+  rutaCookie: string;
   nivelLog: z.infer<typeof esquema>['LOG_LEVEL'];
   logsLegibles: boolean;
   /** Cookie de sesión con Secure (HTTPS). Siempre en producción. */
@@ -90,6 +96,7 @@ export function cargarConfig(env: NodeJS.ProcessEnv = process.env): Config {
     claveCredenciales: e.CLAVE_CREDENCIALES,
     dirComprobantes: e.DIR_COMPROBANTES,
     proxiesConfiables: e.PROXIES_CONFIABLES,
+    rutaCookie: e.COOKIE_RUTA,
     nivelLog: e.LOG_LEVEL,
     // Logs con colores solo en una terminal de desarrollo; en el hosting, JSON.
     logsLegibles: e.NODE_ENV === 'development' && Boolean(process.stdout.isTTY),

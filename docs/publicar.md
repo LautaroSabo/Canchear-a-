@@ -9,11 +9,61 @@ la web. Cada servicio ya tiene su archivo `railway.json` en el repo.
 | Qué | Para qué | Costo aproximado |
 |---|---|---|
 | Cuenta en [railway.com](https://railway.com), con login de GitHub | Correr la app | Plan Hobby: unos US$5 por mes más el uso. Para pocos clubes alcanza |
-| Un dominio, por ejemplo `cancheria.com.ar`, en [NIC Argentina](https://nic.ar) | La dirección de la app | Pago anual. **Hace falta**: la sesión del panel exige que la web y la API compartan dominio |
+| Un dominio, por ejemplo `cancheria.com.ar`, en [NIC Argentina](https://nic.ar) | La dirección de la app | Pago anual. Para empezar a probar no hace falta: ver *Sin dominio propio* |
 | Acceso al dominio para cargar registros DNS | Apuntar el dominio a Railway | — |
 | *(Opcional)* WhatsApp Cloud API de Meta | Mandar confirmaciones y recordatorios | Ver [whatsapp.md](whatsapp.md). La app funciona sin esto |
 
 Mercado Pago no se configura acá: cada club conecta su propia cuenta desde el panel.
+
+## Sin dominio propio (para empezar a probar)
+
+Se puede publicar sin comprar un dominio, con la dirección gratuita que da Railway
+(`algo.up.railway.app`). La web atiende todo y le pasa a la API, por la red interna de
+Railway, lo que llega a `/api`. Así el navegador ve un solo sitio y la sesión del panel
+funciona. Cuando compres el dominio, cambiás las variables y listo.
+
+Seguí los pasos 1 y 2 de abajo igual. En lugar de los pasos 3 y 4, hacé esto:
+
+**Variables.** Primero, en el servicio `web`: *Settings → Networking →
+Generate Domain*. Te da algo como `cancheria-web-production.up.railway.app`; abajo va como
+`TU-WEB`.
+
+```
+# api
+DATABASE_URL=${{Postgres.DATABASE_URL}}
+CLAVE_CREDENCIALES=<la clave generada>
+HOST=::
+PORT=3001
+URL_WEB=https://TU-WEB.up.railway.app
+URL_API=https://TU-WEB.up.railway.app/api
+WEB_ORIGIN=https://TU-WEB.up.railway.app
+COOKIE_RUTA=/api/admin
+DIR_COMPROBANTES=/data/comprobantes
+
+# worker
+DATABASE_URL=${{Postgres.DATABASE_URL}}
+CLAVE_CREDENCIALES=<la misma clave>
+URL_WEB=https://TU-WEB.up.railway.app
+
+# web
+NEXT_PUBLIC_API_URL=/api
+API_URL_INTERNA=http://api.railway.internal:3001
+```
+
+- `HOST=::` hace que la API escuche en la red interna de Railway.
+- `api.railway.internal` funciona si el servicio se llama exactamente `api`.
+
+**Dominio.** No hace falta nada más: la API no necesita dirección
+pública. Probá `https://TU-WEB.up.railway.app/api/health` (tiene que decir `{"ok":true}`)
+y `https://TU-WEB.up.railway.app`.
+
+**Mercado Pago:** la URL de notificaciones que muestra el panel
+(`https://TU-WEB.up.railway.app/api/webhooks/mercadopago/<club>`) sirve igual.
+
+**Al pasar a dominio propio:** usá las variables del paso 3 (sin `COOKIE_RUTA`,
+`API_URL_INTERNA` ni `NEXT_PUBLIC_API_URL=/api`), conectá el dominio (paso 4) y volvé a
+desplegar `web` y `api`. Los clubes y los datos quedan. Si un club ya conectó Mercado
+Pago, tiene que actualizar la URL de notificaciones en su cuenta de MP.
 
 ## 1. Crear el proyecto y la base
 
