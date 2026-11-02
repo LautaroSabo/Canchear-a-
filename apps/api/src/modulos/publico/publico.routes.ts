@@ -38,6 +38,16 @@ export const rutasPublicas: FastifyPluginAsync<Opciones> = async (
     if (!cfg) throw new ErrorNegocio(404, 'CLUB_NO_ENCONTRADO', 'No existe un club con ese link');
     return cfg;
   };
+  /** Un club pendiente de aprobación o suspendido se ve pero no toma reservas. */
+  const exigirHabilitado = (cfg: { club: { estado: string } }) => {
+    if (cfg.club.estado !== 'ACTIVO') {
+      throw new ErrorNegocio(
+        403,
+        'CLUB_NO_HABILITADO',
+        'Este club todavía no toma reservas online. Escribile por WhatsApp para reservar.',
+      );
+    }
+  };
 
   app.get('/clubs/:slug', async (req) => {
     const { club, canchas, mediosPago } = await clubPorSlug(req.params);
@@ -48,6 +58,8 @@ export const rutasPublicas: FastifyPluginAsync<Opciones> = async (
       telefono: club.telefono,
       logoUrl: club.logoUrl,
       zonaHoraria: club.zonaHoraria,
+      /** PENDIENTE o SUSPENDIDO: la grilla se muestra, pero no se puede reservar. */
+      habilitado: club.estado === 'ACTIVO',
       mediosPago,
       canchas: canchas.map((c) => ({
         id: c.id,
@@ -73,6 +85,7 @@ export const rutasPublicas: FastifyPluginAsync<Opciones> = async (
     { config: { rateLimit: { max: config.reservasPorMinuto, timeWindow: '1 minute' } } },
     async (req, reply) => {
       const cfg = await clubPorSlug(req.params);
+      exigirHabilitado(cfg);
       const { reserva, creada } = await reservas.crear(cfg, cuerpoReserva.parse(req.body));
       return reply.status(creada ? 201 : 200).send(reserva);
     },
@@ -130,6 +143,7 @@ export const rutasPublicas: FastifyPluginAsync<Opciones> = async (
     { config: { rateLimit: { max: config.reservasPorMinuto, timeWindow: '1 minute' } } },
     async (req, reply) => {
       const cfg = await clubPorSlug(req.params);
+      exigirHabilitado(cfg);
       const p = cuerpoListaEspera.parse(req.body);
       disponibilidad.validarFecha(cfg, p.fecha);
       const zona = cfg.club.zonaHoraria;

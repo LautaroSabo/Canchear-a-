@@ -47,6 +47,9 @@ describe('sesión', () => {
         nombre: 'La Canchita F5',
         zonaHoraria: 'America/Argentina/Buenos_Aires',
         rol: 'RECEPCION',
+        estado: 'ACTIVO',
+        motivoSuspension: null,
+        abonoHasta: null,
       },
     ]);
     const c = res.cookies.find((x) => x.name === 'cancheria_sesion');

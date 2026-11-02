@@ -136,6 +136,14 @@ function ListaSecciones({ nav, alElegir }: { nav: ReturnType<typeof useNavegacio
 function PieCuenta({ nav }: { nav: ReturnType<typeof useNavegacion> }) {
   return (
     <div className="flex flex-col gap-2 border-t border-[#2a3f33] pt-4">
+      {nav.sesion.data?.usuario.esSuperadmin ? (
+        <Link
+          href="/panel/plataforma"
+          className="flex min-h-11 items-center px-3 text-[15px] font-semibold text-[#c9d5cc] hover:bg-noche-2 hover:text-cal"
+        >
+          Administrar plataforma
+        </Link>
+      ) : null}
       {(nav.sesion.data?.clubs.length ?? 0) > 1 ? (
         <label className="flex flex-col gap-1 px-3 text-sm text-[#a8b8ad]">
           Club

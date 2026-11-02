@@ -58,6 +58,8 @@ export interface UsuarioSesion {
   id: string;
   email: string;
   nombre: string;
+  /** Administra la plataforma: aprueba clubes y registra abonos. */
+  esSuperadmin: boolean;
   sesionId: string;
   expiraEn: Date;
 }
@@ -69,6 +71,9 @@ export interface ClubDelUsuario {
   /** El panel muestra todas las horas en la zona del club, no en la del navegador. */
   zonaHoraria: string;
   rol: Rol;
+  estado: 'PENDIENTE' | 'ACTIVO' | 'SUSPENDIDO';
+  motivoSuspension: string | null;
+  abonoHasta: string | null;
 }
 
 export class ServicioAuth {
@@ -100,7 +105,11 @@ export class ServicioAuth {
       ip: meta.ip ?? null,
       userAgent: meta.userAgent?.slice(0, 300) ?? null,
     });
-    return { token, expiraEn, usuario: { id: u.id, email: u.email, nombre: u.nombre } };
+    return {
+      token,
+      expiraEn,
+      usuario: { id: u.id, email: u.email, nombre: u.nombre, esSuperadmin: u.esSuperadmin },
+    };
   }
 
   /** Usuario de una sesión vigente (sliding: se extiende mientras se use). */
@@ -115,6 +124,7 @@ export class ServicioAuth {
         id: usuarios.id,
         email: usuarios.email,
         nombre: usuarios.nombre,
+        esSuperadmin: usuarios.esSuperadmin,
       })
       .from(sesiones)
       .innerJoin(usuarios, eq(usuarios.id, sesiones.usuarioId))
@@ -135,7 +145,14 @@ export class ServicioAuth {
         .set({ expiraEn, renovadaEn: ahora })
         .where(eq(sesiones.id, f.sesionId));
     }
-    return { id: f.id, email: f.email, nombre: f.nombre, sesionId: f.sesionId, expiraEn };
+    return {
+      id: f.id,
+      email: f.email,
+      nombre: f.nombre,
+      esSuperadmin: f.esSuperadmin,
+      sesionId: f.sesionId,
+      expiraEn,
+    };
   }
 
   async logout(token: string | undefined) {
@@ -188,6 +205,9 @@ export class ServicioAuth {
         nombre: clubs.nombre,
         zonaHoraria: clubs.zonaHoraria,
         rol: miembrosClub.rol,
+        estado: clubs.estado,
+        motivoSuspension: clubs.motivoSuspension,
+        abonoHasta: clubs.abonoHasta,
       })
       .from(miembrosClub)
       .innerJoin(clubs, eq(clubs.id, miembrosClub.clubId))

@@ -19,6 +19,8 @@ export interface ClubPublico {
   telefono: string | null;
   logoUrl: string | null;
   zonaHoraria: string;
+  /** Pendiente de aprobación o suspendido: se ve la grilla pero no se reserva. */
+  habilitado: boolean;
   mediosPago: {
     mercadoPago: boolean;
     transferencia: { alias?: string; cbu?: string; titular?: string } | null;
@@ -75,9 +77,51 @@ export interface Alternativa {
 
 export type Rol = 'OWNER' | 'ADMIN' | 'RECEPCION';
 
+export type EstadoClub = 'PENDIENTE' | 'ACTIVO' | 'SUSPENDIDO';
+
 export interface Sesion {
-  usuario: { id: string; email: string; nombre: string };
-  clubs: { id: string; slug: string; nombre: string; zonaHoraria: string; rol: Rol }[];
+  usuario: { id: string; email: string; nombre: string; esSuperadmin: boolean };
+  clubs: {
+    id: string;
+    slug: string;
+    nombre: string;
+    zonaHoraria: string;
+    rol: Rol;
+    estado: EstadoClub;
+    motivoSuspension: string | null;
+    /** Último día cubierto por el abono (YYYY-MM-DD). */
+    abonoHasta: string | null;
+  }[];
+  /** Abono mensual de la plataforma, en centavos (null si no se configuró). */
+  abonoMensual: number | null;
+  comoPagarAbono: string | null;
+}
+
+export interface ClubPlataforma {
+  id: string;
+  slug: string;
+  nombre: string;
+  telefono: string | null;
+  direccion: string | null;
+  estado: EstadoClub;
+  creadoEn: string;
+  aprobadoEn: string | null;
+  motivoSuspension: string | null;
+  abonoHasta: string | null;
+  dueno: { nombre: string; email: string } | null;
+  canchas: number;
+  turnosUltimos30Dias: number;
+}
+
+export interface PagoAbono {
+  id: string;
+  monto: number;
+  meses: number;
+  desde: string;
+  hasta: string;
+  medio: string;
+  nota: string | null;
+  creadoEn: string;
 }
 
 export interface TurnoAgenda {

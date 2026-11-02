@@ -12,6 +12,7 @@
     "lint": "biome check .",
     "format": "biome check --write .",
     "dev": "turbo run dev --filter=@cancheria/api --filter=@cancheria/worker --filter=@cancheria/web",
+    "superadmin": "pnpm --filter @cancheria/api superadmin",
     "club:crear": "pnpm --filter @cancheria/api club:crear",
     "usuario:crear": "pnpm --filter @cancheria/api admin:crear-usuario",
     "demo:preparar": "pnpm db:migrate && pnpm db:seed && pnpm --filter @cancheria/api demo:usuario",

@@ -17,6 +17,7 @@ import {
   type ServicioFidelizacion,
   type ServicioOperacion,
   type ServicioPagos,
+  type ServicioPlataforma,
   type ServicioReembolsos,
   type ServicioReportes,
   type ServicioTurnosFijos,
@@ -88,6 +89,7 @@ import {
   queryTransferencias,
   queryVentas,
 } from './esquemas.ts';
+import { abonoPublico, rutasPlataforma } from './plataforma.routes.ts';
 import {
   COOKIE_SESION,
   clubIdDe,
@@ -109,6 +111,7 @@ interface Opciones {
   fidelizacion: ServicioFidelizacion;
   operacion: ServicioOperacion;
   pagos: ServicioPagos;
+  plataforma: ServicioPlataforma;
   reembolsos: ServicioReembolsos;
   reportes: ServicioReportes;
   turnosFijos: ServicioTurnosFijos;
@@ -133,9 +136,11 @@ export const rutasAdmin: FastifyPluginAsync<Opciones> = async (app, o) => {
       const { email, contrasena } = cuerpoLogin.parse(req.body);
       const r = await o.auth.login(email, contrasena, { ip: req.ip, userAgent: req.headers['user-agent'] });
       setCookieSesion(reply, r.token, r.expiraEn, o.config.cookiesSeguras);
-      return { usuario: r.usuario, clubs: await o.auth.clubsDe(r.usuario.id) };
+      return { usuario: r.usuario, clubs: await o.auth.clubsDe(r.usuario.id), ...abonoPublico(o.config) };
     },
   );
+
+  await rutasPlataforma(app, o);
 
   app.post('/auth/logout', async (req, reply) => {
     await o.auth.logout(req.cookies[COOKIE_SESION]);
@@ -145,7 +150,11 @@ export const rutasAdmin: FastifyPluginAsync<Opciones> = async (app, o) => {
 
   app.get('/auth/yo', { preHandler: exigirSesion(o.auth) }, async (req) => {
     const u = usuarioDe(req);
-    return { usuario: { id: u.id, email: u.email, nombre: u.nombre }, clubs: await o.auth.clubsDe(u.id) };
+    return {
+      usuario: { id: u.id, email: u.email, nombre: u.nombre, esSuperadmin: u.esSuperadmin },
+      clubs: await o.auth.clubsDe(u.id),
+      ...abonoPublico(o.config),
+    };
   });
 
   app.post('/auth/contrasena', { preHandler: exigirSesion(o.auth) }, async (req, reply) => {

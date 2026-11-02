@@ -19,9 +19,13 @@ export const iso = (fecha: string, hora: string) => new Date(ba(fecha, hora)).to
 export async function crearContexto({
   pool = 10,
   loginsPorMinuto = 10_000,
+  abonoMensual = null,
+  comoPagarAbono = null,
 }: {
   pool?: number;
   loginsPorMinuto?: number;
+  abonoMensual?: number | null;
+  comoPagarAbono?: string | null;
 } = {}) {
   const url = inject('databaseUrl');
   const conexion = crearDb(url, { max: pool });
@@ -38,6 +42,8 @@ export async function crearContexto({
     cacheClubMs: 0,
     reservasPorMinuto: 10_000,
     loginsPorMinuto,
+    abonoMensual,
+    comoPagarAbono,
   };
   const pasarela = new PasarelaMpFalsa();
   const almacen = new AlmacenMemoria();

@@ -28,6 +28,8 @@ export interface ConfigClub {
     slug: string;
     nombre: string;
     zonaHoraria: string;
+    /** PENDIENTE y SUSPENDIDO muestran la grilla pero no toman reservas. */
+    estado: 'PENDIENTE' | 'ACTIVO' | 'SUSPENDIDO';
     telefono: string | null;
     direccion: string | null;
     logoUrl: string | null;
@@ -88,6 +90,7 @@ export class RepoClubs {
         slug: clubs.slug,
         nombre: clubs.nombre,
         zonaHoraria: clubs.zonaHoraria,
+        estado: clubs.estado,
         telefono: clubs.telefono,
         direccion: clubs.direccion,
         logoUrl: clubs.logoUrl,

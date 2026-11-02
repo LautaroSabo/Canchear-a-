@@ -1,6 +1,7 @@
 'use client';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { LineasCancha } from '@/componentes/publico/LineasCancha';
@@ -29,7 +30,13 @@ export default function Login() {
           <h1 className="font-display text-[56px] leading-[0.9] font-extrabold uppercase sm:text-[72px]">
             Canchería · panel del club
           </h1>
-          <p className="mt-4 max-w-sm text-lg text-tenue">Ingresá con el usuario que te dio el club.</p>
+          <p className="mt-4 max-w-sm text-lg text-tenue">Ingresá con tu email y tu contraseña.</p>
+          <p className="mt-6 text-base text-tenue">
+            ¿Tenés un club y todavía no usás Canchería?{' '}
+            <Link href="/registrar" className="font-semibold text-tinta underline">
+              Registralo
+            </Link>
+          </p>
         </div>
         <form
           onSubmit={(e) => {

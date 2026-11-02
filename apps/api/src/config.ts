@@ -18,6 +18,10 @@ const esquema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   WHATSAPP_TOKEN: z.string().optional(),
   WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
+  /** Abono mensual de la plataforma, en pesos (se muestra a cada club en su panel). */
+  ABONO_MENSUAL: z.coerce.number().int().min(0).optional(),
+  /** Cómo pagar el abono (alias, CBU, link): texto libre que ve cada club. */
+  ABONO_COMO_PAGAR: z.string().optional(),
 });
 
 export interface Config {
@@ -48,6 +52,9 @@ export interface Config {
    * imprimen en su consola; el panel lo avisa.
    */
   whatsappConfigurado: boolean;
+  /** Abono mensual en centavos, o null si no se configuró. */
+  abonoMensual: number | null;
+  comoPagarAbono: string | null;
 }
 
 export function cargarConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -67,6 +74,8 @@ export function cargarConfig(env: NodeJS.ProcessEnv = process.env): Config {
     // Publicada detrás de HTTPS la cookie va siempre con Secure, aunque no se defina NODE_ENV.
     cookiesSeguras: e.NODE_ENV === 'production' || e.URL_API.startsWith('https://'),
     whatsappConfigurado: Boolean(e.WHATSAPP_TOKEN && e.WHATSAPP_PHONE_NUMBER_ID),
+    abonoMensual: e.ABONO_MENSUAL !== undefined ? e.ABONO_MENSUAL * 100 : null,
+    comoPagarAbono: e.ABONO_COMO_PAGAR?.trim() || null,
     reservasPorMinuto: 10,
     loginsPorMinuto: 10,
     cacheClubMs: 10_000,

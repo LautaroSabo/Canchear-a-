@@ -76,9 +76,14 @@ export default function Inicio() {
               </li>
             ))}
           </ul>
-          <BotonLink href="/panel" variante="secundario" grande>
-            Entrar al panel del club
-          </BotonLink>
+          <div className="flex flex-wrap gap-2">
+            <BotonLink href="/registrar" grande>
+              Registrá tu club
+            </BotonLink>
+            <BotonLink href="/panel" variante="secundario" grande>
+              Entrar al panel
+            </BotonLink>
+          </div>
         </section>
       </main>
     </div>

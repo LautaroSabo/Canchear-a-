@@ -29,6 +29,22 @@ pnpm --filter @cancheria/api admin:crear-usuario recepcion@club.com "Recepción"
 | GET | `/admin/auth/yo` | Usuario actual y sus clubs |
 | POST | `/admin/auth/contrasena` | `{ actual, nueva }` (≥ 10 caracteres) → 204. Cierra las otras sesiones del usuario. `422 CONTRASENA_ACTUAL_INCORRECTA` |
 
+`clubs[]` trae también `estado` (`PENDIENTE` · `ACTIVO` · `SUSPENDIDO`), `motivoSuspension` y `abonoHasta`; la respuesta, `abonoMensual` (centavos) y `comoPagarAbono` (de `ABONO_MENSUAL` y `ABONO_COMO_PAGAR`). `usuario.esSuperadmin` marca a quien administra la plataforma.
+
+## Registro de clubes y plataforma
+
+| Método | Ruta | Quién | Descripción |
+|---|---|---|---|
+| GET | `/admin/registro/slug?slug=` | público | `{ disponible, motivo }` |
+| POST | `/admin/registro` | público (5/min por IP) | `{ club: { nombre, slug, telefono, direccion? }, dueno: { nombre, email, contrasena } }` → 201 `{ clubId, usuario, clubs }` + cookie de sesión. El club queda `PENDIENTE`: se ve en `/public/clubs/:slug` con `habilitado: false` y las reservas y la lista de espera responden `403 CLUB_NO_HABILITADO`. `409 EMAIL_EN_USO` · `409 SLUG_EN_USO` · `422 SLUG_INVALIDO` |
+| GET | `/admin/plataforma/clubs` | superadmin | `{ hoy, clubs: [{ …, estado, abonoHasta, dueno, canchas, turnosUltimos30Dias }] }` |
+| POST | `/admin/plataforma/clubs/:id/aprobar` | superadmin | `{ diasPrueba }` → 204. Pasa a `ACTIVO`; la prueba cubre el abono desde hoy |
+| POST | `/admin/plataforma/clubs/:id/suspender` | superadmin | `{ motivo }` → 204 |
+| POST | `/admin/plataforma/clubs/:id/reactivar` | superadmin | 204 |
+| GET / POST | `/admin/plataforma/clubs/:id/pagos` | superadmin | Historial / `{ meses, monto, medio (TRANSFERENCIA · MERCADO_PAGO · EFECTIVO · OTRO), nota? }` → 201. Extiende `abonoHasta` desde el día siguiente al último cubierto (o desde hoy, si estaba vencido) |
+
+Para quien no es superadmin, las rutas de `/plataforma` responden 404. Se marca con `pnpm superadmin <email>`.
+
 ## Operación diaria — `/admin/clubs/:clubId/…` (RECEPCION)
 
 | Método | Ruta | Descripción |

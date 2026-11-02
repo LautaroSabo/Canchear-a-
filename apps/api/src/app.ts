@@ -14,6 +14,7 @@ import {
   ServicioListaEspera,
   ServicioOperacion,
   ServicioPagos,
+  ServicioPlataforma,
   ServicioReembolsos,
   ServicioReportes,
   ServicioTurnosFijos,
@@ -117,6 +118,7 @@ export async function construirApp({
   const fidelizacion = new ServicioFidelizacion(entorno);
   const reportes = new ServicioReportes({ ...entorno, clubs });
   const consultas = new ConsultasAdmin(db, reloj);
+  const plataforma = new ServicioPlataforma(entorno);
 
   app.get('/health', async () => {
     await db.execute(sql`SELECT 1`);
@@ -147,6 +149,7 @@ export async function construirApp({
     operacion,
     pagos,
     reembolsos,
+    plataforma,
     reportes,
     turnosFijos,
     pasarela,

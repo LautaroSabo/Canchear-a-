@@ -22,6 +22,7 @@ export * from './notificaciones/meta-plantillas.ts';
 export * from './notificaciones/plantillas.ts';
 export * from './operacion.ts';
 export * from './pagos.ts';
+export * from './plataforma.ts';
 export * from './reembolsos.ts';
 export * from './reportes.ts';
 export * from './turnos.ts';

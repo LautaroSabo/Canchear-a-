@@ -121,6 +121,10 @@ export function Reservar({ club }: { club: ClubPublico }) {
   }, [hoja]);
 
   const elegir = (s: Seleccion) => {
+    if (!club.habilitado) {
+      setAviso('Este club todavía no toma reservas online. Escribile por WhatsApp para reservar.');
+      return;
+    }
     setSel(s);
     setAviso(null);
     reservar.reset();
@@ -185,6 +189,24 @@ export function Reservar({ club }: { club: ClubPublico }) {
 
   return (
     <main className="mx-auto max-w-6xl px-4 pt-6 pb-36 sm:px-6 md:pb-16">
+      {!club.habilitado ? (
+        <div className="mb-6">
+          <Aviso tipo="info">
+            <strong>Este club todavía no toma reservas online.</strong> Podés ver los horarios; para reservar
+            escribile al club
+            {club.telefono ? (
+              <>
+                {' '}
+                por{' '}
+                <a className="font-semibold underline" href={linkWhatsApp(club.telefono)}>
+                  WhatsApp
+                </a>
+              </>
+            ) : null}
+            .
+          </Aviso>
+        </div>
+      ) : null}
       <div inert={hoja}>
         <Condiciones club={club} />
       </div>
@@ -449,9 +471,11 @@ export function Reservar({ club }: { club: ClubPublico }) {
         </aside>
       </div>
 
-      <div inert={hoja}>
-        <ListaEspera slug={club.slug} fecha={fecha} tipo={tipo} destacada={completo} />
-      </div>
+      {club.habilitado ? (
+        <div inert={hoja}>
+          <ListaEspera slug={club.slug} fecha={fecha} tipo={tipo} destacada={completo} />
+        </div>
+      ) : null}
 
       {elegido ? (
         <div

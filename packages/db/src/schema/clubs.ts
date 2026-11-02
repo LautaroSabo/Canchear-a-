@@ -1,4 +1,5 @@
 import {
+  bigint,
   boolean,
   char,
   date,
@@ -32,6 +33,28 @@ export const clubs = pgTable('clubs', {
   datosTransferencia: jsonb().$type<{ alias?: string; cbu?: string; titular?: string }>(),
   activo: boolean().notNull().default(true),
   creadoEn: ts().notNull().defaultNow(),
+  /** PENDIENTE (espera aprobación) · ACTIVO (toma reservas) · SUSPENDIDO. */
+  estado: text().$type<EstadoClub>().notNull().default('ACTIVO'),
+  aprobadoEn: ts(),
+  motivoSuspension: text(),
+  /** Último día cubierto por el abono mensual (incluye la prueba). */
+  abonoHasta: date({ mode: 'string' }),
+});
+
+export type EstadoClub = 'PENDIENTE' | 'ACTIVO' | 'SUSPENDIDO';
+
+/** Pagos del abono que cada club le hace a la plataforma. */
+export const pagosAbono = pgTable('pagos_abono', {
+  id: uuid().primaryKey().defaultRandom(),
+  clubId: uuid().notNull(),
+  monto: bigint({ mode: 'number' }).notNull(),
+  meses: integer().notNull(),
+  desde: date({ mode: 'string' }).notNull(),
+  hasta: date({ mode: 'string' }).notNull(),
+  medio: text().notNull(),
+  nota: text(),
+  registradoPor: uuid(),
+  creadoEn: ts().notNull().defaultNow(),
 });
 
 export const usuarios = pgTable('usuarios', {
@@ -40,6 +63,7 @@ export const usuarios = pgTable('usuarios', {
   nombre: text().notNull(),
   passwordHash: text().notNull(),
   activo: boolean().notNull().default(true),
+  esSuperadmin: boolean().notNull().default(false),
   creadoEn: ts().notNull().defaultNow(),
 });
 

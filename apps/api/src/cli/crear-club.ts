@@ -5,7 +5,7 @@
 import { randomBytes } from 'node:crypto';
 import { crearDb, urlDesdeEntorno } from '@cancheria/db';
 import { clubs, usuarios } from '@cancheria/db/schema';
-import { ServicioAuth } from '@cancheria/servicios';
+import { problemaSlug, ServicioAuth } from '@cancheria/servicios';
 import { eq } from 'drizzle-orm';
 
 const USO = 'Uso: pnpm club:crear <slug> "<Nombre del club>" <email-del-dueño> "<Nombre del dueño>"';
@@ -14,17 +14,9 @@ if (!slug || !nombre || !email || !nombreDueno) {
   console.error(USO);
   process.exit(1);
 }
-// Rutas que ya usa la web: un club con ese slug quedaría tapado.
-const RESERVADOS = ['panel', 'r', 'api', 'admin', 'public', 'webhooks', 'health'];
-if (
-  !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug) ||
-  slug.length < 3 ||
-  slug.length > 40 ||
-  RESERVADOS.includes(slug)
-) {
-  console.error(
-    '✖ El slug va en minúsculas, sin espacios ni acentos, con guiones: por ejemplo "el-potrero".',
-  );
+const problema = problemaSlug(slug);
+if (problema) {
+  console.error(`✖ Slug "${slug}": ${problema}.`);
   process.exit(1);
 }
 if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {

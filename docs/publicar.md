@@ -94,35 +94,56 @@ sale segura, porque `URL_API` empieza con `https://`.
    El certificado HTTPS se genera solo.
 3. Probá `https://api.tudominio.com.ar/health` y `https://tudominio.com.ar`.
 
-## 5. Dar de alta un club
+## 5. Tu usuario de administrador
 
-Desde tu compu, con la base de Railway. En el servicio Postgres, *Connect*, copiá la
-**URL pública** de conexión y en PowerShell, dentro de la carpeta del proyecto:
+Una sola vez, desde tu compu y con la base de Railway. En el servicio Postgres, *Connect*,
+copiá la **URL pública** de conexión y en PowerShell, dentro de la carpeta del proyecto:
 
 ```powershell
 $env:DATABASE_URL="postgresql://...la url pública..."
-pnpm club:crear el-potrero "El Potrero" duenio@elpotrero.com "Nombre del dueño"
+pnpm superadmin vos@tumail.com "Tu nombre"
 ```
 
-En Linux o Mac va `DATABASE_URL="..." pnpm club:crear ...`.
+En Linux o Mac va `DATABASE_URL="..." pnpm superadmin ...`. Si el email no tenía cuenta,
+el comando la crea y muestra la contraseña **una sola vez**. Con ese usuario entrás a
+`https://tudominio.com.ar/panel` y vas a **Administrar plataforma**
+(`/panel/plataforma`).
 
-El comando muestra la contraseña del dueño **una sola vez**. Pasásela al club junto con:
+## 6. Clubes nuevos y abono
 
-- **Página de reservas:** `https://tudominio.com.ar/el-potrero`. Es el link para Instagram,
-  WhatsApp y el QR del mostrador.
-- **Panel:** `https://tudominio.com.ar/panel`.
+**Los clubes se registran solos** en `https://tudominio.com.ar/registrar`, el botón
+"Registrá tu club" de la portada. Al registrarse:
 
-El dueño entra al panel y en **Configuración** carga canchas, horarios, tarifas y la regla
-de seña. Los avisos de arriba le dicen qué le falta. En **Cobros** conecta su Mercado
-Pago y carga el alias para transferencias. Puede sumar recepcionistas en **Usuarios**.
+1. El club queda **por aprobar**. El dueño entra directo a su panel y puede cargar canchas,
+   horarios, tarifas, la seña, su Mercado Pago y el alias. Su página
+   (`tudominio.com.ar/su-club`) ya se ve, pero avisa que todavía no toma reservas online.
+2. Vos lo ves en **Administrar plataforma → Por aprobar**, con el email y el WhatsApp del
+   dueño. Lo contactás, arreglás el abono y tocás **Aprobar**, con los días de prueba
+   gratis que quieras. Desde ese momento su página toma reservas.
+3. Cuando te paga, **Registrar pago**: elegís los meses y el monto. La cobertura se
+   extiende desde el último día pago.
+4. En **Abono por cobrar** aparecen los clubes vencidos o que vencen en los próximos 5
+   días. Al club le aparece el mismo aviso en su panel, con el precio y cómo pagarte.
+   Si no paga, **Suspender**: su página deja de tomar reservas (los turnos ya tomados se
+   mantienen) hasta que lo **Reactivás**.
 
-Para sumar otro usuario a un club existente:
+Para que cada club vea cuánto y cómo pagarte, en la **api** agregá:
+
+```
+ABONO_MENSUAL=25000
+ABONO_COMO_PAGAR=Transferí al alias tu.alias.abono y mandanos el comprobante por WhatsApp.
+```
+
+`ABONO_MENSUAL` va en pesos.
+
+**Alta manual (opcional):** si preferís crear vos un club, ya aprobado y con dueño:
 
 ```powershell
+pnpm club:crear el-potrero "El Potrero" duenio@elpotrero.com "Nombre del dueño"
 pnpm usuario:crear recepcion@elpotrero.com "Recepción" el-potrero RECEPCION
 ```
 
-## 6. Mercado Pago de cada club
+## 7. Mercado Pago de cada club
 
 En **Configuración → Cobros**, el dueño:
 

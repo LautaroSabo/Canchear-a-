@@ -4,7 +4,7 @@
 // Nunca se usa en producción: el server real es src/server.ts.
 import { crearClubDemo, crearDb } from '@cancheria/db';
 import { crearBaseDeTest } from '@cancheria/db/testing';
-import { Cifrador, guardarCredencialesMp, ServicioAuth } from '@cancheria/servicios';
+import { Cifrador, guardarCredencialesMp, ServicioAuth, ServicioPlataforma } from '@cancheria/servicios';
 import { AlmacenMemoria, firmarWebhook, PasarelaMpFalsa } from '@cancheria/servicios/testing';
 import { construirApp } from './app.ts';
 import { cargarConfig } from './config.ts';
@@ -32,6 +32,9 @@ await guardarCredencialesMp(db, new Cifrador(config.claveCredenciales), club.id,
 const auth = new ServicioAuth({ db, reloj: () => new Date() });
 const duenio = await auth.crearUsuario({ email: E2E.email, nombre: 'Dueño E2E', contrasena: E2E.contrasena });
 await auth.asignarRol(club.id, duenio.id, 'OWNER');
+// Quien administra la plataforma (aprueba los clubes que se registran en los e2e).
+await auth.crearUsuario({ email: 'plataforma@e2e.test', nombre: 'Plataforma', contrasena: E2E.contrasena });
+await new ServicioPlataforma({ db, reloj: () => new Date() }).hacerSuperadmin('plataforma@e2e.test');
 
 const pasarela = new PasarelaMpFalsa();
 const app = await construirApp({
