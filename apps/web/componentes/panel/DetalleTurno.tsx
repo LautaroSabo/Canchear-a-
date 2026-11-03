@@ -223,16 +223,11 @@ export function DetalleTurno({
       ) : null}
 
       {cancelable && !esBloqueo ? (
-        <details className="group mt-3">
-          <summary className="flex min-h-11 cursor-pointer list-none items-center text-sm font-semibold text-tenue hover:text-tinta">
-            Más acciones
-          </summary>
-          <div className="flex flex-col gap-2 pt-1">
-            <Boton variante="peligro" onClick={() => setDialogo('cancelar')}>
-              Cancelar turno
-            </Boton>
-          </div>
-        </details>
+        <div className="mt-3 border-t border-linea pt-3">
+          <Boton variante="peligro" className="w-full" onClick={() => setDialogo('cancelar')}>
+            Cancelar turno
+          </Boton>
+        </div>
       ) : null}
 
       <h3 className="mt-5 mb-2 text-base font-semibold">Historial</h3>

@@ -29,6 +29,8 @@ export const clubs = pgTable('clubs', {
   moneda: char({ length: 3 }).notNull().default('ARS'),
   puntosPorPartido: integer().notNull().default(10),
   minutosRevisionTransferencia: integer().notNull().default(60),
+  /** Hasta cuántas horas antes el jugador cancela online (con devolución). 0 = no puede. */
+  horasCancelacion: integer().notNull().default(24),
   mpCredencialesCifradas: bytea(),
   datosTransferencia: jsonb().$type<{ alias?: string; cbu?: string; titular?: string }>(),
   activo: boolean().notNull().default(true),

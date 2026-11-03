@@ -32,6 +32,8 @@ export interface DatosClub {
   telefono?: string | null | undefined;
   direccion?: string | null | undefined;
   minutosRevisionTransferencia?: number | undefined;
+  /** Horas antes del turno hasta las que el jugador cancela online. 0 = no puede. */
+  horasCancelacion?: number | undefined;
 }
 
 export interface DatosCancha {
@@ -230,6 +232,7 @@ export class ServicioConfiguracion {
         direccion: clubs.direccion,
         zonaHoraria: clubs.zonaHoraria,
         minutosRevisionTransferencia: clubs.minutosRevisionTransferencia,
+        horasCancelacion: clubs.horasCancelacion,
       })
       .from(clubs)
       .where(eq(clubs.id, clubId));
@@ -304,6 +307,7 @@ export class ServicioConfiguracion {
           ...(datos.minutosRevisionTransferencia !== undefined
             ? { minutosRevisionTransferencia: datos.minutosRevisionTransferencia }
             : {}),
+          ...(datos.horasCancelacion !== undefined ? { horasCancelacion: datos.horasCancelacion } : {}),
         })
         .where(eq(clubs.id, clubId)),
     );

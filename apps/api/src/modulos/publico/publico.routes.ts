@@ -3,6 +3,7 @@ import {
   ErrorNegocio,
   type RepoClubs,
   type ServicioListaEspera,
+  type ServicioOperacion,
   type ServicioPagos,
 } from '@cancheria/servicios';
 import type { FastifyPluginAsync } from 'fastify';
@@ -24,13 +25,14 @@ interface Opciones {
   reservas: ServicioReservas;
   pagos: ServicioPagos;
   listaEspera: ServicioListaEspera;
+  operacion: ServicioOperacion;
   sse: StreamsSse;
   config: Config;
 }
 
 export const rutasPublicas: FastifyPluginAsync<Opciones> = async (
   app,
-  { clubs, disponibilidad, reservas, pagos, listaEspera, sse, config },
+  { clubs, disponibilidad, reservas, pagos, listaEspera, operacion, sse, config },
 ) => {
   const clubPorSlug = async (params: unknown) => {
     const { slug } = paramsSlug.parse(params);
@@ -126,6 +128,17 @@ export const rutasPublicas: FastifyPluginAsync<Opciones> = async (
       }
       const resultado = await pagos.registrarTransferencia(codigo, await archivo.toBuffer());
       return reply.status(201).send(resultado);
+    },
+  );
+
+  /** El jugador cancela su reserva (dentro del plazo del club, con devolución de la seña). */
+  app.post(
+    '/reservas/:codigo/cancelar',
+    { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } },
+    async (req) => {
+      const { codigo } = paramsCodigo.parse(req.params);
+      const r = await operacion.cancelarPorCliente(codigo);
+      return { ...(await reservas.porCodigo(codigo)), senaADevolver: r.senaADevolver };
     },
   );
 

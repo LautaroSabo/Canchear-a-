@@ -147,6 +147,7 @@ export async function construirApp({
     reservas,
     pagos,
     listaEspera,
+    operacion,
     sse,
     config,
   });

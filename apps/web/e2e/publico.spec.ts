@@ -32,6 +32,13 @@ test('reserva con seña, pago por Mercado Pago y comprobante con QR', async ({ p
   await page.goto(`/r/${codigo}?collection_status=approved`);
   await expect(page.getByText('¡Turno confirmado!')).toBeVisible();
   await expect(page.getByRole('img', { name: 'Código QR de la reserva' })).toBeVisible();
+
+  // Faltan más de 24 h: el jugador cancela solo y se le devuelve la seña.
+  await expect(page.getByText(/Podés cancelar hasta el .* y se te devuelve la seña/)).toBeVisible();
+  await page.getByRole('button', { name: 'Cancelar mi reserva' }).click();
+  await expect(page.getByText('te devolvemos la seña ($22.500)', { exact: false })).toBeVisible();
+  await page.getByRole('button', { name: 'Sí, cancelar' }).click();
+  await expect(page.getByRole('heading', { name: 'Esta reserva se canceló' })).toBeVisible();
 });
 
 test('celular: grilla por horario, barra inferior y pago por transferencia', async ({ browser }) => {

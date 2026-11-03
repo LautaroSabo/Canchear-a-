@@ -7,6 +7,7 @@ import {
   cotizarTurno,
   ErrorNegocio,
   insertarTurno,
+  plazoCancelacion,
   type Reloj,
   setActor,
   telefonoValido,
@@ -43,6 +44,8 @@ export interface ReservaPublica {
   cliente: { nombre: string };
   /** Después del check-in: puntos que sumó este partido y su saldo. */
   puntos: { ganados: number; saldo: number } | null;
+  /** Si el jugador puede cancelar online y hasta cuándo (null: el club no lo permite o ya no aplica). */
+  cancelacion: { permitida: boolean; hasta: string | null };
 }
 
 export interface Alternativa {
@@ -120,24 +123,8 @@ export class ServicioReservas {
         return { turno, cliente };
       });
 
-      return {
-        creada: true,
-        reserva: {
-          codigo: turno.codigoCheckin,
-          estado: estadoPublico(turno.estado, turno.expiraEn, ahora),
-          club: { slug: cfg.club.slug, nombre: cfg.club.nombre },
-          cancha: { id: cancha.id, nombre: cancha.nombre },
-          inicio: turno.inicio.toISOString(),
-          fin: turno.fin.toISOString(),
-          precioTotal: turno.precioTotal,
-          montoSena: turno.montoSena,
-          saldoAPagar: turno.precioTotal - turno.montoSena,
-          expiraEn: turno.expiraEn?.toISOString() ?? null,
-          senaEnRevision: false,
-          cliente: { nombre: cliente.nombre },
-          puntos: null,
-        },
-      };
+      // Se relee como la ve el comprobante (incluye el plazo de cancelación del club).
+      return { creada: true, reserva: await this.porCodigo(turno.codigoCheckin) };
     } catch (e) {
       // Doble clic o reintento de red: se devuelve la reserva que ya se creó. Con dos
       // requests simultáneas, la segunda puede chocar primero con la exclusion constraint
@@ -169,6 +156,7 @@ export class ServicioReservas {
         turno: turnos,
         cancha: { id: canchas.id, nombre: canchas.nombre },
         club: { slug: clubs.slug, nombre: clubs.nombre },
+        horasCancelacion: clubs.horasCancelacion,
         cliente: { nombre: clientes.nombre },
         saldoPuntos: clientes.saldoPuntos,
         puntosGanados: sql<
@@ -183,9 +171,14 @@ export class ServicioReservas {
       .where(condicion);
     if (!fila) return null;
     const { turno } = fila;
+    const estado = estadoPublico(turno.estado, turno.expiraEn, this.reloj());
+    const plazo = plazoCancelacion(
+      { estado, inicio: turno.inicio, horas: fila.horasCancelacion },
+      this.reloj(),
+    );
     return {
       codigo: turno.codigoCheckin,
-      estado: estadoPublico(turno.estado, turno.expiraEn, this.reloj()),
+      estado,
       club: fila.club,
       cancha: fila.cancha,
       inicio: turno.inicio.toISOString(),
@@ -197,6 +190,7 @@ export class ServicioReservas {
       senaEnRevision: fila.senaEnRevision,
       cliente: fila.cliente,
       puntos: fila.puntosGanados ? { ganados: fila.puntosGanados, saldo: fila.saldoPuntos } : null,
+      cancelacion: { permitida: plazo.permitida, hasta: plazo.hasta?.toISOString() ?? null },
     };
   }
 

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { type ReactNode, useEffect, useState } from 'react';
 import { API_URL, ErrorApi, mensajeDe, pedir } from '@/lib/api';
-import { fechaCorta, fechaLocal, hora, pesos, reloj, segundosHasta } from '@/lib/formato';
+import { fechaCorta, fechaLocal, hora, linkWhatsApp, pesos, reloj, segundosHasta } from '@/lib/formato';
 import { useAhora, useEventosTurnos } from '@/lib/hooks';
 import type { ClubPublico, ReservaPublica } from '@/lib/tipos';
 import { IconoCalendario, IconoMapa, IconoSubir, IconoWhatsApp } from '../iconos';
@@ -498,6 +498,85 @@ function Detalle({
           </a>
         ) : null}
       </div>
+      {vigente ? <Cancelacion reserva={r} club={club} zona={zona} codigo={codigo} /> : null}
     </section>
+  );
+}
+
+/** El jugador cancela solo dentro del plazo del club; después, se lo pide al club. */
+function Cancelacion({
+  reserva: r,
+  club,
+  zona,
+  codigo,
+}: {
+  reserva: ReservaPublica;
+  club: ClubPublico | undefined;
+  zona: string;
+  codigo: string;
+}) {
+  const qc = useQueryClient();
+  const [confirmando, setConfirmando] = useState(false);
+  const cancelar = useMutation({
+    mutationFn: () => pedir<ReservaPublica>(`/public/reservas/${codigo}/cancelar`, { metodo: 'POST' }),
+    onSuccess: (actualizada) => {
+      qc.setQueryData(['reserva', codigo], actualizada);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+  });
+  const { permitida, hasta } = r.cancelacion;
+  const whatsapp = club?.telefono ? (
+    <a className="font-semibold text-tinta underline" href={linkWhatsApp(club.telefono)}>
+      escribile al club por WhatsApp
+    </a>
+  ) : (
+    'escribile al club'
+  );
+  const limite = hasta ? `${fechaCorta(fechaLocal(hasta, zona))} a las ${hora(hasta, zona)}` : '';
+  const senaPaga = r.estado === 'CONFIRMADO' && r.montoSena > 0;
+
+  return (
+    <div className="flex flex-col gap-3 border-t border-linea pt-4">
+      {!permitida ? (
+        <p className="text-sm text-tenue">
+          {hasta ? (
+            <>Ya no se puede cancelar online (era hasta el {limite}). Si no podés venir, </>
+          ) : (
+            'Para cancelar, '
+          )}
+          {whatsapp}.
+        </p>
+      ) : confirmando ? (
+        <div className="flex flex-col gap-3 border border-error-borde bg-error-fondo p-4 text-error-texto">
+          <p className="text-base font-semibold">¿Cancelás la reserva?</p>
+          <p className="text-sm">
+            El horario queda libre para otra persona
+            {senaPaga
+              ? ` y te devolvemos la seña (${pesos(r.montoSena)}) por el mismo medio con el que pagaste`
+              : ''}
+            .
+          </p>
+          {cancelar.error ? <Aviso>{mensajeDe(cancelar.error)}</Aviso> : null}
+          <div className="flex flex-wrap gap-2">
+            <Boton variante="peligro" disabled={cancelar.isPending} onClick={() => cancelar.mutate()}>
+              {cancelar.isPending ? 'Cancelando…' : 'Sí, cancelar'}
+            </Boton>
+            <Boton variante="fantasma" onClick={() => setConfirmando(false)}>
+              Volver
+            </Boton>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-tenue">
+            Podés cancelar hasta el {limite}
+            {senaPaga ? ' y se te devuelve la seña' : ''}.
+          </p>
+          <Boton variante="secundario" onClick={() => setConfirmando(true)}>
+            Cancelar mi reserva
+          </Boton>
+        </div>
+      )}
+    </div>
   );
 }

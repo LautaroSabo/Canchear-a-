@@ -12,6 +12,7 @@ export function General({ club }: { club: ConfigClub['club'] }) {
     telefono: club.telefono ?? '',
     direccion: club.direccion ?? '',
     minutos: String(club.minutosRevisionTransferencia),
+    horasCancelacion: String(club.horasCancelacion),
   };
   const [f, setF] = useState(inicial);
   const guardar = useGuardar((clubId) =>
@@ -20,6 +21,7 @@ export function General({ club }: { club: ConfigClub['club'] }) {
       telefono: f.telefono.trim() || null,
       direccion: f.direccion.trim() || null,
       minutosRevisionTransferencia: Number(f.minutos),
+      horasCancelacion: Number(f.horasCancelacion),
     }),
   );
   const cambiado = JSON.stringify(f) !== JSON.stringify(inicial);
@@ -65,6 +67,15 @@ export function General({ club }: { club: ConfigClub['club'] }) {
           value={f.minutos}
           onChange={(e) => setF({ ...f, minutos: e.target.value })}
           ayuda="Cuando el cliente sube el comprobante, el turno queda reservado este tiempo extra mientras lo revisás."
+        />
+        <Campo
+          etiqueta="Horas antes para que el jugador cancele online"
+          type="number"
+          min={0}
+          max={168}
+          value={f.horasCancelacion}
+          onChange={(e) => setF({ ...f, horasCancelacion: e.target.value })}
+          ayuda="Hasta ese momento cancela solo desde su comprobante y se le devuelve la seña. Después tiene que escribirte. Con 0, no se cancela online."
         />
         <div className="text-sm text-suave sm:self-end sm:pb-3">
           Link público: <code className="text-tinta">/{club.slug}</code>

@@ -100,6 +100,18 @@ JPG, PNG, WEBP o PDF de hasta 5 MB. El tipo se valida por el contenido del archi
 
 Errores: `409 COMPROBANTE_EN_REVISION` (ya hay uno esperando), `413 ARCHIVO_DEMASIADO_GRANDE`, `422 ARCHIVO_INVALIDO`, `422 TRANSFERENCIA_NO_DISPONIBLE`.
 
+### `POST /public/reservas/:codigo/cancelar`
+
+El jugador cancela su reserva desde el comprobante. Se puede hasta `horas_cancelacion` antes del turno (configurable por club en *Configuración → Club*, 24 h por defecto; con 0 no se cancela online), y siempre devuelve la seña aprobada (queda en Reembolsos; si fue por Mercado Pago, sale sola). Responde la reserva actualizada más `senaADevolver`.
+
+`GET /public/reservas/:codigo` informa `cancelacion: { permitida, hasta }`; `hasta` es `null` si el club no permite cancelar online o la reserva ya no está vigente.
+
+| Status | Código | Cuándo |
+|---|---|---|
+| 409 | `FUERA_DE_PLAZO` | Pasó el límite: tiene que pedírselo al club |
+| 409 | `CANCELACION_NO_DISPONIBLE` | El club no permite cancelar online |
+| 409 | `NO_CANCELABLE` | La reserva ya no está vigente |
+
 ### `POST /public/reservas/:codigo/confirmar`
 
 Acepta un turno ofrecido por la lista de espera en un horario que no pide seña. Devuelve el comprobante `CONFIRMADO`. Error: `409 REQUIERE_SENA` si en realidad hay que pagar.

@@ -1,5 +1,5 @@
 import { esTurnoOcupado, type Tx } from '@cancheria/db';
-import { canchas, clientes, pagos, reembolsos, turnos } from '@cancheria/db/schema';
+import { canchas, clientes, clubs, pagos, reembolsos, turnos } from '@cancheria/db/schema';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { type DatosCliente, upsertCliente } from './clientes.ts';
 import type { RepoClubs } from './config-club.ts';
@@ -49,6 +49,17 @@ export function codigoDesdeQr(qr: string): string | null {
 }
 
 /** Operación diaria del club desde el panel. `usuarioId` queda en la auditoría de cada cambio. */
+/** Hasta cuándo puede cancelar online el jugador (null si no corresponde). */
+export function plazoCancelacion(
+  t: { estado: string; inicio: Date; horas: number },
+  ahora: Date,
+): { permitida: boolean; hasta: Date | null } {
+  const vigente = t.estado === 'PRE_RESERVADO' || t.estado === 'CONFIRMADO';
+  if (!vigente || t.horas <= 0) return { permitida: false, hasta: null };
+  const hasta = new Date(t.inicio.getTime() - t.horas * 3_600_000);
+  return { permitida: ahora < hasta, hasta };
+}
+
 export class ServicioOperacion {
   constructor(private readonly e: Entorno & { clubs: RepoClubs; listaEspera: ServicioListaEspera }) {}
 
@@ -152,8 +163,52 @@ export class ServicioOperacion {
     turnoId: string,
     p: { motivo: string; devolverSena: boolean; notificar?: boolean | undefined },
   ) {
+    return this.cancelarComo(clubId, `usuario:${usuarioId}`, turnoId, p);
+  }
+
+  /**
+   * El jugador cancela desde su comprobante (el link con el código es su credencial).
+   * Solo hasta `horas_cancelacion` antes del turno, y siempre con devolución de la seña;
+   * después tiene que pedírselo al club.
+   */
+  async cancelarPorCliente(codigo: string) {
+    const [t] = await this.e.db
+      .select({
+        id: turnos.id,
+        clubId: turnos.clubId,
+        estado: turnos.estado,
+        inicio: turnos.inicio,
+        horas: clubs.horasCancelacion,
+      })
+      .from(turnos)
+      .innerJoin(clubs, eq(clubs.id, turnos.clubId))
+      .where(eq(turnos.codigoCheckin, codigo));
+    if (!t) throw new ErrorNegocio(404, 'RESERVA_NO_ENCONTRADA', 'No encontramos esa reserva');
+    const plazo = plazoCancelacion(t, this.e.reloj());
+    if (!plazo.permitida) {
+      throw new ErrorNegocio(
+        409,
+        t.horas === 0 ? 'CANCELACION_NO_DISPONIBLE' : 'FUERA_DE_PLAZO',
+        t.horas === 0
+          ? 'Este club no permite cancelar online. Escribile para cancelar.'
+          : `Ya no se puede cancelar online: era hasta ${t.horas} h antes del turno. Escribile al club.`,
+      );
+    }
+    return this.cancelarComo(t.clubId, 'cliente', t.id, {
+      motivo: 'Cancelado por el cliente',
+      devolverSena: true,
+      notificar: true,
+    });
+  }
+
+  private async cancelarComo(
+    clubId: string,
+    actor: string,
+    turnoId: string,
+    p: { motivo: string; devolverSena: boolean; notificar?: boolean | undefined },
+  ) {
     return this.e.db.transaction(async (tx) => {
-      await setActor(tx, `usuario:${usuarioId}`);
+      await setActor(tx, actor);
       const turno = await this.turnoDelClub(tx, clubId, turnoId);
       if (turno.estado !== 'PRE_RESERVADO' && turno.estado !== 'CONFIRMADO') {
         throw new ErrorNegocio(409, 'NO_CANCELABLE', `Un turno ${turno.estado} no se puede cancelar`);

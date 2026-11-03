@@ -63,6 +63,8 @@ export interface ReservaPublica {
   cliente: { nombre: string };
   /** Después del check-in. */
   puntos: { ganados: number; saldo: number } | null;
+  /** Si el jugador puede cancelar online y hasta cuándo (hasta = null: el club no lo permite). */
+  cancelacion: { permitida: boolean; hasta: string | null };
 }
 
 export interface Alternativa {
@@ -284,6 +286,7 @@ export interface ConfigClub {
     direccion: string | null;
     zonaHoraria: string;
     minutosRevisionTransferencia: number;
+    horasCancelacion: number;
   };
   canchas: CanchaConfig[];
   tarifas: TarifaConfig[];
