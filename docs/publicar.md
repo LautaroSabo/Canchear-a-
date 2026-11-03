@@ -2,7 +2,7 @@
 
 Guía para dejar la app en internet y sumar clubes. Está pensada para **Railway**, que
 corre los cuatro servicios en un mismo proyecto: la base Postgres, la API, el worker y
-la web. Cada servicio ya tiene su archivo `railway.json` en el repo.
+la web. El repo trae un `railway.json` en la raíz que usan los tres servicios: cada uno compila y arranca lo suyo según su nombre.
 
 ## Lo que necesitás antes
 
@@ -73,18 +73,12 @@ Pago, tiene que actualizar la URL de notificaciones en su cuenta de MP.
 
 ## 2. Los tres servicios
 
-Creá tres servicios desde el mismo repositorio (**+ Create → GitHub Repo**) y en cada uno
-andá a **Settings** y completá:
+Creá tres servicios desde el mismo repositorio (**+ Create → GitHub Repo**) y llamalos
+exactamente **`api`**, **`worker`** y **`web`** (*Settings → Service Name*). No hace falta
+tocar nada más: el `railway.json` de la raíz decide qué compilar y arrancar en cada uno
+según el nombre. Dejá vacíos *Root Directory* y *Config file path*.
 
-| Servicio | Config file path (*Settings → Config as code*) | Dominio |
-|---|---|---|
-| `api` | `apps/api/railway.json` | `api.tudominio.com.ar` |
-| `worker` | `apps/worker/railway.json` | — (no se publica) |
-| `web` | `apps/web/railway.json` | `tudominio.com.ar` |
-
-El *root directory* queda vacío en los tres: se instala todo el monorepo y cada archivo
-dice qué arrancar. La API corre las migraciones sola antes de cada despliegue
-(`pnpm db:migrate`).
+La API aplica las migraciones de la base sola, cada vez que arranca.
 
 **Comprobantes de transferencia:** en el servicio `api`, *+ Volume*, montado en `/data`.
 Sin el volumen, los comprobantes se pierden en cada despliegue.
@@ -250,9 +244,8 @@ de prueba de Mercado Pago.
 
 ## Actualizar
 
-Cada push a la rama principal vuelve a desplegar solo los servicios afectados (por los
-`watchPatterns` de cada `railway.json`). Las migraciones se aplican antes de que la API
-nueva reciba tráfico.
+Cada push a la rama principal vuelve a desplegar los tres servicios. La API aplica las
+migraciones nuevas al arrancar.
 
 ## Seguridad
 

@@ -6,7 +6,8 @@
     "node": ">=22.12"
   },
   "scripts": {
-    "build": "turbo run build",
+    "build": "node scripts/railway.mjs build",
+    "start": "node scripts/railway.mjs start",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test --concurrency=1",
     "lint": "biome check .",
