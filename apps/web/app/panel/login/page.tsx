@@ -65,6 +65,12 @@ export default function Login() {
           <Boton type="submit" grande disabled={login.isPending}>
             {login.isPending ? 'Entrando…' : 'Entrar'}
           </Boton>
+          <Link
+            href="/panel/olvide"
+            className="self-center text-sm font-semibold text-tenue underline hover:text-tinta"
+          >
+            ¿Olvidaste tu contraseña?
+          </Link>
         </form>
       </main>
     </div>

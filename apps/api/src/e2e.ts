@@ -4,7 +4,13 @@
 // Nunca se usa en producción: el server real es src/server.ts.
 import { crearClubDemo, crearDb } from '@cancheria/db';
 import { crearBaseDeTest } from '@cancheria/db/testing';
-import { Cifrador, guardarCredencialesMp, ServicioAuth, ServicioPlataforma } from '@cancheria/servicios';
+import {
+  Cifrador,
+  CorreoMemoria,
+  guardarCredencialesMp,
+  ServicioAuth,
+  ServicioPlataforma,
+} from '@cancheria/servicios';
 import { AlmacenMemoria, firmarWebhook, PasarelaMpFalsa } from '@cancheria/servicios/testing';
 import { construirApp } from './app.ts';
 import { cargarConfig } from './config.ts';
@@ -37,14 +43,19 @@ await auth.crearUsuario({ email: 'plataforma@e2e.test', nombre: 'Plataforma', co
 await new ServicioPlataforma({ db, reloj: () => new Date() }).hacerSuperadmin('plataforma@e2e.test');
 
 const pasarela = new PasarelaMpFalsa();
+const correo = new CorreoMemoria();
 const app = await construirApp({
   db,
   cliente,
   config,
+  correo,
   logger: false,
   pasarela,
   almacen: new AlmacenMemoria(),
 });
+
+// Último mail que mandó la app (los e2e leen de acá el link de contraseña nueva).
+app.get('/__e2e/correo/ultimo', async () => correo.enviados.at(-1) ?? null);
 
 app.post('/__e2e/mercadopago/pagar', async () => {
   const pref = [...pasarela.preferencias.values()].at(-1);

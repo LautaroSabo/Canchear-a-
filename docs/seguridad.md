@@ -38,18 +38,18 @@ Qué protege la app, cómo está verificado y qué queda por hacer.
 
 ## Si alguien se olvida la contraseña
 
-Todavía no hay "olvidé mi contraseña" por mail. Mientras tanto:
+- **Por mail:** en el login, *¿Olvidaste tu contraseña?* manda un link de un solo uso que
+  vence en 1 hora. Responde lo mismo exista o no la cuenta. Necesita el aviso por mail
+  configurado (`RESEND_API_KEY`). Con Resend sin dominio verificado, solo llegan los mails
+  a la dirección de tu cuenta de Resend: para los clubes, verificá tu dominio en Resend.
+- **Por WhatsApp (sin depender del mail):** en *Administrar plataforma*, en el club,
+  *Contraseña del dueño → Generar link*, y mandáselo.
+- **Por consola:** `pnpm usuario:contrasena <email>`.
 
-```powershell
-pnpm usuario:contrasena duenio@club.com
-```
-
-Genera una contraseña nueva, la muestra una sola vez y cierra las sesiones abiertas de esa
-cuenta. Pasásela al dueño por un canal privado; después puede cambiarla en **Mi cuenta**.
+Al elegir la contraseña nueva se cierran todas las sesiones abiertas de esa cuenta.
 
 ## Pendiente
 
-- **Recuperar la contraseña por mail.** Ahora usa el aviso por mail que ya existe.
 - **Verificación en dos pasos** para dueños y superadmin.
 - **Captcha en el registro de clubes.** Hoy lo frenan el límite de 5 por minuto por IP y
   la aprobación manual: un registro falso no publica nada.

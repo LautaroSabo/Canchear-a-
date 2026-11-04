@@ -1,7 +1,7 @@
 import { createHash, randomBytes, type ScryptOptions, scrypt, timingSafeEqual } from 'node:crypto';
 import { violaUnique } from '@cancheria/db';
-import { clubs, miembrosClub, sesiones, usuarios } from '@cancheria/db/schema';
-import { and, eq, gt, lt, ne } from 'drizzle-orm';
+import { clubs, miembrosClub, restablecimientos, sesiones, usuarios } from '@cancheria/db/schema';
+import { and, eq, gt, isNull, lt, ne } from 'drizzle-orm';
 import type { Entorno } from './entorno.ts';
 import { ErrorNegocio } from './errores.ts';
 
@@ -53,6 +53,8 @@ const DURACION_SESION_MS = 7 * 24 * 60 * 60_000;
 const RENOVAR_CADA_MS = 60 * 60_000;
 
 const hashToken = (token: string) => createHash('sha256').update(token).digest();
+
+const DURACION_RESTABLECIMIENTO_MS = 60 * 60_000;
 
 export interface UsuarioSesion {
   id: string;
@@ -186,6 +188,68 @@ export class ServicioAuth {
         .set({ passwordHash: await hashContrasena(nueva) })
         .where(eq(usuarios.id, usuarioId));
       await tx.delete(sesiones).where(and(eq(sesiones.usuarioId, usuarioId), ne(sesiones.id, sesionId)));
+    });
+  }
+
+  /**
+   * Link de un solo uso (1 hora) para elegir una contraseña nueva. null si el email no
+   * tiene una cuenta activa: quien lo pide no se entera (no revela qué emails existen).
+   * Anula los links anteriores del mismo usuario.
+   */
+  async crearRestablecimiento(
+    email: string,
+  ): Promise<{ token: string; email: string; nombre: string } | null> {
+    const [u] = await this.e.db
+      .select({ id: usuarios.id, email: usuarios.email, nombre: usuarios.nombre, activo: usuarios.activo })
+      .from(usuarios)
+      .where(eq(usuarios.email, email.trim().toLowerCase()));
+    if (!u?.activo) return null;
+    const token = randomBytes(32).toString('base64url');
+    await this.e.db.transaction(async (tx) => {
+      await tx
+        .update(restablecimientos)
+        .set({ usadoEn: this.e.reloj() })
+        .where(and(eq(restablecimientos.usuarioId, u.id), isNull(restablecimientos.usadoEn)));
+      await tx.insert(restablecimientos).values({
+        usuarioId: u.id,
+        tokenHash: hashToken(token),
+        expiraEn: new Date(this.e.reloj().getTime() + DURACION_RESTABLECIMIENTO_MS),
+      });
+    });
+    return { token, email: u.email, nombre: u.nombre };
+  }
+
+  /** Contraseña nueva con el link: lo marca usado y cierra todas las sesiones del usuario. */
+  async restablecer(token: string, nueva: string) {
+    if (nueva.length < LARGO_MINIMO_CONTRASENA) {
+      throw new ErrorNegocio(
+        422,
+        'CONTRASENA_CORTA',
+        `La contraseña tiene que tener al menos ${LARGO_MINIMO_CONTRASENA} caracteres`,
+      );
+    }
+    const hash = await hashContrasena(nueva);
+    await this.e.db.transaction(async (tx) => {
+      const [r] = await tx
+        .update(restablecimientos)
+        .set({ usadoEn: this.e.reloj() })
+        .where(
+          and(
+            eq(restablecimientos.tokenHash, hashToken(token)),
+            isNull(restablecimientos.usadoEn),
+            gt(restablecimientos.expiraEn, this.e.reloj()),
+          ),
+        )
+        .returning({ usuarioId: restablecimientos.usuarioId });
+      if (!r) {
+        throw new ErrorNegocio(
+          410,
+          'LINK_VENCIDO',
+          'Este link ya se usó o venció. Pedí uno nuevo desde "Olvidé mi contraseña".',
+        );
+      }
+      await tx.update(usuarios).set({ passwordHash: hash }).where(eq(usuarios.id, r.usuarioId));
+      await tx.delete(sesiones).where(eq(sesiones.usuarioId, r.usuarioId));
     });
   }
 

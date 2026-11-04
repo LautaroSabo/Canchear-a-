@@ -69,6 +69,16 @@ export const usuarios = pgTable('usuarios', {
   creadoEn: ts().notNull().defaultNow(),
 });
 
+/** Links de un solo uso para elegir una contraseña nueva (se guarda el hash del token). */
+export const restablecimientos = pgTable('restablecimientos', {
+  id: uuid().primaryKey().defaultRandom(),
+  usuarioId: uuid().notNull(),
+  tokenHash: bytea().notNull().unique(),
+  expiraEn: ts().notNull(),
+  usadoEn: ts(),
+  creadoEn: ts().notNull().defaultNow(),
+});
+
 /** Sesiones del panel: se guarda el SHA-256 del token de la cookie, nunca el token. */
 export const sesiones = pgTable('sesiones', {
   id: uuid().primaryKey().defaultRandom(),

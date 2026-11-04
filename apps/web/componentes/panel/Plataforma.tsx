@@ -11,6 +11,7 @@ import {
   Boton,
   Campo,
   Cargando,
+  Copiable,
   EncabezadoPagina,
   EstadoVacio,
   Insignia,
@@ -22,7 +23,7 @@ import { Dialogo } from './Dialogo';
 import { useSesion } from './sesion';
 
 type Filtro = 'pendientes' | 'activos' | 'vencidos' | 'suspendidos' | 'todos';
-type Accion = { tipo: 'aprobar' | 'suspender' | 'pago'; club: ClubPlataforma } | null;
+type Accion = { tipo: 'aprobar' | 'suspender' | 'pago' | 'contrasena'; club: ClubPlataforma } | null;
 
 const MEDIOS = {
   TRANSFERENCIA: 'Transferencia',
@@ -217,6 +218,11 @@ function FilaClub({ c, hoy, alElegir }: { c: ClubPlataforma; hoy: string; alEleg
               Reactivar
             </Boton>
           ) : null}
+          {c.dueno ? (
+            <Boton variante="fantasma" onClick={() => alElegir({ tipo: 'contrasena', club: c })}>
+              Contraseña del dueño
+            </Boton>
+          ) : null}
           {c.estado !== 'PENDIENTE' ? (
             <Boton variante="fantasma" aria-expanded={verPagos} onClick={() => setVerPagos(!verPagos)}>
               {verPagos ? 'Ocultar pagos' : 'Ver pagos'}
@@ -290,15 +296,59 @@ function DialogoAccion({
       ? `Aprobar ${accion.club.nombre}`
       : accion.tipo === 'suspender'
         ? `Suspender ${accion.club.nombre}`
-        : `Pago del abono · ${accion.club.nombre}`;
+        : accion.tipo === 'contrasena'
+          ? `Contraseña nueva · ${accion.club.nombre}`
+          : `Pago del abono · ${accion.club.nombre}`;
   return (
     <Dialogo abierto={accion !== null} alCerrar={alCerrar} titulo={titulo}>
       {accion?.tipo === 'aprobar' ? <FormAprobar club={accion.club} alHacer={alHacer} /> : null}
       {accion?.tipo === 'suspender' ? <FormSuspender club={accion.club} alHacer={alHacer} /> : null}
+      {accion?.tipo === 'contrasena' ? <FormContrasena club={accion.club} /> : null}
       {accion?.tipo === 'pago' ? (
         <FormPago club={accion.club} abonoMensual={abonoMensual} alHacer={alHacer} />
       ) : null}
     </Dialogo>
+  );
+}
+
+/** Link de un solo uso para que el dueño elija una contraseña nueva (se manda por WhatsApp). */
+function FormContrasena({ club }: { club: ClubPlataforma }) {
+  const generar = useMutation({
+    mutationFn: () =>
+      panel.post<{ link: string; venceEnMinutos: number }>('/plataforma/restablecer', {
+        email: club.dueno?.email,
+      }),
+  });
+  const mensaje = generar.data
+    ? `Hola ${club.dueno?.nombre ?? ''}, este es el link para elegir tu contraseña nueva de Canchería (sirve una vez y vence en 1 hora): ${generar.data.link}`
+    : '';
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-base">
+        Genera un link para que <strong>{club.dueno?.email}</strong> elija una contraseña nueva. Sirve una
+        sola vez y vence en 1 hora. Mandáselo por un canal privado.
+      </p>
+      {generar.data ? (
+        <>
+          <Copiable etiqueta="Link" valor={generar.data.link} />
+          {club.telefono ? (
+            <a
+              href={`${linkWhatsApp(club.telefono)}?text=${encodeURIComponent(mensaje)}`}
+              target="_blank"
+              rel="noopener"
+              className="inline-flex min-h-11 items-center justify-center rounded-xs bg-acento px-4 text-sm font-semibold text-acento-tinta"
+            >
+              Mandarlo por WhatsApp al club
+            </a>
+          ) : null}
+        </>
+      ) : (
+        <Boton disabled={generar.isPending} onClick={() => generar.mutate()}>
+          Generar link
+        </Boton>
+      )}
+      {generar.error ? <Aviso>{mensajeDe(generar.error)}</Aviso> : null}
+    </div>
   );
 }
 

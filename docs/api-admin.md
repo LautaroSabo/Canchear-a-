@@ -28,6 +28,8 @@ pnpm --filter @cancheria/api admin:crear-usuario recepcion@club.com "Recepción"
 | POST | `/admin/auth/logout` | 204; borra la sesión |
 | GET | `/admin/auth/yo` | Usuario actual y sus clubs |
 | POST | `/admin/auth/contrasena` | `{ actual, nueva }` (≥ 10 caracteres) → 204. Cierra las otras sesiones del usuario. `422 CONTRASENA_ACTUAL_INCORRECTA` |
+| POST | `/admin/auth/olvide` | `{ email }` → 204 siempre (exista o no). Si la cuenta existe, manda por mail un link de un solo uso que vence en 1 hora |
+| POST | `/admin/auth/restablecer` | `{ token, nueva }` → 204. Cierra todas las sesiones. `410 LINK_VENCIDO` · `422 CONTRASENA_CORTA` |
 
 `clubs[]` trae también `estado` (`PENDIENTE` · `ACTIVO` · `SUSPENDIDO`), `motivoSuspension` y `abonoHasta`; la respuesta, `abonoMensual` (centavos) y `comoPagarAbono` (de `ABONO_MENSUAL` y `ABONO_COMO_PAGAR`). `usuario.esSuperadmin` marca a quien administra la plataforma.
 
@@ -37,6 +39,7 @@ pnpm --filter @cancheria/api admin:crear-usuario recepcion@club.com "Recepción"
 |---|---|---|---|
 | GET | `/admin/registro/slug?slug=` | público | `{ disponible, motivo }` |
 | POST | `/admin/registro` | público (5/min por IP) | `{ club: { nombre, slug, telefono, direccion? }, dueno: { nombre, email, contrasena } }` → 201 `{ clubId, usuario, clubs }` + cookie de sesión. El club queda `PENDIENTE`: se ve en `/public/clubs/:slug` con `habilitado: false` y las reservas y la lista de espera responden `403 CLUB_NO_HABILITADO`. `409 EMAIL_EN_USO` · `409 SLUG_EN_USO` · `422 SLUG_INVALIDO` |
+| POST | `/admin/plataforma/restablecer` | superadmin | `{ email }` → `{ link, venceEnMinutos }` para mandarlo por WhatsApp. `404 USUARIO_NO_ENCONTRADO` |
 | GET | `/admin/plataforma/clubs` | superadmin | `{ hoy, clubs: [{ …, estado, abonoHasta, dueno, canchas, turnosUltimos30Dias }] }` |
 | POST | `/admin/plataforma/clubs/:id/aprobar` | superadmin | `{ diasPrueba }` → 204. Pasa a `ACTIVO`; la prueba cubre el abono desde hoy |
 | POST | `/admin/plataforma/clubs/:id/suspender` | superadmin | `{ motivo }` → 204 |

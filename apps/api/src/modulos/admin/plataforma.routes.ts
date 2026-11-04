@@ -32,6 +32,9 @@ const cuerpoRegistro = z.object({
   }),
 });
 
+const cuerpoOlvide = z.object({ email: z.email().max(120) });
+const cuerpoRestablecer = z.object({ token: z.string().min(20).max(200), nueva: z.string().min(1).max(200) });
+
 const querySlug = z.object({ slug: z.string().trim().toLowerCase().max(60) });
 const paramsClubPlataforma = z.object({ id: z.uuid() });
 const cuerpoAprobar = z.object({ diasPrueba: z.number().int().min(0).max(120).default(0) });
@@ -52,6 +55,10 @@ async function exigirSuperadmin(req: FastifyRequest) {
 export function abonoPublico(config: Config) {
   return { abonoMensual: config.abonoMensual, comoPagarAbono: config.comoPagarAbono };
 }
+
+/** Link para elegir una contraseña nueva (página de la web). */
+const linkRestablecer = (o: Opciones, token: string) =>
+  `${o.config.urlWeb.replace(/\/$/, '')}/panel/restablecer?token=${encodeURIComponent(token)}`;
 
 /** Mail a la plataforma cuando un club se registra solo. */
 async function avisarRegistro(o: Opciones, d: z.infer<typeof cuerpoRegistro>) {
@@ -99,9 +106,61 @@ export async function rutasPlataforma(app: FastifyInstance, o: Opciones) {
     return reply.status(201).send({ clubId, usuario: r.usuario, clubs: await o.auth.clubsDe(r.usuario.id) });
   });
 
+  /**
+   * "Olvidé mi contraseña": si el email tiene cuenta, le manda el link por mail. Responde
+   * siempre lo mismo, exista o no la cuenta, para no revelar qué emails están registrados.
+   */
+  app.post(
+    '/auth/olvide',
+    { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } },
+    async (req, reply) => {
+      const { email } = cuerpoOlvide.parse(req.body);
+      const r = await o.auth.crearRestablecimiento(email);
+      if (r && o.correo) {
+        o.correo
+          .enviar({
+            para: r.email,
+            asunto: 'Elegí una contraseña nueva para Canchería',
+            texto: [
+              `Hola ${r.nombre}:`,
+              '',
+              'Pediste una contraseña nueva para entrar al panel de Canchería. Elegila desde este link:',
+              '',
+              linkRestablecer(o, r.token),
+              '',
+              'El link sirve una sola vez y vence en 1 hora. Si no lo pediste vos, ignorá este mail: tu contraseña no cambia.',
+            ].join('\n'),
+          })
+          .catch((err) => req.log.error({ err }, 'no se pudo mandar el mail de contraseña nueva'));
+      } else if (r) {
+        req.log.warn('pidieron una contraseña nueva pero no hay correo configurado');
+      }
+      return reply.status(204).send();
+    },
+  );
+
+  app.post(
+    '/auth/restablecer',
+    { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } },
+    async (req, reply) => {
+      const { token, nueva } = cuerpoRestablecer.parse(req.body);
+      await o.auth.restablecer(token, nueva);
+      return reply.status(204).send();
+    },
+  );
+
   await app.register(async (sa) => {
     sa.addHook('preHandler', exigirSesion(o.auth));
     sa.addHook('preHandler', exigirSuperadmin);
+
+    /** Link de contraseña nueva para mandárselo a alguien por WhatsApp (sin depender del mail). */
+    sa.post('/plataforma/restablecer', async (req) => {
+      const { email } = cuerpoOlvide.parse(req.body);
+      const r = await o.auth.crearRestablecimiento(email);
+      if (!r)
+        throw new ErrorNegocio(404, 'USUARIO_NO_ENCONTRADO', 'No hay ningún usuario activo con ese email');
+      return { email: r.email, nombre: r.nombre, link: linkRestablecer(o, r.token), venceEnMinutos: 60 };
+    });
 
     sa.get('/plataforma/clubs', async () => ({
       hoy: o.plataforma.hoy(),
