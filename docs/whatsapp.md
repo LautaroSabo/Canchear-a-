@@ -44,7 +44,11 @@ WHATSAPP_WABA_ID=<ID de la cuenta de WhatsApp, paso 1>
 
 Sin `WHATSAPP_TOKEN` y `WHATSAPP_PHONE_NUMBER_ID` el worker no arranca en producción; en desarrollo los mensajes se imprimen en la consola.
 
+**En Railway:** agregá las tres variables en el servicio **`worker`** (es el que manda) y `WHATSAPP_TOKEN` + `WHATSAPP_PHONE_NUMBER_ID` también en la **`api`** (así el panel deja de decir "WhatsApp sin conectar"). Tocá **Deploy**.
+
 ## 5. Cargar las plantillas
+
+En Railway, desde la **Console** del servicio `worker` (primero `export PATH="/mise/shims:$PATH"`):
 
 ```bash
 pnpm whatsapp:plantillas crear    # crea en Meta las que falten
