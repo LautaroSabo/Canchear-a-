@@ -1,6 +1,7 @@
-import { notificaciones, reembolsos } from '@cancheria/db/schema';
+import { notificaciones, reembolsos, turnos } from '@cancheria/db/schema';
 import { eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { CANAL_DE } from '../src/notificaciones/plantillas.ts';
 import { type Contexto, crearContexto } from './helpers.ts';
 
 let ctx: Contexto;
@@ -86,5 +87,30 @@ describe('despacho de notificaciones', () => {
     await ctx.db.update(notificaciones).set({ intentos: 5 }).where(eq(notificaciones.estado, 'PENDIENTE'));
     ctx.canal.fallasPendientes = 1;
     expect((await ctx.despachador.procesar()).fallidas).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe('canal de cada aviso', () => {
+  it('lo urgente (lugar liberado de la lista de espera) va por WhatsApp; lo demás, por mail', async () => {
+    const t = await ctx.hold();
+    await ctx.operacion.cancelar(ctx.club.id, ctx.usuario.id, t.id, {
+      motivo: 'lluvia',
+      devolverSena: false,
+    });
+    const [cancelada] = await ctx.mensajes('reserva_cancelada');
+    expect(cancelada).toMatchObject({ canal: 'EMAIL' });
+    expect(cancelada?.destino).toMatch(/@club\.test$/);
+    expect(CANAL_DE.oferta_lista_espera).toBe('WHATSAPP');
+  });
+
+  it('sin email en la reserva, el aviso por mail no se encola (todo está en el link de la reserva)', async () => {
+    const t = await ctx.hold();
+    await ctx.db.update(turnos).set({ emailAviso: null }).where(eq(turnos.id, t.id));
+    const antes = (await ctx.mensajes('reserva_cancelada')).length;
+    await ctx.operacion.cancelar(ctx.club.id, ctx.usuario.id, t.id, {
+      motivo: 'lluvia',
+      devolverSena: false,
+    });
+    expect(await ctx.mensajes('reserva_cancelada')).toHaveLength(antes);
   });
 });

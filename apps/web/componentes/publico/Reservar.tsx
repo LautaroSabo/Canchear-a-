@@ -30,13 +30,15 @@ interface Seleccion {
   inicio: string;
 }
 
-type Errores = { nombre?: string; telefono?: string };
+type Errores = { nombre?: string; telefono?: string; email?: string };
 
-function validar(datos: { nombre: string; telefono: string }): Errores {
+function validar(datos: { nombre: string; telefono: string; email: string }): Errores {
   const e: Errores = {};
   if (datos.nombre.trim().length < 2) e.nombre = 'Escribí tu nombre y apellido.';
   if (datos.telefono.replace(/\D/g, '').length < 8)
     e.telefono = 'Revisá el número: va con código de área, por ejemplo 11 5555-1234.';
+  if (datos.email.trim() && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(datos.email.trim()))
+    e.email = 'Revisá el email, o dejalo vacío.';
   return e;
 }
 
@@ -52,7 +54,7 @@ export function Reservar({ club }: { club: ClubPublico }) {
   const [tipo, setTipo] = useState(tipos[0] ?? 5);
   const [fecha, setFecha] = useState(hoy);
   const [sel, setSel] = useState<Seleccion | null>(null);
-  const [datos, setDatos] = useState({ nombre: '', telefono: '', dni: '' });
+  const [datos, setDatos] = useState({ nombre: '', telefono: '', email: '', dni: '' });
   const [errores, setErrores] = useState<Errores>({});
   const [aviso, setAviso] = useState<string | null>(null);
   // En el celular el formulario se abre como hoja desde la barra de abajo.
@@ -151,6 +153,7 @@ export function Reservar({ club }: { club: ClubPublico }) {
             nombre: datos.nombre.trim(),
             telefono: datos.telefono.trim(),
             ...(datos.dni.trim() ? { dni: datos.dni.trim() } : {}),
+            ...(datos.email.trim() ? { email: datos.email.trim() } : {}),
           },
           idempotencyKey: idempotencia.current,
         },
@@ -168,9 +171,11 @@ export function Reservar({ club }: { club: ClubPublico }) {
     e.preventDefault();
     const nuevos = validar(datos);
     setErrores(nuevos);
-    if (nuevos.nombre || nuevos.telefono) {
+    if (nuevos.nombre || nuevos.telefono || nuevos.email) {
       refAside.current
-        ?.querySelector<HTMLInputElement>(`input[name="${nuevos.nombre ? 'nombre' : 'telefono'}"]`)
+        ?.querySelector<HTMLInputElement>(
+          `input[name="${nuevos.nombre ? 'nombre' : nuevos.telefono ? 'telefono' : 'email'}"]`,
+        )
         ?.focus();
       return;
     }
@@ -399,11 +404,27 @@ export function Reservar({ club }: { club: ClubPublico }) {
                 type="tel"
                 autoComplete="tel"
                 placeholder="11 5555-1234"
-                ayuda="Te mandamos la confirmación y el QR por acá."
+                ayuda="Por acá te avisamos si se libera un turno que esperabas."
                 error={errores.telefono}
                 value={datos.telefono}
                 onChange={(e) => setDatos({ ...datos, telefono: e.target.value })}
                 required
+              />
+              <Campo
+                etiqueta={
+                  <span>
+                    Email <span className="font-normal text-tenue">(opcional)</span>
+                  </span>
+                }
+                name="email"
+                type="email"
+                autoComplete="email"
+                inputMode="email"
+                placeholder="vos@mail.com"
+                ayuda="Te mandamos la confirmación con el QR y cualquier cambio del turno."
+                error={errores.email}
+                value={datos.email}
+                onChange={(e) => setDatos({ ...datos, email: e.target.value })}
               />
               <Campo
                 etiqueta={

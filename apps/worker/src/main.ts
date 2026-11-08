@@ -2,8 +2,11 @@ import { crearDb } from '@cancheria/db';
 import {
   AlmacenMemoria,
   CanalConsola,
+  CanalCorreo,
+  CanalSinConfigurar,
   CanalWhatsApp,
   Cifrador,
+  crearCorreo,
   Despachador,
   PasarelaMpHttp,
   RepoClubs,
@@ -42,8 +45,22 @@ const pagos = new ServicioPagos({
 });
 const expiracion = new ServicioExpiracion({ ...entorno, pagos, listaEspera, log });
 const reembolsos = new ServicioReembolsos({ ...entorno, pasarela, cifrador });
-const canal = config.whatsapp ? new CanalWhatsApp(config.whatsapp) : new CanalConsola((l) => log.info(l));
-const despachador = new Despachador(db, reloj, canal);
+// WhatsApp para lo urgente (lugar liberado de la lista de espera); mail para lo demás.
+// Un medio sin configurar: en desarrollo imprime el aviso; en producción queda fallido
+// con el motivo, a la vista en el panel (Mensajes).
+const correo = crearCorreo(config.correo);
+const despachador = new Despachador(db, reloj, {
+  WHATSAPP: config.whatsapp
+    ? new CanalWhatsApp(config.whatsapp)
+    : config.desarrollo
+      ? new CanalConsola((l) => log.info(l), 'whatsapp')
+      : new CanalSinConfigurar('WhatsApp sin configurar (WHATSAPP_TOKEN y WHATSAPP_PHONE_NUMBER_ID)'),
+  EMAIL: correo
+    ? new CanalCorreo(correo)
+    : config.desarrollo
+      ? new CanalConsola((l) => log.info(l), 'mail')
+      : new CanalSinConfigurar('Mail sin configurar (RESEND_API_KEY o SMTP_*)'),
+});
 const auth = new ServicioAuth(entorno);
 const turnosFijos = new ServicioTurnosFijos({ ...entorno, clubs, listaEspera });
 

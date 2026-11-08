@@ -94,7 +94,7 @@ let contador = 0;
 export function pedido(
   canchaId: string,
   inicio: string,
-  cliente: Partial<{ nombre: string; telefono: string; dni: string }> = {},
+  cliente: Partial<{ nombre: string; telefono: string; dni: string; email: string }> = {},
 ) {
   contador++;
   return {

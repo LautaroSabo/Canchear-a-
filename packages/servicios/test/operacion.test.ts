@@ -12,10 +12,10 @@ beforeEach(async () => {
 });
 
 const SENA = 2_250_000;
-const cliente = { nombre: 'Por teléfono', telefono: '11 6000-1234' };
+const cliente = { nombre: 'Por teléfono', telefono: '11 6000-1234', email: 'portelefono@club.test' };
 
 describe('carga manual y bloqueos', () => {
-  it('turno manual: CONFIRMADO, precio de tarifa, auditoría con el usuario y WhatsApp con el comprobante', async () => {
+  it('turno manual: CONFIRMADO, precio de tarifa, auditoría con el usuario y mail con el comprobante', async () => {
     const t = await ctx.operacion.crearManual(ctx.club.id, ctx.usuario.id, {
       canchaId: ctx.canchas.f5a!.id,
       inicio: ba('2030-01-05', '20:00'),

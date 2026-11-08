@@ -160,7 +160,10 @@ describe('lista de espera', () => {
 
 describe('expiración perezosa con efectos', () => {
   it('quien toma un hold vencido dispara el aviso de vencimiento al cliente anterior', async () => {
-    const primero = pedido(ctx.canchas.f7.id, iso('2030-01-05', '16:30'), { telefono: '+5491180000001' });
+    const primero = pedido(ctx.canchas.f7.id, iso('2030-01-05', '16:30'), {
+      telefono: '+5491180000001',
+      email: 'primero@club.test',
+    });
     await reservar(ctx, primero);
     ctx.setAhora(new Date(AHORA.getTime() + 11 * 60_000));
     const segundo = await reservar(ctx, pedido(ctx.canchas.f7.id, iso('2030-01-05', '16:30')));
@@ -169,7 +172,7 @@ describe('expiración perezosa con efectos', () => {
     const avisos = await ctx.db
       .select()
       .from(notificaciones)
-      .where(eq(notificaciones.destino, '+5491180000001'));
+      .where(eq(notificaciones.destino, 'primero@club.test'));
     expect(avisos.map((a) => a.plantilla)).toEqual(['reserva_expirada']);
   });
 });

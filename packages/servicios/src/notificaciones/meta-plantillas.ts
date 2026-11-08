@@ -1,4 +1,9 @@
-import { cuerpoMeta, PLANTILLAS, type Plantilla } from './plantillas.ts';
+import { CANAL_DE, cuerpoMeta, PLANTILLAS, type Plantilla } from './plantillas.ts';
+
+/** Solo las que salen por WhatsApp necesitan aprobación de Meta (las demás van por mail). */
+export const PLANTILLAS_WHATSAPP = (Object.keys(PLANTILLAS) as Plantilla[]).filter(
+  (p) => CANAL_DE[p] === 'WHATSAPP',
+);
 
 export interface EstadoPlantilla {
   nombre: Plantilla;
@@ -56,7 +61,7 @@ export class PlantillasMeta {
       }[];
     };
     const cargadas = (r.data ?? []).filter((t) => t.language === idioma);
-    return (Object.keys(PLANTILLAS) as Plantilla[]).map((nombre) => {
+    return PLANTILLAS_WHATSAPP.map((nombre) => {
       const t = cargadas.find((x) => x.name === nombre);
       return {
         nombre,

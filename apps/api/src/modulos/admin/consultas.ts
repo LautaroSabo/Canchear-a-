@@ -258,6 +258,7 @@ export class ConsultasAdmin {
       .select({
         id: notificaciones.id,
         plantilla: notificaciones.plantilla,
+        canal: notificaciones.canal,
         destino: notificaciones.destino,
         payload: notificaciones.payload,
         estado: notificaciones.estado,

@@ -1,6 +1,8 @@
 # WhatsApp: puesta en marcha
 
-Canchería le manda al cliente 7 mensajes automáticos (turno confirmado, plazo vencido, cancelación, devolución, comprobante rechazado, lugar liberado de la lista de espera y turno fijo agendado). Fuera de una conversación abierta por el cliente, WhatsApp solo deja mandar **plantillas aprobadas por Meta**. Esta guía deja todo andando. Se hace una vez.
+WhatsApp cobra cada mensaje que manda el negocio, así que Canchería lo usa para **un solo aviso**: el lugar que se liberó de la lista de espera (el cliente tiene minutos para tomarlo). Todo lo demás (turno confirmado, plazo vencido, cancelación, devolución, comprobante rechazado, turno fijo agendado) sale **por mail**, si el cliente dejó su email al reservar; si no, todo está en el link de su reserva. El reparto está en `CANAL_DE`, en `packages/servicios/src/notificaciones/plantillas.ts`.
+
+Fuera de una conversación abierta por el cliente, WhatsApp solo deja mandar **plantillas aprobadas por Meta**: con este reparto, Meta tiene que aprobar una sola (`oferta_lista_espera`). Esta guía deja todo andando. Se hace una vez.
 
 > Los menús de Meta cambian de nombre seguido. Si algo no aparece donde dice acá, buscalo por el nombre en el buscador de business.facebook.com o developers.facebook.com.
 
@@ -55,7 +57,7 @@ pnpm whatsapp:plantillas crear    # crea en Meta las que falten
 pnpm whatsapp:plantillas estado   # aprobada / en revisión / rechazada
 ```
 
-Se crean con categoría **Utilidad** e idioma **Spanish (ARG) — `es_AR`**, con valores de ejemplo para la revisión. La aprobación suele tardar de minutos a unas horas (hasta 24 h). Repetí `estado` hasta que estén todas ✅. Correr `crear` de nuevo no duplica nada: solo crea las que faltan.
+Solo se cargan las que salen por WhatsApp. Se crean con categoría **Utilidad** e idioma **Spanish (ARG) — `es_AR`**, con valores de ejemplo para la revisión. La aprobación suele tardar de minutos a unas horas (hasta 24 h). Repetí `estado` hasta que estén todas ✅. Correr `crear` de nuevo no duplica nada: solo crea las que faltan.
 
 Si preferís cargarlas a mano en *WhatsApp Manager → Plantillas de mensajes*, `pnpm whatsapp:plantillas` (sin nada más) muestra cada una con su nombre, el texto con `{{1}}`, `{{2}}`… y los ejemplos. El **nombre tiene que ser exactamente ese**: el sistema manda cada mensaje con el nombre de su plantilla.
 

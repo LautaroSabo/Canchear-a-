@@ -6,6 +6,13 @@ const esquema = z.object({
   URL_WEB: z.url().default('http://localhost:3000'),
   WHATSAPP_TOKEN: z.string().optional(),
   WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
+  /** Avisos por mail al cliente (los mismos que usa la API para avisarte a vos). */
+  RESEND_API_KEY: z.string().optional(),
+  SMTP_HOST: z.string().optional(),
+  SMTP_PUERTO: z.coerce.number().int().positive().default(465),
+  SMTP_USUARIO: z.string().optional(),
+  SMTP_CONTRASENA: z.string().optional(),
+  CORREO_REMITENTE: z.string().optional(),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 });
@@ -16,14 +23,26 @@ export function cargarConfig(env: NodeJS.ProcessEnv = process.env) {
     e.WHATSAPP_TOKEN && e.WHATSAPP_PHONE_NUMBER_ID
       ? { token: e.WHATSAPP_TOKEN, phoneNumberId: e.WHATSAPP_PHONE_NUMBER_ID }
       : null;
-  if (!whatsapp && e.NODE_ENV === 'production') {
-    throw new Error('En producción hacen falta WHATSAPP_TOKEN y WHATSAPP_PHONE_NUMBER_ID');
-  }
   return {
     databaseUrl: e.DATABASE_URL,
     claveCredenciales: e.CLAVE_CREDENCIALES,
     urlWeb: e.URL_WEB,
     whatsapp,
+    correo: {
+      resendApiKey: e.RESEND_API_KEY,
+      remitente: e.CORREO_REMITENTE,
+      smtp:
+        e.SMTP_HOST && e.SMTP_USUARIO && e.SMTP_CONTRASENA
+          ? {
+              host: e.SMTP_HOST,
+              puerto: e.SMTP_PUERTO,
+              usuario: e.SMTP_USUARIO,
+              contrasena: e.SMTP_CONTRASENA,
+            }
+          : undefined,
+    },
+    /** En desarrollo, un medio sin configurar imprime el aviso en la consola. */
+    desarrollo: e.NODE_ENV !== 'production',
     nivelLog: e.LOG_LEVEL,
     logsLegibles: e.NODE_ENV === 'development' && Boolean(process.stdout.isTTY),
     intervalos: {

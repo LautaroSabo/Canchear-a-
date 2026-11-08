@@ -31,7 +31,7 @@ describe('plantillas de WhatsApp', () => {
 });
 
 describe('alta en Meta', () => {
-  it('crea solo las que faltan, con categoría utilidad y ejemplos, y devuelve el estado', async () => {
+  it('crea solo las de WhatsApp que faltan, con categoría utilidad y ejemplos, y devuelve el estado', async () => {
     const cargadas = [
       { name: 'reserva_confirmada', language: 'es_AR', status: 'APPROVED', category: 'UTILITY' },
       {
@@ -41,7 +41,8 @@ describe('alta en Meta', () => {
         category: 'UTILITY',
         rejected_reason: 'INVALID_FORMAT',
       },
-      { name: 'reserva_cancelada', language: 'en_US', status: 'APPROVED', category: 'UTILITY' },
+      // Misma plantilla en otro idioma: para es_AR cuenta como que falta.
+      { name: 'oferta_lista_espera', language: 'en_US', status: 'APPROVED', category: 'UTILITY' },
     ];
     const posts: { url: string; cuerpo: Record<string, unknown>; auth: string | null }[] = [];
     const fetchFn = (async (url: string, init?: RequestInit) => {
@@ -62,27 +63,19 @@ describe('alta en Meta', () => {
 
     const meta = new PlantillasMeta({ token: 'tok', wabaId: '123', fetchFn });
     const r = await meta.crearFaltantes();
-    expect(r.creadas).toEqual([
-      'reserva_cancelada',
-      'pago_reembolsado',
-      'transferencia_rechazada',
-      'oferta_lista_espera',
-      'turno_fijo_creado',
-    ]);
+    // Solo las que salen por WhatsApp: las demás van por mail y no pasan por Meta.
+    expect(r.creadas).toEqual(['oferta_lista_espera']);
     expect(posts[0]).toMatchObject({
       url: 'https://graph.facebook.com/v23.0/123/message_templates',
       auth: 'Bearer tok',
       cuerpo: {
-        name: 'reserva_cancelada',
+        name: 'oferta_lista_espera',
         language: 'es_AR',
         category: 'UTILITY',
-        components: [{ type: 'BODY', example: { body_text: [PLANTILLAS.reserva_cancelada.ejemplo] } }],
+        components: [{ type: 'BODY', example: { body_text: [PLANTILLAS.oferta_lista_espera.ejemplo] } }],
       },
     });
-    expect(r.estados.find((e) => e.nombre === 'reserva_expirada')).toMatchObject({
-      estado: 'REJECTED',
-      motivoRechazo: 'INVALID_FORMAT',
-    });
+    expect(r.estados.map((e) => e.nombre)).toEqual(['oferta_lista_espera']);
   });
 
   it('un error de Meta se muestra con su mensaje', async () => {

@@ -14,7 +14,7 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 import { estadoTurno, origenTurno } from './enums.ts';
-import { tstzrange } from './tipos.ts';
+import { citext, tstzrange } from './tipos.ts';
 
 const ts = () => timestamp({ withTimezone: true, mode: 'date' });
 
@@ -82,6 +82,8 @@ export const turnos = pgTable('turnos', {
   motivoCancelacion: text(),
   /** Nota interna del club (no se muestra al cliente). */
   nota: text(),
+  /** Email que dejó el cliente en esta reserva: los avisos del turno van solo acá. */
+  emailAviso: citext(),
   creadoEn: ts().notNull().defaultNow(),
   actualizadoEn: ts().notNull().defaultNow(),
   /** Bloqueo optimista: lo incrementa un trigger en cada UPDATE. */

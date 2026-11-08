@@ -116,6 +116,7 @@ export class ServicioReservas {
             montoSena: conSena ? cotizacion.montoSena : 0,
             expiraEn: conSena ? expiracion.expiraEn : null,
             idempotencyKey: pedido.idempotencyKey,
+            emailAviso: pedido.cliente.email?.trim().toLowerCase() || null,
           },
           ahora,
           this.config.urlWeb,

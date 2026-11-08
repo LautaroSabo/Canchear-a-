@@ -243,7 +243,8 @@ export class ServicioTurnosFijos {
         await encolarNotificacion(tx, {
           clubId,
           clienteId: cliente.id,
-          destino: telefonoValido(p.cliente.telefono),
+          telefono: telefonoValido(p.cliente.telefono),
+          email: p.cliente.email?.trim().toLowerCase() || null,
           plantilla: 'turno_fijo_creado',
           parametros: {
             club: cfg.club.nombre,

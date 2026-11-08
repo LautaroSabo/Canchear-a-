@@ -6,36 +6,48 @@
  */
 export const PLANTILLAS = {
   reserva_confirmada: {
+    /** Asunto cuando sale por mail. */
+    asunto: (p: Record<string, string>) => `Turno confirmado en ${p.club}: ${p.fecha} a las ${p.hora}`,
     parametros: ['club', 'cancha', 'fecha', 'hora', 'link'],
     ejemplo: ['La Canchita F5', 'Cancha 2', 'sáb 24/10', '20:00', 'https://cancheria.app/r/4f9c2a7e'],
     texto: (p: Record<string, string>) =>
       `✅ Turno confirmado en ${p.club}. Te esperamos en la ${p.cancha} el ${p.fecha} a las ${p.hora}. Tu comprobante con el QR para entrar: ${p.link} (mostralo al llegar).`,
   },
   reserva_expirada: {
+    /** Asunto cuando sale por mail. */
+    asunto: (p: Record<string, string>) => `Venció el plazo de tu turno en ${p.club}`,
     parametros: ['club', 'fecha', 'hora'],
     ejemplo: ['La Canchita F5', 'sáb 24/10', '20:00'],
     texto: (p: Record<string, string>) =>
       `⌛ Venció el plazo para confirmar tu turno en ${p.club} del ${p.fecha} a las ${p.hora}, y la cancha quedó libre. Si querés, podés reservar de nuevo.`,
   },
   reserva_cancelada: {
+    /** Asunto cuando sale por mail. */
+    asunto: (p: Record<string, string>) => `Se canceló tu turno en ${p.club} del ${p.fecha}`,
     parametros: ['club', 'fecha', 'hora', 'motivo', 'reembolso'],
     ejemplo: ['La Canchita F5', 'sáb 24/10', '20:00', 'lluvia', 'te devolvemos $22.500'],
     texto: (p: Record<string, string>) =>
       `❌ Se canceló tu turno en ${p.club} del ${p.fecha} a las ${p.hora}. Motivo: ${p.motivo}. Sobre la seña: ${p.reembolso}. Cualquier duda, comunicate con el club.`,
   },
   pago_reembolsado: {
+    /** Asunto cuando sale por mail. */
+    asunto: (p: Record<string, string>) => `Devolución de ${p.club}: ${p.monto}`,
     parametros: ['club', 'monto', 'motivo'],
     ejemplo: ['La Canchita F5', '$22.500', 'el turno estaba cancelado'],
     texto: (p: Record<string, string>) =>
       `↩️ Devolución de ${p.club}: te devolvemos ${p.monto} por Mercado Pago, porque ${p.motivo}. Puede tardar unos días en verse en tu cuenta.`,
   },
   transferencia_rechazada: {
+    /** Asunto cuando sale por mail. */
+    asunto: (p: Record<string, string>) => `No pudimos validar tu comprobante en ${p.club}`,
     parametros: ['club', 'motivo', 'link'],
     ejemplo: ['La Canchita F5', 'el monto no coincide', 'https://cancheria.app/r/4f9c2a7e'],
     texto: (p: Record<string, string>) =>
       `⚠️ No pudimos validar tu comprobante en ${p.club}. Motivo: ${p.motivo}. Podés subir otro o pagar con Mercado Pago desde ${p.link} antes de que venza el plazo.`,
   },
   oferta_lista_espera: {
+    /** Asunto cuando sale por mail. */
+    asunto: (p: Record<string, string>) => `Se liberó un turno en ${p.club}`,
     parametros: ['club', 'cancha', 'fecha', 'hora', 'vence', 'link'],
     ejemplo: [
       'La Canchita F5',
@@ -49,6 +61,8 @@ export const PLANTILLAS = {
       `🎉 Se liberó un turno en ${p.club}: la ${p.cancha}, el ${p.fecha} a las ${p.hora}. Te lo guardamos hasta las ${p.vence}. Para quedártelo entrá a ${p.link} antes de esa hora.`,
   },
   turno_fijo_creado: {
+    /** Asunto cuando sale por mail. */
+    asunto: (p: Record<string, string>) => `Tu turno fijo en ${p.club} quedó agendado`,
     parametros: ['club', 'cancha', 'dia', 'hora', 'desde'],
     ejemplo: ['La Canchita F5', 'Cancha 1', 'martes', '20:00', 'mar 03/11'],
     texto: (p: Record<string, string>) =>
@@ -57,6 +71,32 @@ export const PLANTILLAS = {
 } as const;
 
 export type Plantilla = keyof typeof PLANTILLAS;
+
+export type CanalAviso = 'WHATSAPP' | 'EMAIL';
+
+/**
+ * Por dónde sale cada aviso. WhatsApp cobra cada mensaje, así que se reserva para lo
+ * urgente: el lugar que se liberó de la lista de espera (hay minutos para tomarlo). Todo
+ * lo demás va por mail, si el cliente dejó uno; si no, queda en el link de su reserva.
+ */
+export const CANAL_DE: Record<Plantilla, CanalAviso> = {
+  reserva_confirmada: 'EMAIL',
+  reserva_expirada: 'EMAIL',
+  reserva_cancelada: 'EMAIL',
+  pago_reembolsado: 'EMAIL',
+  transferencia_rechazada: 'EMAIL',
+  oferta_lista_espera: 'WHATSAPP',
+  turno_fijo_creado: 'EMAIL',
+};
+
+/** Cuerpo del mail: el mismo texto del aviso, más a quién escribirle. */
+export function textoMail(plantilla: Plantilla, p: Record<string, string>) {
+  return [
+    PLANTILLAS[plantilla].texto(p),
+    '',
+    `Este mail lo manda Canchería, el sistema de reservas de ${p.club ?? 'tu club'}. No lo respondas: ante cualquier duda, comunicate con el club.`,
+  ].join('\n');
+}
 
 export const MOTIVOS_REEMBOLSO: Record<string, string> = {
   PAGO_TARDIO: 'el pago llegó cuando el turno ya estaba tomado',

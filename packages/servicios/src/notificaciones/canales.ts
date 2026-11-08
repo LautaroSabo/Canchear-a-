@@ -1,4 +1,5 @@
-import { PLANTILLAS, type Plantilla } from './plantillas.ts';
+import type { Correo } from '../correo.ts';
+import { PLANTILLAS, type Plantilla, textoMail } from './plantillas.ts';
 
 export interface CanalMensajes {
   enviar(destino: string, plantilla: Plantilla, parametros: Record<string, string>): Promise<void>;
@@ -6,9 +7,32 @@ export interface CanalMensajes {
 
 /** Desarrollo: imprime el mensaje completo. */
 export class CanalConsola implements CanalMensajes {
-  constructor(private readonly log: (linea: string) => void = console.log) {}
+  constructor(
+    private readonly log: (linea: string) => void = console.log,
+    private readonly medio = 'whatsapp',
+  ) {}
   async enviar(destino: string, plantilla: Plantilla, parametros: Record<string, string>) {
-    this.log(`[whatsapp → ${destino}] ${PLANTILLAS[plantilla].texto(parametros)}`);
+    this.log(`[${this.medio} → ${destino}] ${PLANTILLAS[plantilla].texto(parametros)}`);
+  }
+}
+
+/** Avisos al cliente por mail (Resend o SMTP, el mismo que avisa a la plataforma). */
+export class CanalCorreo implements CanalMensajes {
+  constructor(private readonly correo: Correo) {}
+  async enviar(destino: string, plantilla: Plantilla, parametros: Record<string, string>) {
+    await this.correo.enviar({
+      para: destino,
+      asunto: PLANTILLAS[plantilla].asunto(parametros),
+      texto: textoMail(plantilla, parametros),
+    });
+  }
+}
+
+/** Producción sin el medio configurado: el aviso queda fallido con el motivo a la vista. */
+export class CanalSinConfigurar implements CanalMensajes {
+  constructor(private readonly motivo: string) {}
+  async enviar(): Promise<void> {
+    throw new Error(this.motivo);
   }
 }
 

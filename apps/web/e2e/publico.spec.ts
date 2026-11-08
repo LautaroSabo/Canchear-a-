@@ -10,6 +10,10 @@ test('reserva con seña, pago por Mercado Pago y comprobante con QR', async ({ p
   await expect(page.getByText('Seña para reservar')).toBeVisible();
   await page.getByLabel('Nombre y apellido').fill('Juana Pérez');
   await page.getByRole('textbox', { name: 'WhatsApp' }).fill('11 5100-2001');
+  await page.getByRole('textbox', { name: /Email/ }).fill('juana@mail');
+  await page.getByRole('button', { name: 'Reservar y pagar la seña' }).click();
+  await expect(page.getByText('Revisá el email, o dejalo vacío.')).toBeVisible();
+  await page.getByRole('textbox', { name: /Email/ }).fill('juana@e2e.test');
   await page.getByRole('button', { name: 'Reservar y pagar la seña' }).click();
 
   await page.waitForURL(/\/r\/[0-9a-f]{32}$/);

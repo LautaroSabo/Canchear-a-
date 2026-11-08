@@ -7,7 +7,13 @@
  *
  * `estado` y `crear` usan WHATSAPP_TOKEN y WHATSAPP_WABA_ID del entorno.
  */
-import { cuerpoMeta, definicion, PLANTILLAS, type Plantilla, PlantillasMeta } from '@cancheria/servicios';
+import {
+  cuerpoMeta,
+  definicion,
+  PLANTILLAS,
+  PLANTILLAS_WHATSAPP,
+  PlantillasMeta,
+} from '@cancheria/servicios';
 
 const ESTADOS: Record<string, string> = {
   APPROVED: '✅ aprobada',
@@ -21,7 +27,7 @@ const ESTADOS: Record<string, string> = {
 const comando = process.argv[2] ?? 'listar';
 
 if (comando === 'listar') {
-  for (const nombre of Object.keys(PLANTILLAS) as Plantilla[]) {
+  for (const nombre of PLANTILLAS_WHATSAPP) {
     const d = definicion(nombre);
     console.log(`\n── ${nombre}`);
     console.log('Categoría: Utilidad · Idioma: Spanish (ARG) · es_AR');

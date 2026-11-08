@@ -73,6 +73,7 @@ export async function datosParaMensaje(tx: Ejecutor, turnoId: string, urlWeb: st
       zona: clubs.zonaHoraria,
       cancha: canchas.nombre,
       telefono: clientes.telefonoE164,
+      email: turnos.emailAviso,
     })
     .from(turnos)
     .innerJoin(clubs, eq(clubs.id, turnos.clubId))
@@ -106,7 +107,8 @@ export async function notificarTurno(
   await encolarNotificacion(tx, {
     clubId: d.clubId,
     clienteId: d.clienteId,
-    destino: d.telefono,
+    telefono: d.telefono,
+    email: d.email,
     plantilla,
     parametros: { ...d.parametros, ...extra },
   });
@@ -163,6 +165,8 @@ export interface NuevoTurno {
   creadoPor?: string | undefined;
   nota?: string | undefined;
   turnoFijoId?: string | undefined;
+  /** Email para los avisos de este turno (opcional). */
+  emailAviso?: string | null | undefined;
 }
 
 /**
@@ -208,6 +212,7 @@ export async function insertarTurno(tx: Tx, t: NuevoTurno, ahora: Date, urlWeb: 
       creadoPor: t.creadoPor ?? null,
       nota: t.nota ?? null,
       turnoFijoId: t.turnoFijoId ?? null,
+      emailAviso: t.emailAviso ?? null,
     })
     .returning();
   if (!turno) throw new Error('insert de turno sin filas');

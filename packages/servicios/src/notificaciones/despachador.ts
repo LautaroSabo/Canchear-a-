@@ -3,7 +3,7 @@ import { notificaciones } from '@cancheria/db/schema';
 import { eq, sql } from 'drizzle-orm';
 import type { Reloj } from '../entorno.ts';
 import type { CanalMensajes } from './canales.ts';
-import type { Plantilla } from './plantillas.ts';
+import type { CanalAviso, Plantilla } from './plantillas.ts';
 
 const MAX_INTENTOS = 6;
 
@@ -16,13 +16,15 @@ export class Despachador {
   constructor(
     private readonly db: Db,
     private readonly reloj: Reloj,
-    private readonly canal: CanalMensajes,
+    /** Un canal por medio: WhatsApp y mail. */
+    private readonly canales: Record<CanalAviso, CanalMensajes>,
   ) {}
 
   async procesar(lote = 50): Promise<{ enviadas: number; fallidas: number }> {
     const ahora = this.reloj();
     const reclamadas = await this.db.execute<{
       id: string;
+      canal: CanalAviso;
       destino: string;
       plantilla: string;
       payload: Record<string, string>;
@@ -35,13 +37,15 @@ export class Despachador {
                      ORDER BY proximo_intento
                      LIMIT ${lote}
                      FOR UPDATE SKIP LOCKED)
-      RETURNING id, destino, plantilla, payload, intentos`);
+      RETURNING id, canal, destino, plantilla, payload, intentos`);
 
     let enviadas = 0;
     let fallidas = 0;
     for (const n of reclamadas) {
       try {
-        await this.canal.enviar(n.destino, n.plantilla as Plantilla, n.payload);
+        const canal = this.canales[n.canal];
+        if (!canal) throw new Error(`Canal ${n.canal} sin configurar`);
+        await canal.enviar(n.destino, n.plantilla as Plantilla, n.payload);
         await this.db
           .update(notificaciones)
           .set({ estado: 'ENVIADA', enviadaEn: this.reloj(), error: null })

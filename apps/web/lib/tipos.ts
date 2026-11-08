@@ -511,6 +511,7 @@ export interface ReporteClub {
 export interface MensajeCliente {
   id: string;
   plantilla: string;
+  canal: 'WHATSAPP' | 'EMAIL' | 'SMS' | 'PUSH';
   destino: string;
   estado: 'PENDIENTE' | 'ENVIADA' | 'FALLIDA';
   intentos: number;

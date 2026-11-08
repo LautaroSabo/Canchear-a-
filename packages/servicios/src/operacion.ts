@@ -112,6 +112,7 @@ export class ServicioOperacion {
           idempotencyKey: p.idempotencyKey,
           creadoPor: usuarioId,
           nota: p.nota,
+          emailAviso: p.cliente.email?.trim().toLowerCase() || null,
         },
         this.e.reloj(),
         this.e.urlWeb,

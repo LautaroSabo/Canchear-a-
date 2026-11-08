@@ -13,7 +13,7 @@ beforeEach(async () => {
 /** Martes 20:00 en la Cancha 1, cada semana, desde hoy (viernes 2030-01-04). */
 const datos = (x: Partial<DatosTurnoFijo> = {}): DatosTurnoFijo => ({
   canchaId: ctx.canchas.f5a!.id,
-  cliente: { nombre: 'Los del Martes', telefono: '11 5000-1234' },
+  cliente: { nombre: 'Los del Martes', telefono: '11 5000-1234', email: 'martes@club.test' },
   diaSemana: 2,
   horaInicio: '20:00',
   frecuenciaSemanas: 1,

@@ -12,18 +12,20 @@ beforeAll(async () => {
 afterAll(() => ctx.cerrar());
 
 describe('mensajes a clientes', () => {
-  it('lista el texto como lo recibe el cliente, avisa si WhatsApp no está configurado, y reintenta los fallidos', async () => {
+  it('lista el texto como lo recibe el cliente, avisa si el mail o WhatsApp no están configurados, y reintenta los fallidos', async () => {
     await panel(ctx, recepcion, 'POST', '/turnos', {
       canchaId: ctx.canchas.f5a!.id,
       inicio: iso('2030-01-05', '20:00'),
-      cliente: { nombre: 'Mensajera', telefono: '11 5000-3131' },
+      cliente: { nombre: 'Mensajera', telefono: '11 5000-3131', email: 'mensajera@club.test' },
     });
     const r = (await panel(ctx, recepcion, 'GET', '/mensajes')).json();
     expect(r.whatsappConfigurado).toBe(false);
+    expect(r.correoConfigurado).toBe(false);
     expect(r.mensajes).toMatchObject([
       {
         plantilla: 'reserva_confirmada',
-        destino: '+5491150003131',
+        canal: 'EMAIL',
+        destino: 'mensajera@club.test',
         estado: 'PENDIENTE',
         cliente: 'Mensajera',
         texto: expect.stringMatching(

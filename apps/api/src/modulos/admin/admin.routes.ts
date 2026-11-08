@@ -277,6 +277,7 @@ export const rutasAdmin: FastifyPluginAsync<Opciones> = async (app, o) => {
 
       club.get('/mensajes', async (req) => ({
         whatsappConfigurado: o.config.whatsappConfigurado,
+        correoConfigurado: Boolean(o.config.correo.resendApiKey || o.config.correo.smtp),
         mensajes: await o.consultas.mensajes(clubIdDe(req), queryMensajes.parse(req.query).estado),
       }));
 

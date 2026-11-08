@@ -68,7 +68,8 @@ export async function crearContexto({ conMp = true, pool = 10 } = {}) {
   const cantina = new ServicioCantina({ ...entorno, clubs });
   const fidelizacion = new ServicioFidelizacion(entorno);
   const reportes = new ServicioReportes({ ...entorno, clubs });
-  const despachador = new Despachador(db, reloj, canal);
+  // Un mismo canal de memoria para los dos medios: los tests miran destino y plantilla.
+  const despachador = new Despachador(db, reloj, { WHATSAPP: canal, EMAIL: canal });
 
   const slug = `club-${randomUUID().slice(0, 8)}`;
   const { club, canchas } = await crearClubDemo(db, slug);
@@ -138,6 +139,8 @@ export async function crearContexto({ conMp = true, pool = 10 } = {}) {
           precioTotal: cot.precio,
           montoSena: cot.montoSena,
           expiraEn: new Date(ahora.getTime() + minutos * 60_000),
+          // Como si el cliente hubiera dejado su email al reservar: los avisos salen por mail.
+          emailAviso: `jugador-${++n}@club.test`,
         })
         .returning();
       return t!;

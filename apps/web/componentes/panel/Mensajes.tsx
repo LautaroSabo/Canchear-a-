@@ -10,13 +10,16 @@ import { useClubActual } from './sesion';
 
 type Filtro = 'todos' | 'FALLIDA' | 'PENDIENTE';
 
-/** Sin WhatsApp configurado el worker los marca "enviados", pero al cliente no le llegó nada. */
-function estadoVisible(m: MensajeCliente, conWhatsapp: boolean): { texto: string; tono: Tono } {
+type Configurados = { whatsapp: boolean; correo: boolean };
+
+/** Con el medio sin configurar, el worker los marca "enviados" pero al cliente no le llegó nada. */
+function estadoVisible(m: MensajeCliente, c: Configurados): { texto: string; tono: Tono } {
   if (m.estado === 'FALLIDA') return { texto: 'No se pudo mandar', tono: 'error' };
   if (m.estado === 'PENDIENTE') return { texto: 'Por salir', tono: 'aviso' };
-  return conWhatsapp
-    ? { texto: 'Enviado', tono: 'ok' }
-    : { texto: 'No enviado · WhatsApp sin conectar', tono: 'neutro' };
+  if (m.canal === 'EMAIL' && !c.correo) return { texto: 'No enviado · mail sin configurar', tono: 'neutro' };
+  if (m.canal === 'WHATSAPP' && !c.whatsapp)
+    return { texto: 'No enviado · WhatsApp sin conectar', tono: 'neutro' };
+  return { texto: 'Enviado', tono: 'ok' };
 }
 
 export function Mensajes() {
@@ -26,7 +29,7 @@ export function Mensajes() {
   const datos = useQuery({
     queryKey: ['mensajes', clubId, filtro],
     queryFn: () =>
-      panel.get<{ whatsappConfigurado: boolean; mensajes: MensajeCliente[] }>(
+      panel.get<{ whatsappConfigurado: boolean; correoConfigurado: boolean; mensajes: MensajeCliente[] }>(
         `/clubs/${clubId}/mensajes${filtro !== 'todos' ? `?estado=${filtro}` : ''}`,
       ),
     refetchInterval: 10_000,
@@ -35,18 +38,25 @@ export function Mensajes() {
     mutationFn: (id: string) => panel.post(`/clubs/${clubId}/mensajes/${id}/reintentar`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['mensajes', clubId] }),
   });
-  const conWhatsapp = datos.data?.whatsappConfigurado ?? true;
+  const configurados = {
+    whatsapp: datos.data?.whatsappConfigurado ?? true,
+    correo: datos.data?.correoConfigurado ?? true,
+  };
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
       <EncabezadoPagina
         titulo="Mensajes a clientes"
-        bajada="Todo lo que la app le manda a cada cliente por WhatsApp: confirmaciones, recordatorios y avisos."
+        bajada="Lo que la app le manda a cada cliente. Por mail van las confirmaciones, cancelaciones y devoluciones (si dejó su email al reservar); por WhatsApp, solo el aviso de que se liberó un lugar de la lista de espera."
       />
-      {datos.data && !datos.data.whatsappConfigurado ? (
+      {datos.data && (!datos.data.correoConfigurado || !datos.data.whatsappConfigurado) ? (
         <Aviso tipo="ambar">
-          WhatsApp todavía no está conectado: estos mensajes <strong>no les llegan a los clientes</strong>,
-          solo quedan registrados acá. Para activarlo, seguí la guía de docs/whatsapp.md.
+          {!datos.data.correoConfigurado && !datos.data.whatsappConfigurado
+            ? 'Ni el mail ni WhatsApp están configurados: '
+            : !datos.data.correoConfigurado
+              ? 'El mail todavía no está configurado: '
+              : 'WhatsApp todavía no está conectado: '}
+          esos mensajes <strong>no les llegan a los clientes</strong>, solo quedan registrados acá.
         </Aviso>
       ) : null}
       <Pestanas
@@ -76,7 +86,7 @@ export function Mensajes() {
         ) : (
           <ul className="flex flex-col border border-linea bg-superficie">
             {datos.data.mensajes.map((m) => {
-              const e = estadoVisible(m, conWhatsapp);
+              const e = estadoVisible(m, configurados);
               return (
                 <li
                   key={m.id}
@@ -85,7 +95,10 @@ export function Mensajes() {
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="min-w-0 text-base">
                       <span className="font-semibold">{m.cliente ?? 'Cliente'}</span>{' '}
-                      <span className="text-tenue">{telefonoLegible(m.destino)}</span>
+                      <span className="text-tenue">
+                        {m.canal === 'EMAIL' ? m.destino : telefonoLegible(m.destino)} ·{' '}
+                        {m.canal === 'EMAIL' ? 'mail' : 'WhatsApp'}
+                      </span>
                     </span>
                     <span className="flex flex-wrap items-center gap-2 text-sm text-tenue">
                       {fechaCorta(fechaLocal(m.creadoEn, zona))} {hora(m.creadoEn, zona)}

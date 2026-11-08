@@ -183,6 +183,18 @@ ABONO_COMO_PAGAR=Transferí al alias tu.alias.abono y mandanos el comprobante po
 
 `ABONO_MENSUAL` va en pesos.
 
+### Mails a los clientes
+
+Las confirmaciones, cancelaciones y devoluciones les llegan por mail a los clientes que
+dejan su email al reservar (es opcional). Los manda el **worker**: agregale las mismas
+variables de mail que a la api (`RESEND_API_KEY`, o las `SMTP_*`) y, si verificaste un
+dominio en Resend, `CORREO_REMITENTE=Canchería <avisos@tudominio.com.ar>`.
+
+**Ojo:** sin un dominio verificado, Resend solo deja mandar a la dirección de tu propia
+cuenta. Para que les lleguen a los clientes hace falta verificar un dominio en Resend
+(*Domains → Add domain*, y cargar los registros DNS que te da). Mientras tanto, cada
+aviso queda registrado en el panel, en **Mensajes**, como "No enviado".
+
 ### Aviso por mail cuando se registra un club
 
 En la **api** agregá `AVISOS_EMAIL` con tu Gmail y una de estas dos formas de mandarlo.
