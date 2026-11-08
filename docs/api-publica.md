@@ -128,6 +128,14 @@ Acepta un turno ofrecido por la lista de espera en un horario que no pide seña.
 
 Franja en hora local del club; si `hasta <= desde`, cruza la medianoche. Opcionalmente `canchaId` en vez de `jugadores`. Responde `201 { "id", "estado": "ACTIVA" }`. Si se libera un turno que entra completo en la franja, se le guarda a la primera persona de la lista y se le avisa por WhatsApp con el link para pagar o aceptar. Error: `409 YA_EN_LISTA` si ya está anotada en una franja que se superpone.
 
+## Torneos
+
+- `GET /public/clubs/:slug/torneos` → `[{ id, nombre, slug, estado, jugadoresPorLado, inscripcionOnline, fechaInicio, equipos }]`
+- `GET /public/clubs/:slug/torneos/:torneo` → `{ torneo, equipos, grupos: [{ numero, tabla }], partidos, eliminacionPendiente }`. Solo equipos aprobados y **sin datos del delegado**. Cada partido trae `inicio`, `fin` y `cancha` para que cada equipo sepa cuándo juega.
+- `POST /public/clubs/:slug/torneos/:torneo/inscripcion` con `{ nombre, delegadoNombre, delegadoTelefono }` → `201 { estado: "PENDIENTE" }`: queda para que el club la apruebe. `409 INSCRIPCION_CERRADA` (sin inscripción online o ya empezó), `409 EQUIPO_REPETIDO`. Hasta 5 por minuto por IP.
+
+En la web: `/:slug/torneos` y `/:slug/torneos/:torneo` (tabla, fixture, cuadro y "mi equipo", que se recuerda en el navegador).
+
 ## Webhook de Mercado Pago: `POST /webhooks/mercadopago/:slug`
 
 Para cargar en el panel de desarrolladores de MP de cada club (eventos: *Pagos*). Valida `x-signature` si el club cargó su clave secreta y responde `401 FIRMA_INVALIDA` si no coincide. Notificaciones que no son de pagos se aceptan con `200 { "ignorado": true }`.

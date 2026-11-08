@@ -34,3 +34,14 @@ export function useEventosTurnos(
     };
   }, [url, conCredenciales]);
 }
+
+/**
+ * `false` en el HTML del servidor y `true` apenas React toma la página. Sirve para dejar
+ * deshabilitado el botón de un formulario hasta que el envío lo maneje JavaScript: si no,
+ * un toque rápido en una conexión lenta manda el formulario "a la vieja" y se pierde lo escrito.
+ */
+export function useHidratado() {
+  const [listo, setListo] = useState(false);
+  useEffect(() => setListo(true), []);
+  return listo;
+}

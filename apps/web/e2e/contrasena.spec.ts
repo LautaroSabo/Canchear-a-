@@ -16,6 +16,8 @@ test('olvidé mi contraseña: llega el link por mail y se elige una nueva', asyn
 
   await page.goto('/panel/login');
   await page.getByRole('link', { name: '¿Olvidaste tu contraseña?' }).click();
+  // Habilitado = la página ya hidrató y el envío lo maneja React.
+  await expect(page.getByRole('button', { name: 'Mandarme el link' })).toBeEnabled();
   await page.getByLabel('Email').fill('olvido@e2e.test');
   await page.getByRole('button', { name: 'Mandarme el link' }).click();
   await expect(page.getByText(/te llegó un mail con el link/)).toBeVisible();

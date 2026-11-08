@@ -521,3 +521,87 @@ export interface MensajeCliente {
   cliente: string | null;
   texto: string;
 }
+
+// --- Torneos -----------------------------------------------------------------------
+
+export type EstadoTorneo = 'INSCRIPCION' | 'EN_CURSO' | 'FINALIZADO';
+
+export interface TorneoResumen {
+  id: string;
+  nombre: string;
+  slug: string;
+  estado: EstadoTorneo;
+  jugadoresPorLado: number;
+  inscripcionOnline: boolean;
+  fechaInicio: string;
+  equipos: number;
+  /** Solo en el panel. */
+  pendientes?: number;
+}
+
+export interface ConfigTorneo {
+  nombre: string;
+  descripcion: string | null;
+  jugadoresPorLado: number;
+  inscripcionOnline: boolean;
+  cantidadGrupos: number;
+  idaYVuelta: boolean;
+  clasificanPorGrupo: number;
+  dias: number[];
+  horaDesde: string;
+  horaHasta: string;
+  canchaIds: string[];
+  fechaInicio: string;
+  duracionMin: number;
+}
+
+export interface EquipoTorneo {
+  id: string;
+  nombre: string;
+  estado: 'PENDIENTE' | 'APROBADO' | 'RECHAZADO';
+  grupo: number | null;
+  delegadoNombre?: string;
+  delegadoTelefono?: string;
+}
+
+export interface FilaTabla {
+  equipo: string;
+  nombre: string;
+  pj: number;
+  pg: number;
+  pe: number;
+  pp: number;
+  gf: number;
+  gc: number;
+  dg: number;
+  pts: number;
+}
+
+export interface PartidoTorneo {
+  id: string;
+  fase: 'GRUPOS' | 'ELIMINACION';
+  grupo: number | null;
+  fecha: number | null;
+  ronda: number | null;
+  orden: number | null;
+  local: { id: string; nombre: string } | null;
+  visitante: { id: string; nombre: string } | null;
+  canchaId: string | null;
+  cancha: string | null;
+  inicio: string | null;
+  fin: string | null;
+  golesLocal: number | null;
+  golesVisitante: number | null;
+  penalesLocal: number | null;
+  penalesVisitante: number | null;
+  ganadorId: string | null;
+  estado: 'PROGRAMADO' | 'JUGADO';
+}
+
+export interface VistaTorneo {
+  torneo: ConfigTorneo & { id: string; slug: string; estado: EstadoTorneo };
+  equipos: EquipoTorneo[];
+  grupos: { numero: number; tabla: FilaTabla[] }[];
+  partidos: PartidoTorneo[];
+  eliminacionPendiente: boolean;
+}

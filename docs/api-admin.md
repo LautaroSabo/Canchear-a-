@@ -155,6 +155,28 @@ El mismo cliente, cancha y horario cada 1, 2 o 4 semanas. Se guarda como plantil
 
 Para saltear una sola semana se cancela ese turno desde la agenda: no se vuelve a generar (índice único `(turno_fijo_id, inicio)`).
 
+## Torneos y ligas — `/admin/clubs/:clubId/torneos`
+
+Una liga es **1 grupo sin eliminación**; un torneo con grupos suma una **eliminación directa** con los mejores de cada grupo (`clasificanPorGrupo`). El torneo pasa por `INSCRIPCION` → `EN_CURSO` (al sortear) → `FINALIZADO` (al jugarse la final, o el último partido de una liga, o a mano).
+
+Al **sortear**, la app mezcla los equipos aprobados, los reparte en grupos, arma el fixture (todos contra todos, ida y vuelta opcional) y agenda cada partido en un hueco libre de las canchas del torneo, en sus días y franja horaria, desde `fechaInicio`. Cada fecha va en un día distinto y posterior a la anterior. Cada partido queda como **bloqueo** en la agenda (`origen: BLOQUEO`, nota `Torneo: A vs B`), así que no se puede reservar encima. La eliminación se agenda igual, después del último partido de grupos: todas las rondas quedan con horario y los equipos se completan con cada resultado (el ganador de `(ronda, orden)` pasa a `(ronda/2, orden/2)`). Con clasificados que no son potencia de 2, los mejores pasan directo.
+
+Tabla: 3 puntos por victoria y 1 por empate; desempata diferencia de gol, goles a favor, resultado entre ellos y orden de inscripción. En la eliminación un empate se define por penales.
+
+| Método | Ruta | Rol | Descripción |
+|---|---|---|---|
+| GET | `` | RECEPCION | `[{ id, nombre, slug, estado, jugadoresPorLado, inscripcionOnline, fechaInicio, equipos, pendientes }]` |
+| POST | `` | ADMIN | `{ nombre, descripcion?, jugadoresPorLado, inscripcionOnline, cantidadGrupos, idaYVuelta, clasificanPorGrupo, dias: [0-6], horaDesde, horaHasta, canchaIds, fechaInicio, duracionMin }` → `201 { id, slug }`. `horaHasta <= horaDesde` = termina después de medianoche. `422 FRANJA_CORTA`, `CANCHA_INVALIDA` |
+| GET | `/:torneoId` | RECEPCION | `{ torneo, equipos (con delegado), grupos: [{ numero, tabla }], partidos, eliminacionPendiente }` |
+| PUT · DELETE | `/:torneoId` | ADMIN | Cambiar el formato o borrar: solo en `INSCRIPCION` (`409 TORNEO_EMPEZADO`) |
+| POST | `/:torneoId/equipos` | ADMIN | `{ nombre, delegadoNombre, delegadoTelefono }` → `201`, ya aprobado. `409 EQUIPO_REPETIDO` |
+| PATCH · DELETE | `/:torneoId/equipos/:equipoId` | ADMIN | `{ estado: APROBADO \| RECHAZADO }` (para las inscripciones online) o quitarlo |
+| POST | `/:torneoId/iniciar` | ADMIN | `{ sortear?: true }`: sortea, agenda y pasa a `EN_CURSO` → vista. `422 POCOS_EQUIPOS` (2 por grupo), `422 SIN_LUGAR` (no entra en un año) |
+| PUT | `/:torneoId/partidos/:partidoId/resultado` | RECEPCION | `{ golesLocal, golesVisitante, penalesLocal?, penalesVisitante? }` → vista. Se puede corregir; en la eliminación, no si el partido siguiente ya se jugó (`409 SIGUIENTE_JUGADO`). `422 FALTAN_PENALES` |
+| POST | `/:torneoId/partidos/:partidoId/mover` | ADMIN | `{ inicio, canchaId }` → vista. Libera el bloqueo anterior y toma el nuevo; `409 HORARIO_OCUPADO` si está tomado |
+| POST | `/:torneoId/eliminacion` | ADMIN | Con todos los partidos de grupos jugados: arma y agenda el cuadro → vista |
+| POST | `/:torneoId/finalizar` | ADMIN | Lo da por terminado |
+
 ## Configuración del club — `/admin/clubs/:clubId/config/…`
 
 Cada cambio se hace en una transacción que bloquea la fila del club (dos admins editando a la vez no pueden dejar dos tarifas superpuestas) y al terminar invalida la caché de configuración: la grilla pública lo refleja en la siguiente consulta. Las horas van como `HH:MM` en la zona del club; los precios y montos fijos, en centavos.
