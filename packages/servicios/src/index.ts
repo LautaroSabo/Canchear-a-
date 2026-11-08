@@ -26,5 +26,6 @@ export * from './pagos.ts';
 export * from './plataforma.ts';
 export * from './reembolsos.ts';
 export * from './reportes.ts';
+export * from './torneos.ts';
 export * from './turnos.ts';
 export * from './turnos-fijos.ts';

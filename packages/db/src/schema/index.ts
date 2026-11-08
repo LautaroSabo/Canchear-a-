@@ -9,4 +9,5 @@ export * from './enums.ts';
 export * from './fidelizacion.ts';
 export * from './operacion.ts';
 export * from './pagos.ts';
+export * from './torneos.ts';
 export * from './turnos.ts';

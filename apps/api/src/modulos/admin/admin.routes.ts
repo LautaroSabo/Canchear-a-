@@ -21,6 +21,7 @@ import {
   type ServicioPlataforma,
   type ServicioReembolsos,
   type ServicioReportes,
+  type ServicioTorneos,
   type ServicioTurnosFijos,
 } from '@cancheria/servicios';
 import { eq } from 'drizzle-orm';
@@ -100,6 +101,7 @@ import {
   setCookieSesion,
   usuarioDe,
 } from './sesion.ts';
+import { rutasTorneos } from './torneos.routes.ts';
 
 interface Opciones {
   db: Db;
@@ -117,6 +119,7 @@ interface Opciones {
   reembolsos: ServicioReembolsos;
   reportes: ServicioReportes;
   turnosFijos: ServicioTurnosFijos;
+  torneos: ServicioTorneos;
   pasarela: PasarelaMp;
   cifrador: Cifrador;
   almacen: AlmacenArchivos;
@@ -440,6 +443,8 @@ export const rutasAdmin: FastifyPluginAsync<Opciones> = async (app, o) => {
       club.get('/cantina/resumen', async (req) =>
         o.cantina.resumenDia(clubIdDe(req), queryResumenCantina.parse(req.query).fecha),
       );
+
+      rutasTorneos(club, o.torneos);
 
       // --- Turnos fijos -----------------------------------------------------------
 

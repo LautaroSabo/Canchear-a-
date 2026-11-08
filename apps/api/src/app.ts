@@ -19,6 +19,7 @@ import {
   ServicioPlataforma,
   ServicioReembolsos,
   ServicioReportes,
+  ServicioTorneos,
   ServicioTurnosFijos,
   TAMANO_MAXIMO_COMPROBANTE,
 } from '@cancheria/servicios';
@@ -132,6 +133,7 @@ export async function construirApp({
   const cantina = new ServicioCantina({ ...entorno, clubs });
   const fidelizacion = new ServicioFidelizacion(entorno);
   const reportes = new ServicioReportes({ ...entorno, clubs });
+  const torneos = new ServicioTorneos({ ...entorno, clubs });
   const consultas = new ConsultasAdmin(db, reloj);
   const plataforma = new ServicioPlataforma(entorno);
 
@@ -149,6 +151,7 @@ export async function construirApp({
     listaEspera,
     operacion,
     sse,
+    torneos,
     config,
   });
   await app.register(rutasWebhooks, { prefix: '/webhooks', clubs, pagos, db, cifrador });
@@ -169,6 +172,7 @@ export async function construirApp({
     correo,
     reportes,
     turnosFijos,
+    torneos,
     pasarela,
     cifrador,
     almacen,

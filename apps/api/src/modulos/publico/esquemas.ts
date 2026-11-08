@@ -47,3 +47,13 @@ export const cuerpoListaEspera = z.object({
   jugadores: z.coerce.number().int().min(3).max(11).optional(),
   canchaId: z.uuid().optional(),
 });
+
+export const paramsTorneoPublico = paramsSlug.extend({
+  torneo: z.string().regex(/^[a-z0-9-]{1,80}$/i, 'torneo inválido'),
+});
+
+export const cuerpoInscripcion = z.object({
+  nombre: z.string().trim().min(1).max(60),
+  delegadoNombre: z.string().trim().min(1).max(80),
+  delegadoTelefono: z.string().trim().min(6).max(30),
+});

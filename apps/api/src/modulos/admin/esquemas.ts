@@ -296,3 +296,48 @@ export const queryExportar = queryReporte.extend({ tipo: z.enum(['turnos', 'pago
 
 export const queryMensajes = z.object({ estado: z.enum(['PENDIENTE', 'ENVIADA', 'FALLIDA']).optional() });
 export const paramsMensaje = z.object({ clubId: z.uuid(), mensajeId: z.uuid() });
+
+// --- Torneos ---------------------------------------------------------------------
+
+export const cuerpoTorneo = z.object({
+  nombre: texto(80),
+  descripcion: textoOpcional(500).optional(),
+  jugadoresPorLado: z.number().int().min(1).max(11),
+  inscripcionOnline: z.boolean(),
+  cantidadGrupos: z.number().int().min(1).max(16),
+  idaYVuelta: z.boolean(),
+  clasificanPorGrupo: z.number().int().min(0).max(8),
+  dias: z.array(dia).min(1).max(7),
+  horaDesde: hora,
+  horaHasta: hora,
+  canchaIds: z.array(z.uuid()).min(1).max(30),
+  fechaInicio: z.iso.date(),
+  duracionMin: z.number().int().min(20).max(240),
+});
+
+export const cuerpoEquipo = z.object({
+  nombre: texto(60),
+  delegadoNombre: texto(80),
+  delegadoTelefono: z.string().trim().min(6).max(30),
+});
+
+export const cuerpoEstadoEquipo = z.object({ estado: z.enum(['APROBADO', 'RECHAZADO']) });
+
+const goles = z.number().int().min(0).max(99);
+export const cuerpoResultado = z.object({
+  golesLocal: goles,
+  golesVisitante: goles,
+  penalesLocal: goles.nullable().optional(),
+  penalesVisitante: goles.nullable().optional(),
+});
+
+export const cuerpoMoverPartido = z.object({
+  inicio: z.iso.datetime({ offset: true }),
+  canchaId: z.uuid(),
+});
+
+export const cuerpoIniciarTorneo = z.object({ sortear: z.boolean().optional() });
+
+export const paramsTorneo = z.object({ clubId: z.uuid(), torneoId: z.uuid() });
+export const paramsEquipo = paramsTorneo.extend({ equipoId: z.uuid() });
+export const paramsPartido = paramsTorneo.extend({ partidoId: z.uuid() });

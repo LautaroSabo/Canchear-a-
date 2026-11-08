@@ -5,16 +5,19 @@ import {
   type ServicioListaEspera,
   type ServicioOperacion,
   type ServicioPagos,
+  type ServicioTorneos,
 } from '@cancheria/servicios';
 import type { FastifyPluginAsync } from 'fastify';
 import type { Config } from '../../config.ts';
 import type { StreamsSse } from '../../plugins/eventos.ts';
 import type { ServicioDisponibilidad } from './disponibilidad.service.ts';
 import {
+  cuerpoInscripcion,
   cuerpoListaEspera,
   cuerpoReserva,
   paramsCodigo,
   paramsSlug,
+  paramsTorneoPublico,
   queryDisponibilidad,
 } from './esquemas.ts';
 import type { ServicioReservas } from './reservas.service.ts';
@@ -27,12 +30,13 @@ interface Opciones {
   listaEspera: ServicioListaEspera;
   operacion: ServicioOperacion;
   sse: StreamsSse;
+  torneos: ServicioTorneos;
   config: Config;
 }
 
 export const rutasPublicas: FastifyPluginAsync<Opciones> = async (
   app,
-  { clubs, disponibilidad, reservas, pagos, listaEspera, operacion, sse, config },
+  { clubs, disponibilidad, reservas, pagos, listaEspera, operacion, sse, torneos, config },
 ) => {
   const clubPorSlug = async (params: unknown) => {
     const { slug } = paramsSlug.parse(params);
@@ -75,6 +79,28 @@ export const rutasPublicas: FastifyPluginAsync<Opciones> = async (
       })),
     };
   });
+
+  // --- Torneos -----------------------------------------------------------------
+
+  app.get('/clubs/:slug/torneos', async (req) => {
+    const { slug } = paramsSlug.parse(req.params);
+    return torneos.listaPublica(slug);
+  });
+
+  app.get('/clubs/:slug/torneos/:torneo', async (req) => {
+    const { slug, torneo } = paramsTorneoPublico.parse(req.params);
+    return torneos.vistaPublica(slug, torneo);
+  });
+
+  app.post(
+    '/clubs/:slug/torneos/:torneo/inscripcion',
+    { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } },
+    async (req, reply) => {
+      const { slug, torneo } = paramsTorneoPublico.parse(req.params);
+      await torneos.inscribirOnline(slug, torneo, cuerpoInscripcion.parse(req.body));
+      return reply.status(201).send({ estado: 'PENDIENTE' });
+    },
+  );
 
   app.get('/clubs/:slug/disponibilidad', async (req) => {
     const cfg = await clubPorSlug(req.params);

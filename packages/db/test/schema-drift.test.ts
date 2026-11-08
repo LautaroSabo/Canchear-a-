@@ -67,6 +67,8 @@ describe('schema drift (Drizzle vs migraciones)', () => {
 
 /** Traduce el tipo SQL que declara Drizzle al `udt_name` de information_schema. */
 function normalizarTipo(tipo: string): string {
+  // Arrays: Postgres los informa con "_" adelante del tipo base (smallint[] → _int2).
+  if (tipo.endsWith('[]')) return `_${normalizarTipo(tipo.slice(0, -2))}`;
   const base = tipo.replace(/\(.*\)/, '').trim();
   const mapa: Record<string, string> = {
     'timestamp with time zone': 'timestamptz',

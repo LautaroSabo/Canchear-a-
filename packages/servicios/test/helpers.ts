@@ -22,6 +22,7 @@ import { ServicioOperacion } from '../src/operacion.ts';
 import { ServicioPagos } from '../src/pagos.ts';
 import { ServicioReembolsos } from '../src/reembolsos.ts';
 import { ServicioReportes } from '../src/reportes.ts';
+import { ServicioTorneos } from '../src/torneos.ts';
 import { ServicioTurnosFijos } from '../src/turnos-fijos.ts';
 
 /** Viernes 2030-01-04 12:00 en Buenos Aires. */
@@ -68,6 +69,7 @@ export async function crearContexto({ conMp = true, pool = 10 } = {}) {
   const cantina = new ServicioCantina({ ...entorno, clubs });
   const fidelizacion = new ServicioFidelizacion(entorno);
   const reportes = new ServicioReportes({ ...entorno, clubs });
+  const torneos = new ServicioTorneos({ ...entorno, clubs });
   // Un mismo canal de memoria para los dos medios: los tests miran destino y plantilla.
   const despachador = new Despachador(db, reloj, { WHATSAPP: canal, EMAIL: canal });
 
@@ -108,6 +110,7 @@ export async function crearContexto({ conMp = true, pool = 10 } = {}) {
     cantina,
     fidelizacion,
     reportes,
+    torneos,
     ahora: () => ahora,
     setAhora: (d: Date) => {
       ahora = d;

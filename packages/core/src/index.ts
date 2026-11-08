@@ -4,3 +4,4 @@ export * from './puntos.ts';
 export * from './sena.ts';
 export * from './telefono.ts';
 export * from './tiempo.ts';
+export * from './torneo.ts';
