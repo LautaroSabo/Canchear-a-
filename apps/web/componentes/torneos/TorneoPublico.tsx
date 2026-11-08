@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { type FormEvent, useEffect, useState } from 'react';
 import { mensajeDe, pedir } from '@/lib/api';
 import { fechaLarga, fechaLocal, hora } from '@/lib/formato';
+import { useHidratado } from '@/lib/hooks';
 import type { VistaTorneo } from '@/lib/tipos';
 import { Aviso, Boton, Campo, Insignia, Pestanas, Selector } from '../ui';
 import { Cuadro, ESTADO_TORNEO, Fixture, resumenFormato, Tablas } from './VistaTorneo';
@@ -89,6 +90,9 @@ export function TorneoPublico({
         <Inscripcion club={club} vista={v} />
       ) : (
         <>
+          {t.inscripcionOnline ? (
+            <p className="text-sm text-tenue">La inscripción cerró: el torneo ya está en juego.</p>
+          ) : null}
           <section
             aria-label="Mi equipo"
             className="flex flex-col gap-3 border border-linea bg-superficie p-4"
@@ -167,6 +171,7 @@ export function TorneoPublico({
 
 function Inscripcion({ club, vista: v }: { club: { slug: string }; vista: VistaTorneo }) {
   const [listo, setListo] = useState<string | null>(null);
+  const hidratado = useHidratado();
   const inscribir = useMutation({
     mutationFn: (d: { nombre: string; delegadoNombre: string; delegadoTelefono: string }) =>
       pedir(`/public/clubs/${club.slug}/torneos/${v.torneo.slug}/inscripcion`, { metodo: 'POST', json: d }),
@@ -233,7 +238,7 @@ function Inscripcion({ club, vista: v }: { club: { slug: string }; vista: VistaT
                 ayuda="Solo lo ve el club, para coordinar."
               />
               {inscribir.error ? <Aviso>{mensajeDe(inscribir.error)}</Aviso> : null}
-              <Boton type="submit" grande disabled={inscribir.isPending}>
+              <Boton type="submit" grande disabled={!hidratado || inscribir.isPending}>
                 {inscribir.isPending ? 'Enviando…' : 'Inscribir equipo'}
               </Boton>
             </form>

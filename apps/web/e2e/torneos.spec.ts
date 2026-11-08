@@ -14,6 +14,7 @@ test('torneo: alta, inscripción online, sorteo, resultado y página pública co
   await dialogo.getByRole('button', { name: 'Crear torneo' }).click();
   await expect(page.getByRole('heading', { name: 'Liga E2E' })).toBeVisible();
   const urlTorneo = page.url();
+  await expect(page.getByText('Inscripción online abierta.')).toBeVisible();
 
   for (const [nombre, tel] of [
     ['Rojos', '11 5200-0001'],
@@ -47,6 +48,7 @@ test('torneo: alta, inscripción online, sorteo, resultado y página pública co
   await page.getByRole('button', { name: 'Sortear y armar fixture' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Sortear y agendar' }).click();
   await expect(page.getByText(/Torneo en marcha/)).toBeVisible();
+  await expect(page.getByText('Inscripción online abierta.')).toHaveCount(0);
   const fecha1 = page.getByRole('region', { name: 'Fecha 1' });
   await expect(fecha1.getByRole('listitem')).toHaveCount(2);
   await expect(fecha1).toContainText('Cancha 1');
@@ -68,6 +70,7 @@ test('torneo: alta, inscripción online, sorteo, resultado y página pública co
   await page.goto(`/${SLUG}/torneos`);
   await page.getByRole('link', { name: /Liga E2E/ }).click();
   await expect(page.getByRole('table')).toContainText('Online FC');
+  await expect(page.getByText('La inscripción cerró: el torneo ya está en juego.')).toBeVisible();
   await page.getByRole('combobox', { name: /^Mi equipo/ }).selectOption({ label: 'Online FC' });
   await expect(page.getByText('Próximo partido')).toBeVisible();
   await page.getByRole('tab', { name: 'Mis partidos' }).click();

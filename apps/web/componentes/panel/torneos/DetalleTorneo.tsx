@@ -16,7 +16,7 @@ import {
   resumenFormato,
   Tablas,
 } from '../../torneos/VistaTorneo';
-import { Aviso, Boton, Campo, Cargando, Insignia, Pestanas, Selector } from '../../ui';
+import { Aviso, Boton, Campo, Cargando, Copiable, Insignia, Pestanas, Selector } from '../../ui';
 import { Dialogo } from '../Dialogo';
 import { alcanza, useClubActual } from '../sesion';
 import { FormTorneo } from './FormTorneo';
@@ -165,6 +165,25 @@ export function DetalleTorneo({ torneoId }: { torneoId: string }) {
         ) : null}
       </header>
       {aviso ? <Aviso tipo="ok">{aviso}</Aviso> : null}
+      {t.estado === 'INSCRIPCION' && club?.slug ? (
+        t.inscripcionOnline ? (
+          <div className="border border-linea bg-superficie px-4 pt-3 pb-1">
+            <p className="text-sm">
+              <strong>Inscripción online abierta.</strong> Pasales este link a los equipos: se anotan desde
+              ahí y acá te aparecen para aprobar. Cuando sortees el fixture, la inscripción se cierra.
+            </p>
+            <Copiable
+              etiqueta="Link de inscripción"
+              valor={`${typeof window === 'undefined' ? '' : window.location.origin}/${club.slug}/torneos/${t.slug}`}
+            />
+          </div>
+        ) : (
+          <Aviso tipo="info">
+            La inscripción online está apagada: los equipos los cargás vos abajo. Para que se anoten solos,
+            tocá «Editar» y marcá «Inscripción online».
+          </Aviso>
+        )
+      ) : null}
       {accion.error && !dialogo ? <Aviso>{mensajeDe(accion.error)}</Aviso> : null}
       {v.eliminacionPendiente ? (
         <Aviso tipo="info">
