@@ -29,6 +29,8 @@ export type EstadoPublico =
 export interface ReservaPublica {
   /** Token secreto de la reserva: identifica la URL del comprobante y va dentro del QR. */
   codigo: string;
+  /** Para el link del partido que se le pasa al grupo (solo lectura). */
+  codigoInvitacion: string;
   estado: EstadoPublico;
   club: { slug: string; nombre: string };
   cancha: { id: string; nombre: string };
@@ -145,6 +147,48 @@ export class ServicioReservas {
     }
   }
 
+  /**
+   * El partido como lo ve el grupo: club, cancha, día y hora. Sin precio, sin datos del que
+   * reservó (solo el nombre de pila) y sin el código del comprobante.
+   */
+  async invitacion(codigo: string) {
+    const [fila] = await this.db
+      .select({
+        estado: turnos.estado,
+        expiraEn: turnos.expiraEn,
+        inicio: turnos.inicio,
+        fin: turnos.fin,
+        cancha: canchas.nombre,
+        club: {
+          slug: clubs.slug,
+          nombre: clubs.nombre,
+          direccion: clubs.direccion,
+          zonaHoraria: clubs.zonaHoraria,
+        },
+        organizador: clientes.nombre,
+      })
+      .from(turnos)
+      .innerJoin(canchas, eq(canchas.id, turnos.canchaId))
+      .innerJoin(clubs, eq(clubs.id, turnos.clubId))
+      .innerJoin(clientes, eq(clientes.id, turnos.clienteId))
+      .where(eq(turnos.codigoInvitacion, codigo));
+    if (!fila) throw new ErrorNegocio(404, 'PARTIDO_NO_ENCONTRADO', 'No encontramos ese partido');
+    const estado = estadoPublico(fila.estado, fila.expiraEn, this.reloj());
+    return {
+      estado:
+        estado === 'CONFIRMADO' || estado === 'PRESENTE'
+          ? 'CONFIRMADO'
+          : estado === 'PRE_RESERVADO'
+            ? 'PENDIENTE'
+            : 'CANCELADO',
+      club: fila.club,
+      cancha: fila.cancha,
+      inicio: fila.inicio.toISOString(),
+      fin: fila.fin.toISOString(),
+      organizador: fila.organizador.trim().split(/\s+/)[0] ?? '',
+    } as const;
+  }
+
   async porCodigo(codigo: string): Promise<ReservaPublica> {
     const reserva = await this.buscar(eq(turnos.codigoCheckin, codigo));
     if (!reserva) throw new ErrorNegocio(404, 'RESERVA_NO_ENCONTRADA', 'No encontramos esa reserva');
@@ -179,6 +223,7 @@ export class ServicioReservas {
     );
     return {
       codigo: turno.codigoCheckin,
+      codigoInvitacion: turno.codigoInvitacion,
       estado,
       club: fila.club,
       cancha: fila.cancha,

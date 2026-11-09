@@ -74,6 +74,8 @@ export const turnos = pgTable('turnos', {
   /** Solo presente (y obligatorio) en PRE_RESERVADO. */
   expiraEn: ts(),
   codigoCheckin: text().notNull().unique().default(sql`encode(gen_random_bytes(16), 'hex')`),
+  /** Link de solo lectura para el grupo (no deja cancelar ni ver datos del que reservó). */
+  codigoInvitacion: text().notNull().unique().default(sql`encode(gen_random_bytes(8), 'hex')`),
   checkinEn: ts(),
   checkinPor: uuid(),
   idempotencyKey: uuid(),

@@ -50,6 +50,7 @@ export type EstadoTurno = 'PRE_RESERVADO' | 'CONFIRMADO' | 'PRESENTE' | 'AUSENTE
 
 export interface ReservaPublica {
   codigo: string;
+  codigoInvitacion: string;
   estado: EstadoTurno;
   club: { slug: string; nombre: string };
   cancha: { id: string; nombre: string };
@@ -604,4 +605,14 @@ export interface VistaTorneo {
   grupos: { numero: number; tabla: FilaTabla[] }[];
   partidos: PartidoTorneo[];
   eliminacionPendiente: boolean;
+}
+
+/** El partido como lo ve el grupo (link que se comparte desde el comprobante). */
+export interface PartidoCompartido {
+  estado: 'CONFIRMADO' | 'PENDIENTE' | 'CANCELADO';
+  club: { slug: string; nombre: string; direccion: string | null; zonaHoraria: string };
+  cancha: string;
+  inicio: string;
+  fin: string;
+  organizador: string;
 }

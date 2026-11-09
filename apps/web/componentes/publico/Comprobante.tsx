@@ -442,7 +442,8 @@ function Detalle({
   const vigente = ['CONFIRMADO', 'PRE_RESERVADO'].includes(r.estado);
   const [enlaces, setEnlaces] = useState<{ calendario: string; compartir: string } | null>(null);
   useEffect(() => {
-    const texto = `Reservé cancha en ${r.club.nombre}: ${fechaCorta(fechaLocal(r.inicio, zona))} a las ${hora(r.inicio, zona)}. ${window.location.origin}/${r.club.slug}`;
+    // Link de solo lectura: el del comprobante deja cancelar y muestra precio y datos.
+    const texto = `Partido en ${r.club.nombre}: ${fechaCorta(fechaLocal(r.inicio, zona))} a las ${hora(r.inicio, zona)}, ${r.cancha.nombre}. Todos los datos acá: ${window.location.origin}/p/${r.codigoInvitacion}`;
     setEnlaces({
       calendario: linkCalendario(r, club, codigo),
       compartir: `https://wa.me/?text=${encodeURIComponent(texto)}`,

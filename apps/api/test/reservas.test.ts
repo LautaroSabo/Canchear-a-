@@ -169,6 +169,34 @@ describe('GET /public/reservas/:codigo', () => {
     expect(res.json()).toEqual(creada.json());
   });
 
+  it('el link del partido para el grupo: sin precio, sin teléfono y sin el código del comprobante', async () => {
+    const creada = await reservar(
+      ctx,
+      pedido(ctx.canchas.f5b.id, iso('2030-01-05', '19:00'), {
+        nombre: 'Juan Pérez',
+        email: 'juan@club.test',
+      }),
+    );
+    const { codigo, codigoInvitacion } = creada.json();
+    expect(codigoInvitacion).toMatch(/^[0-9a-f]{16}$/);
+    const res = await ctx.app.inject(`/public/partidos/${codigoInvitacion}`);
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({
+      estado: 'PENDIENTE',
+      cancha: 'Cancha 2',
+      inicio: iso('2030-01-05', '19:00'),
+      organizador: 'Juan',
+      club: { slug: ctx.slug },
+    });
+    expect(res.body).not.toContain(codigo);
+    expect(res.body).not.toContain('Pérez');
+    expect(res.body).not.toContain('juan@');
+    expect(res.body).not.toMatch(/precio|sena|5491/i);
+    // Con el código de invitación no se puede abrir el comprobante.
+    expect((await ctx.app.inject(`/public/reservas/${codigoInvitacion}`)).statusCode).toBe(400);
+    expect((await ctx.app.inject(`/public/partidos/${'0'.repeat(16)}`)).statusCode).toBe(404);
+  });
+
   it('404 si no existe, 400 si el código está mal formado', async () => {
     expect((await ctx.app.inject(`/public/reservas/${'0'.repeat(32)}`)).statusCode).toBe(404);
     expect((await ctx.app.inject('/public/reservas/abc')).statusCode).toBe(400);

@@ -37,6 +37,18 @@ test('reserva con seña, pago por Mercado Pago y comprobante con QR', async ({ p
   await expect(page.getByText('¡Turno confirmado!')).toBeVisible();
   await expect(page.getByRole('img', { name: 'Código QR de la reserva' })).toBeVisible();
 
+  // "Pasarle el dato al grupo": lleva al partido (solo lectura), no al comprobante ni a la grilla.
+  const compartir = await page.getByRole('link', { name: 'Pasarle el dato al grupo' }).getAttribute('href');
+  const linkGrupo = decodeURIComponent(compartir ?? '').match(/https?:\/\/\S+\/p\/[0-9a-f]{16}/)?.[0];
+  expect(linkGrupo, compartir ?? '').toBeTruthy();
+  const grupo = await page.context().newPage();
+  await grupo.goto(new URL(linkGrupo as string).pathname);
+  await expect(grupo.getByText('Juana reservó cancha')).toBeVisible();
+  await expect(grupo.getByText('21:00 a 22:00')).toBeVisible();
+  await expect(grupo.getByText('Reserva confirmada.')).toBeVisible();
+  await expect(grupo.locator('body')).not.toContainText(/Pérez|\$|Cancelar|QR/);
+  await grupo.close();
+
   // Faltan más de 24 h: el jugador cancela solo y se le devuelve la seña.
   await expect(page.getByText(/Podés cancelar hasta el .* y se te devuelve la seña/)).toBeVisible();
   await page.getByRole('button', { name: 'Cancelar mi reserva' }).click();

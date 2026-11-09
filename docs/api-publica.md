@@ -81,6 +81,10 @@ Respuesta (también la de `GET /public/reservas/:codigo`):
 
 Comprobante de una reserva. Si un `PRE_RESERVADO` ya venció se informa como `EXPIRADO`, aunque el worker todavía no haya pasado.
 
+## `GET /public/partidos/:codigoInvitacion`
+
+El partido para pasarle al grupo (el comprobante trae `codigoInvitacion`; en la web es `/p/:codigoInvitacion`). Es otro código a propósito: el del comprobante deja cancelar y muestra precio y datos de quien reservó. Responde `{ estado: CONFIRMADO | PENDIENTE | CANCELADO, club: { slug, nombre, direccion, zonaHoraria }, cancha, inicio, fin, organizador }`, con `organizador` = solo el nombre de pila. `404 PARTIDO_NO_ENCONTRADO`.
+
 ## Pagar la seña
 
 ### `POST /public/reservas/:codigo/mercadopago` → `{ "urlCheckout": "https://www.mercadopago.com.ar/checkout/…" }`

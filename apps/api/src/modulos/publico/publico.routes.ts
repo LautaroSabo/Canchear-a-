@@ -16,6 +16,7 @@ import {
   cuerpoListaEspera,
   cuerpoReserva,
   paramsCodigo,
+  paramsInvitacion,
   paramsSlug,
   paramsTorneoPublico,
   queryDisponibilidad,
@@ -126,6 +127,11 @@ export const rutasPublicas: FastifyPluginAsync<Opciones> = async (
       const { codigo } = paramsCodigo.parse(req.params);
       return reservas.porCodigo(codigo);
     },
+  );
+
+  /** El partido para el grupo: lo que se comparte por WhatsApp desde el comprobante. */
+  app.get('/partidos/:codigo', { config: { rateLimit: { max: 60, timeWindow: '1 minute' } } }, async (req) =>
+    reservas.invitacion(paramsInvitacion.parse(req.params).codigo),
   );
 
   // --- Seña -----------------------------------------------------------------

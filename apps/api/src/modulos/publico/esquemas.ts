@@ -57,3 +57,7 @@ export const cuerpoInscripcion = z.object({
   delegadoNombre: z.string().trim().min(1).max(80),
   delegadoTelefono: z.string().trim().min(6).max(30),
 });
+
+export const paramsInvitacion = z.object({
+  codigo: z.string().regex(/^[0-9a-f]{16}$/, 'código inválido'),
+});
