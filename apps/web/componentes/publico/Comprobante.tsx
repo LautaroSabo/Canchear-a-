@@ -56,7 +56,7 @@ export function Comprobante({ codigo }: { codigo: string }) {
         </h1>
         <p className="text-base text-tenue">
           {noExiste
-            ? 'Revisá que el link esté completo: es el que te llegó por WhatsApp.'
+            ? 'Revisá que el link esté completo: es el que te quedó al reservar o el que te llegó por mail.'
             : reserva.error.message}
         </p>
       </main>
@@ -112,7 +112,7 @@ function EstadoReserva({
     case 'CANCELADO':
       return (
         <Banda titulo="Esta reserva se canceló" tono="error">
-          Si tenías una seña paga, te la devolvemos y te avisamos por WhatsApp.
+          Si tenías una seña paga, te la devolvemos. Si dejaste tu email, te avisamos por mail.
         </Banda>
       );
     case 'AUSENTE':
@@ -311,7 +311,8 @@ function EnRevision({ reserva: r }: { reserva: ReservaPublica }) {
         ) : null
       }
     >
-      El turno es tuyo mientras el club revisa la transferencia. Te avisamos por WhatsApp apenas la confirmen.
+      El turno es tuyo mientras el club revisa la transferencia. Si dejaste tu email, te avisamos por mail
+      apenas la confirmen; si no, volvé a mirar esta página.
     </Banda>
   );
 }
@@ -398,7 +399,9 @@ function Confirmada({
         </>
       }
     >
-      {presente ? null : 'Mostrá este QR al llegar. También te lo mandamos por WhatsApp.'}
+      {presente
+        ? null
+        : 'Mostrá este QR al llegar. Guardá esta página (o sacale captura): si dejaste tu email, también te llegó por mail.'}
     </Banda>
   );
 }
