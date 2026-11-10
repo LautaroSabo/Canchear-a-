@@ -4,6 +4,8 @@
 export interface CanchaPublica {
   id: string;
   nombre: string;
+  /** FUTBOL, PADEL o TENIS (las respuestas viejas no lo traen: es fútbol). */
+  deporte?: 'FUTBOL' | 'PADEL' | 'TENIS';
   jugadoresPorLado: number;
   superficie: string;
   techada: boolean;
@@ -154,7 +156,13 @@ export interface Agenda {
   fecha: string;
   zonaHoraria: string;
   apertura: { inicio: string; fin: string }[];
-  canchas: { id: string; nombre: string; jugadoresPorLado: number; duracionMin: number }[];
+  canchas: {
+    id: string;
+    nombre: string;
+    deporte?: 'FUTBOL' | 'PADEL' | 'TENIS';
+    jugadoresPorLado: number;
+    duracionMin: number;
+  }[];
   turnos: TurnoAgenda[];
 }
 
@@ -220,11 +228,12 @@ export interface Reembolso {
 
 // --- Configuración del club (panel) ---------------------------------------------
 
-export type Superficie = 'SINTETICO' | 'CESPED_NATURAL' | 'CEMENTO' | 'PARQUET' | 'OTRO';
+export type Superficie = 'SINTETICO' | 'CESPED_NATURAL' | 'CEMENTO' | 'PARQUET' | 'POLVO_LADRILLO' | 'OTRO';
 
 export interface CanchaConfig {
   id: string;
   nombre: string;
+  deporte: 'FUTBOL' | 'PADEL' | 'TENIS';
   jugadoresPorLado: number;
   superficie: Superficie;
   techada: boolean;
@@ -533,6 +542,7 @@ export interface TorneoResumen {
   nombre: string;
   slug: string;
   estado: EstadoTorneo;
+  deporte?: 'FUTBOL' | 'PADEL' | 'TENIS';
   jugadoresPorLado: number;
   inscripcionOnline: boolean;
   fechaInicio: string;
@@ -544,6 +554,7 @@ export interface TorneoResumen {
 export interface ConfigTorneo {
   nombre: string;
   descripcion: string | null;
+  deporte?: 'FUTBOL' | 'PADEL' | 'TENIS';
   jugadoresPorLado: number;
   inscripcionOnline: boolean;
   cantidadGrupos: number;

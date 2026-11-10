@@ -7,6 +7,7 @@ import { type FormEvent, useState } from 'react';
 import { mensajeDe, panel, pedir } from '@/lib/api';
 import { fechaLocal, hora, instanteLocal, linkWhatsApp, telefonoLegible } from '@/lib/formato';
 import type { ClubPublico, ConfigTorneo, EquipoTorneo, PartidoTorneo, VistaTorneo } from '@/lib/tipos';
+import { conSets } from '../../torneos/comunes';
 import {
   Cuadro,
   cuando,
@@ -277,6 +278,7 @@ export function DetalleTorneo({ torneoId }: { torneoId: string }) {
         ) : dialogo?.tipo === 'resultado' ? (
           <Resultado
             partido={dialogo.partido}
+            sets={conSets(t)}
             ruta={ruta}
             alGuardar={(nv) => {
               setDialogo(null);
@@ -475,16 +477,19 @@ function Editar({ vista: v, ruta, alGuardar }: { vista: VistaTorneo; ruta: strin
 
 function Resultado({
   partido: p,
+  sets,
   ruta,
   alGuardar,
 }: {
   partido: PartidoTorneo;
+  /** Pádel y tenis: se cargan sets y no hay empate (ni penales). */
+  sets: boolean;
   ruta: string;
   alGuardar: (v: VistaTorneo) => void;
 }) {
   const [gl, setGl] = useState(p.golesLocal?.toString() ?? '');
   const [gv, setGv] = useState(p.golesVisitante?.toString() ?? '');
-  const empate = p.fase === 'ELIMINACION' && gl !== '' && gl === gv;
+  const empate = !sets && p.fase === 'ELIMINACION' && gl !== '' && gl === gv;
   const guardar = useMutation({
     mutationFn: (d: Record<string, number | null>) =>
       panel.put<VistaTorneo>(`${ruta}/partidos/${p.id}/resultado`, d),
@@ -502,6 +507,9 @@ function Resultado({
   }
   return (
     <form onSubmit={enviar} className="flex flex-col gap-4">
+      {sets ? (
+        <p className="text-sm text-tenue">Cargá los sets que ganó cada uno (por ejemplo, 2 y 1).</p>
+      ) : null}
       <div className="grid grid-cols-2 gap-4">
         <Campo
           etiqueta={p.local?.nombre}

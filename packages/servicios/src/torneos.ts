@@ -37,6 +37,8 @@ const HORIZONTE_DIAS = 370;
 
 export interface DatosTorneo {
   nombre: string;
+  /** Por defecto FUTBOL. En pádel y tenis se cargan sets y no hay empates. */
+  deporte?: 'FUTBOL' | 'PADEL' | 'TENIS' | undefined;
   descripcion?: string | null | undefined;
   jugadoresPorLado: number;
   inscripcionOnline: boolean;
@@ -91,6 +93,7 @@ export class ServicioTorneos {
         nombre: torneos.nombre,
         slug: torneos.slug,
         estado: torneos.estado,
+        deporte: torneos.deporte,
         jugadoresPorLado: torneos.jugadoresPorLado,
         inscripcionOnline: torneos.inscripcionOnline,
         fechaInicio: torneos.fechaInicio,
@@ -167,6 +170,7 @@ export class ServicioTorneos {
         nombre: t.nombre,
         slug: t.slug,
         descripcion: t.descripcion,
+        deporte: t.deporte,
         estado: t.estado,
         jugadoresPorLado: t.jugadoresPorLado,
         inscripcionOnline: t.inscripcionOnline,
@@ -280,7 +284,8 @@ export class ServicioTorneos {
     return {
       nombre: d.nombre.trim(),
       descripcion: d.descripcion?.trim() || null,
-      jugadoresPorLado: d.jugadoresPorLado,
+      deporte: d.deporte ?? 'FUTBOL',
+      jugadoresPorLado: d.deporte && d.deporte !== 'FUTBOL' ? 2 : d.jugadoresPorLado,
       inscripcionOnline: d.inscripcionOnline,
       cantidadGrupos: d.cantidadGrupos,
       idaYVuelta: d.idaYVuelta,
@@ -593,6 +598,13 @@ export class ServicioTorneos {
       let ganador: string | null = null;
       let penalesLocal: number | null = null;
       let penalesVisitante: number | null = null;
+      if (t.deporte !== 'FUTBOL' && r.golesLocal === r.golesVisitante) {
+        throw new ErrorNegocio(
+          422,
+          'SIN_EMPATE',
+          'En pádel y tenis no hay empate: cargá los sets de cada uno',
+        );
+      }
       if (r.golesLocal !== r.golesVisitante) {
         ganador = r.golesLocal > r.golesVisitante ? p.localId : p.visitanteId;
       } else if (p.fase === 'ELIMINACION') {

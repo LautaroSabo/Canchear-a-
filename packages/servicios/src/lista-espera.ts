@@ -15,6 +15,7 @@ export interface PedidoListaEspera {
   desde: Date;
   hasta: Date;
   canchaId?: string | undefined;
+  deporte?: 'FUTBOL' | 'PADEL' | 'TENIS' | undefined;
   jugadoresPorLado?: number | undefined;
 }
 
@@ -75,6 +76,7 @@ export class ServicioListaEspera {
           clubId: cfg.club.id,
           clienteId: cliente.id,
           canchaId: p.canchaId ?? null,
+          deporte: p.deporte ?? null,
           jugadoresPorLado: p.jugadoresPorLado ?? null,
           desde: p.desde,
           hasta: p.hasta,
@@ -121,7 +123,7 @@ export class ServicioListaEspera {
           gte(listaEspera.hasta, t.fin),
           eq(clientes.bloqueado, false),
           t.clienteId ? ne(listaEspera.clienteId, t.clienteId) : undefined,
-          sql`(${listaEspera.canchaId} = ${t.canchaId} OR (${listaEspera.canchaId} IS NULL AND (${listaEspera.jugadoresPorLado} IS NULL OR ${listaEspera.jugadoresPorLado} = ${cancha.jugadoresPorLado})))`,
+          sql`(${listaEspera.canchaId} = ${t.canchaId} OR (${listaEspera.canchaId} IS NULL AND (${listaEspera.deporte} IS NULL OR ${listaEspera.deporte} = ${cancha.deporte}) AND (${listaEspera.jugadoresPorLado} IS NULL OR ${listaEspera.jugadoresPorLado} = ${cancha.jugadoresPorLado})))`,
         ),
       )
       .orderBy(listaEspera.creadoEn)

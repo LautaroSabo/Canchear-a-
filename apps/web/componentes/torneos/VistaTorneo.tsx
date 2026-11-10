@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { fechaCorta, fechaLocal, hora } from '@/lib/formato';
 import type { PartidoTorneo, VistaTorneo } from '@/lib/tipos';
 import { Insignia } from '../ui';
-import { letraGrupo, NOMBRE_RONDA } from './comunes';
+import { conSets, letraGrupo, NOMBRE_RONDA } from './comunes';
 
 export { ESTADO_TORNEO, letraGrupo, NOMBRE_RONDA, resumenFormato } from './comunes';
 
@@ -27,7 +27,10 @@ export function Tablas({ vista, destacado }: { vista: VistaTorneo; destacado?: s
                 <tr className="border-b border-linea bg-superficie-2 text-left text-tenue">
                   <th className="w-8 px-2 py-2 text-center font-semibold">#</th>
                   <th className="px-2 py-2 font-semibold">Equipo</th>
-                  {['PJ', 'PG', 'PE', 'PP', 'GF', 'GC', 'DG'].map((c) => (
+                  {(conSets(vista.torneo)
+                    ? ['PJ', 'PG', 'PE', 'PP', 'SF', 'SC', 'DS']
+                    : ['PJ', 'PG', 'PE', 'PP', 'GF', 'GC', 'DG']
+                  ).map((c) => (
                     <th key={c} className="px-1.5 py-2 text-center font-semibold">
                       {c}
                     </th>

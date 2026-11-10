@@ -71,6 +71,7 @@ export const rutasPublicas: FastifyPluginAsync<Opciones> = async (
       canchas: canchas.map((c) => ({
         id: c.id,
         nombre: c.nombre,
+        deporte: c.deporte,
         jugadoresPorLado: c.jugadoresPorLado,
         superficie: c.superficie,
         techada: c.techada,
@@ -198,6 +199,7 @@ export const rutasPublicas: FastifyPluginAsync<Opciones> = async (
         desde: instanteLocal(p.fecha, p.desde, zona),
         hasta: instanteLocal(fechaHasta, p.hasta, zona),
         canchaId: p.canchaId,
+        deporte: p.deporte,
         jugadoresPorLado: p.jugadores,
       });
       return reply.status(201).send(inscripcion);

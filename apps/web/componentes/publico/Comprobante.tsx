@@ -419,7 +419,7 @@ function linkCalendario(r: ReservaPublica, club: ClubPublico | undefined, codigo
     `DTSTAMP:${f(new Date().toISOString())}`,
     `DTSTART:${f(r.inicio)}`,
     `DTEND:${f(r.fin)}`,
-    `SUMMARY:${escapar(`Fútbol en ${r.club.nombre} · ${r.cancha.nombre}`)}`,
+    `SUMMARY:${escapar(`Turno en ${r.club.nombre} · ${r.cancha.nombre}`)}`,
     club?.direccion ? `LOCATION:${escapar(club.direccion)}` : '',
     `URL:${typeof window === 'undefined' ? '' : `${window.location.origin}/r/${codigo}`}`,
     'END:VEVENT',

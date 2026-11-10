@@ -150,3 +150,59 @@ export const iniciales = (nombre: string) =>
 
 /** "2026-10-28" → "octubre". */
 export const nombreMes = (ymd: string) => MESES[Number(ymd.slice(5, 7)) - 1] ?? '';
+
+// --- Deportes y tipos de cancha ---------------------------------------------------
+
+export type Deporte = 'FUTBOL' | 'PADEL' | 'TENIS';
+export const NOMBRE_DEPORTE: Record<Deporte, string> = { FUTBOL: 'Fútbol', PADEL: 'Pádel', TENIS: 'Tenis' };
+
+/** Lo que distingue una cancha para reservar: el deporte y, en fútbol, de a cuántos. */
+export interface TipoCancha {
+  deporte: Deporte;
+  jugadores: number;
+}
+
+const deporteDe = (d: string | undefined): Deporte => (d === 'PADEL' || d === 'TENIS' ? d : 'FUTBOL');
+
+/** "FUTBOL-5", "PADEL": para usar como valor de un filtro. */
+export const claveTipo = (t: {
+  deporte?: string | undefined;
+  jugadoresPorLado?: number;
+  jugadores?: number;
+}) => {
+  const d = deporteDe(t.deporte);
+  return d === 'FUTBOL' ? `FUTBOL-${t.jugadoresPorLado ?? t.jugadores ?? 5}` : d;
+};
+
+export function tipoDeClave(clave: string): TipoCancha {
+  const [d, n] = clave.split('-');
+  const deporte = deporteDe(d);
+  return { deporte, jugadores: deporte === 'FUTBOL' ? Number(n) || 5 : 2 };
+}
+
+/** "Fútbol 5", "Pádel". */
+export const nombreTipo = (deporte: string | undefined, jugadores: number) => {
+  const d = deporteDe(deporte);
+  return d === 'FUTBOL' ? `Fútbol ${jugadores}` : NOMBRE_DEPORTE[d];
+};
+
+/** "F5", "Pádel": para la agenda, donde hay poco lugar. */
+export const tipoCorto = (deporte: string | undefined, jugadores: number) => {
+  const d = deporteDe(deporte);
+  return d === 'FUTBOL' ? `F${jugadores}` : NOMBRE_DEPORTE[d];
+};
+
+/** Parámetros de la API para filtrar por tipo: "deporte=PADEL" o "deporte=FUTBOL&jugadores=5". */
+export const consultaTipo = (clave: string) => {
+  const t = tipoDeClave(clave);
+  return t.deporte === 'FUTBOL' ? `deporte=FUTBOL&jugadores=${t.jugadores}` : `deporte=${t.deporte}`;
+};
+
+/** Los tipos de cancha de un club, sin repetir: primero fútbol (5, 7, 11…), después el resto. */
+export function tiposDeCanchas(canchas: { deporte?: string; jugadoresPorLado: number }[]): string[] {
+  const orden = (k: string) => {
+    const t = tipoDeClave(k);
+    return (t.deporte === 'FUTBOL' ? 0 : t.deporte === 'PADEL' ? 100 : 200) + t.jugadores;
+  };
+  return [...new Set(canchas.map(claveTipo))].sort((a, b) => orden(a) - orden(b));
+}

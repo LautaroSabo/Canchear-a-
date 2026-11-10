@@ -1,10 +1,15 @@
 import { bigint, boolean, date, jsonb, pgTable, smallint, text, time, uuid } from 'drizzle-orm/pg-core';
 import { tipoSuperficie } from './enums.ts';
 
+export type Deporte = 'FUTBOL' | 'PADEL' | 'TENIS';
+
 export const canchas = pgTable('canchas', {
   id: uuid().primaryKey().defaultRandom(),
   clubId: uuid().notNull(),
   nombre: text().notNull(),
+  /** FUTBOL, PADEL o TENIS. */
+  deporte: text().$type<Deporte>().notNull().default('FUTBOL'),
+  /** En fútbol, 5, 7…; en pádel y tenis, 2. */
   jugadoresPorLado: smallint().notNull(),
   superficie: tipoSuperficie().notNull().default('SINTETICO'),
   techada: boolean().notNull().default(false),

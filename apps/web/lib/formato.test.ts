@@ -57,3 +57,21 @@ describe('formato', () => {
     expect(segundosHasta('2020-01-01T00:00:00Z')).toBe(0);
   });
 });
+
+describe('tipos de cancha', () => {
+  it('fútbol por cantidad de jugadores; pádel y tenis por deporte', async () => {
+    const { tiposDeCanchas, nombreTipo, consultaTipo, tipoCorto } = await import('./formato');
+    const tipos = tiposDeCanchas([
+      { deporte: 'PADEL', jugadoresPorLado: 2 },
+      { deporte: 'FUTBOL', jugadoresPorLado: 7 },
+      { jugadoresPorLado: 5 },
+      { deporte: 'PADEL', jugadoresPorLado: 2 },
+    ]);
+    expect(tipos).toEqual(['FUTBOL-5', 'FUTBOL-7', 'PADEL']);
+    expect(consultaTipo('FUTBOL-7')).toBe('deporte=FUTBOL&jugadores=7');
+    expect(consultaTipo('PADEL')).toBe('deporte=PADEL');
+    expect(nombreTipo('PADEL', 2)).toBe('Pádel');
+    expect(nombreTipo(undefined, 5)).toBe('Fútbol 5');
+    expect(tipoCorto('TENIS', 2)).toBe('Tenis');
+  });
+});

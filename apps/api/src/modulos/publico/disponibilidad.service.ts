@@ -29,6 +29,7 @@ export interface SlotPublico {
 export interface CanchaConSlots {
   id: string;
   nombre: string;
+  deporte: string;
   jugadoresPorLado: number;
   superficie: string;
   techada: boolean;
@@ -66,12 +67,17 @@ export class ServicioDisponibilidad {
   async jornada(
     cfg: ConfigClub,
     fecha: string,
-    filtro: { jugadores?: number | undefined; canchaId?: string | undefined } = {},
+    filtro: {
+      deporte?: string | undefined;
+      jugadores?: number | undefined;
+      canchaId?: string | undefined;
+    } = {},
   ): Promise<CanchaConSlots[]> {
     this.validarFecha(cfg, fecha);
     const ahora = this.reloj();
     const lista = cfg.canchas.filter(
       (c) =>
+        (filtro.deporte === undefined || c.deporte === filtro.deporte) &&
         (filtro.jugadores === undefined || c.jugadoresPorLado === filtro.jugadores) &&
         (filtro.canchaId === undefined || c.id === filtro.canchaId),
     );
@@ -91,6 +97,7 @@ export class ServicioDisponibilidad {
     return lista.map((cancha) => ({
       id: cancha.id,
       nombre: cancha.nombre,
+      deporte: cancha.deporte,
       jugadoresPorLado: cancha.jugadoresPorLado,
       superficie: cancha.superficie,
       techada: cancha.techada,

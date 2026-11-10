@@ -16,7 +16,9 @@ Datos del club, canchas activas (`id`, `nombre`, `jugadoresPorLado`, `superficie
 "mediosPago": { "mercadoPago": true, "transferencia": { "alias": "la.canchita.mp", "titular": "La Canchita SRL" } }
 ```
 
-## `GET /public/clubs/:slug/disponibilidad?fecha=YYYY-MM-DD[&jugadores=5][&canchaId=…]`
+## `GET /public/clubs/:slug/disponibilidad?fecha=YYYY-MM-DD[&deporte=FUTBOL|PADEL|TENIS][&jugadores=5][&canchaId=…]`
+
+Cada cancha trae su `deporte`. En fútbol se filtra además por `jugadores` (5, 7…); en pádel y tenis `jugadoresPorLado` es siempre 2. La lista de espera acepta el mismo `deporte`.
 
 Grilla de la **jornada** `fecha` (fecha local del club). Una jornada que cierra después de medianoche incluye esos turnos: sábado 09:00 → domingo 02:00.
 

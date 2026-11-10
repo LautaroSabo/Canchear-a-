@@ -40,8 +40,10 @@ export interface DatosClub {
 
 export interface DatosCancha {
   nombre: string;
+  /** Por defecto FUTBOL. En pádel y tenis los jugadores por lado quedan en 2. */
+  deporte?: 'FUTBOL' | 'PADEL' | 'TENIS' | undefined;
   jugadoresPorLado: number;
-  superficie: 'SINTETICO' | 'CESPED_NATURAL' | 'CEMENTO' | 'PARQUET' | 'OTRO';
+  superficie: 'SINTETICO' | 'CESPED_NATURAL' | 'CEMENTO' | 'PARQUET' | 'POLVO_LADRILLO' | 'OTRO';
   techada: boolean;
   iluminacion: boolean;
   duracionTurnoMin: 30 | 60 | 90 | 120;
@@ -325,7 +327,7 @@ export class ServicioConfiguracion {
       async (tx) => {
         const [c] = await tx
           .insert(canchas)
-          .values({ clubId, ...datos })
+          .values({ clubId, ...normalizarCancha(datos) })
           .returning({ id: canchas.id });
         return c;
       },
@@ -345,7 +347,7 @@ export class ServicioConfiguracion {
       async (tx) => {
         const filas = await tx
           .update(canchas)
-          .set(datos)
+          .set(normalizarCancha(datos))
           .where(and(eq(canchas.id, canchaId), eq(canchas.clubId, clubId)))
           .returning({ id: canchas.id });
         if (filas.length === 0) throw new ErrorNegocio(404, 'CANCHA_NO_ENCONTRADA', 'No existe esa cancha');
@@ -643,4 +645,19 @@ export class ServicioConfiguracion {
       throw err;
     }
   }
+}
+
+/** En fútbol se elige de a cuántos (3 a 11); en pádel y tenis siempre se guarda 2. */
+function normalizarCancha<
+  T extends { deporte?: DatosCancha['deporte']; jugadoresPorLado?: number | undefined },
+>(d: T): T {
+  if (d.deporte && d.deporte !== 'FUTBOL') return { ...d, jugadoresPorLado: 2 };
+  if (
+    (d.deporte === 'FUTBOL' || d.deporte === undefined) &&
+    d.jugadoresPorLado !== undefined &&
+    d.jugadoresPorLado < 3
+  ) {
+    throw new ErrorNegocio(422, 'JUGADORES_INVALIDOS', 'En fútbol, cada equipo tiene entre 3 y 11 jugadores');
+  }
+  return d;
 }

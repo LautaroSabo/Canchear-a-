@@ -124,6 +124,8 @@ describe('lista de espera', () => {
     await inscribir('+5491170000005');
     await inscribir('+5491170000006', '21:00', '23:00');
     await inscribir('+5491170000007', '19:00', '23:00', { jugadoresPorLado: 7 });
+    // Quiere pádel: un turno de fútbol 5 no le sirve.
+    await inscribir('+5491170000008', '19:00', '23:00', { deporte: 'PADEL', jugadoresPorLado: undefined });
     ctx.avanzar(11);
     expect((await ctx.expiracion.barrer()).ofertas).toBe(0);
   });

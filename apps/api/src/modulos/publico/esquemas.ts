@@ -8,9 +8,12 @@ export const paramsCodigo = z.object({
   codigo: z.string().regex(/^[0-9a-f]{32}$/, 'código inválido'),
 });
 
+const deporte = z.enum(['FUTBOL', 'PADEL', 'TENIS']);
+
 export const queryDisponibilidad = z.object({
   fecha: z.iso.date(),
-  jugadores: z.coerce.number().int().min(3).max(11).optional(),
+  deporte: deporte.optional(),
+  jugadores: z.coerce.number().int().min(1).max(11).optional(),
   canchaId: z.uuid().optional(),
 });
 
@@ -45,7 +48,8 @@ export const cuerpoListaEspera = z.object({
   /** Franja local del club en la que le sirve jugar; "hasta" <= "desde" cruza la medianoche. */
   desde: horaLocal,
   hasta: horaLocal,
-  jugadores: z.coerce.number().int().min(3).max(11).optional(),
+  deporte: deporte.optional(),
+  jugadores: z.coerce.number().int().min(1).max(11).optional(),
   canchaId: z.uuid().optional(),
 });
 

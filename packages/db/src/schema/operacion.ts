@@ -42,6 +42,7 @@ export const listaEspera = pgTable('lista_espera', {
   clienteId: uuid().notNull(),
   canchaId: uuid(),
   jugadoresPorLado: smallint(),
+  deporte: text().$type<'FUTBOL' | 'PADEL' | 'TENIS'>(),
   desde: ts().notNull(),
   hasta: ts().notNull(),
   duracionMin: smallint().notNull().default(60),

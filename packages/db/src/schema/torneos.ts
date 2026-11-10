@@ -12,6 +12,7 @@ export const torneos = pgTable('torneos', {
   nombre: text().notNull(),
   slug: citext().notNull(),
   descripcion: text(),
+  deporte: text().$type<'FUTBOL' | 'PADEL' | 'TENIS'>().notNull().default('FUTBOL'),
   jugadoresPorLado: smallint().notNull().default(5),
   estado: text().$type<EstadoTorneo>().notNull().default('INSCRIPCION'),
   inscripcionOnline: boolean().notNull().default(false),

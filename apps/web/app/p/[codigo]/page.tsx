@@ -40,7 +40,7 @@ function calendario(p: PartidoCompartido) {
     `DTSTAMP:${f(new Date().toISOString())}`,
     `DTSTART:${f(p.inicio)}`,
     `DTEND:${f(p.fin)}`,
-    `SUMMARY:${escapar(`Fútbol en ${p.club.nombre} · ${p.cancha}`)}`,
+    `SUMMARY:${escapar(`Turno en ${p.club.nombre} · ${p.cancha}`)}`,
     p.club.direccion ? `LOCATION:${escapar(p.club.direccion)}` : '',
     'END:VEVENT',
     'END:VCALENDAR',

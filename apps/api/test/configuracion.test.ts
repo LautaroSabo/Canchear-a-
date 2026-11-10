@@ -124,6 +124,47 @@ describe('configuración del club', () => {
     expect((await grilla('2030-01-05')).map((c) => c.nombre)).not.toContain('Cancha 4');
   });
 
+  it('cancha de pádel: se filtra aparte de las de fútbol', async () => {
+    const res = await panel(ctx, admin, 'POST', '/config/canchas', {
+      nombre: 'Pádel 1',
+      deporte: 'PADEL',
+      jugadoresPorLado: 4, // en pádel no importa: queda en 2
+      superficie: 'SINTETICO',
+      techada: true,
+      iluminacion: true,
+      duracionTurnoMin: 90,
+      orden: 10,
+      activa: true,
+    });
+    expect(res.statusCode).toBe(201);
+    const club = (await ctx.app.inject(`/public/clubs/${ctx.slug}`)).json();
+    expect(club.canchas.find((c: { nombre: string }) => c.nombre === 'Pádel 1')).toMatchObject({
+      deporte: 'PADEL',
+      jugadoresPorLado: 2,
+    });
+    const padel = (
+      await ctx.app.inject(`/public/clubs/${ctx.slug}/disponibilidad?fecha=2030-01-05&deporte=PADEL`)
+    ).json();
+    expect(padel.canchas.map((c: { nombre: string }) => c.nombre)).toEqual(['Pádel 1']);
+    expect(padel.canchas[0].slots.length).toBeGreaterThan(0);
+    expect((await grilla('2030-01-05')).map((c) => c.nombre)).not.toContain('Pádel 1');
+
+    // Fútbol con menos de 3 por lado no tiene sentido.
+    const mal = await panel(ctx, admin, 'POST', '/config/canchas', {
+      nombre: 'Rara',
+      deporte: 'FUTBOL',
+      jugadoresPorLado: 2,
+      superficie: 'SINTETICO',
+      techada: false,
+      iluminacion: true,
+      duracionTurnoMin: 60,
+      orden: 11,
+      activa: true,
+    });
+    expect(mal.json().error.codigo).toBe('JUGADORES_INVALIDOS');
+    await panel(ctx, admin, 'PATCH', `/config/canchas/${res.json().id}`, { activa: false });
+  });
+
   it('datos del club', async () => {
     const res = await panel(ctx, admin, 'PATCH', '/config/club', {
       telefono: '+5491122223333',

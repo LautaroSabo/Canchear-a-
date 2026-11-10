@@ -5,14 +5,18 @@ import { useRouter } from 'next/navigation';
 import { type FormEvent, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { API_URL, ErrorApi, pedir } from '@/lib/api';
 import {
+  consultaTipo,
   fechaCorta,
   fechaLarga,
   hora,
   hoyEn,
   linkWhatsApp,
   nombreMes,
+  nombreTipo,
   pesos,
   proximosDias,
+  tipoDeClave,
+  tiposDeCanchas,
 } from '@/lib/formato';
 import { useEventosTurnos } from '@/lib/hooks';
 import type { Alternativa, ClubPublico, Disponibilidad, ReservaPublica, Slot } from '@/lib/tipos';
@@ -24,7 +28,6 @@ import { ListaEspera } from './ListaEspera';
 
 // Cuatro semanas, de a una por vez: siete días entran siempre en el ancho de un celular.
 const SEMANAS = 4;
-const nombreTipo = (n: number) => `Fútbol ${n}`;
 
 interface Seleccion {
   canchaId: string;
@@ -49,11 +52,8 @@ export function Reservar({ club }: { club: ClubPublico }) {
   const router = useRouter();
   const qc = useQueryClient();
   const [hoy] = useState(() => hoyEn(zona));
-  const tipos = useMemo(
-    () => [...new Set(club.canchas.map((c) => c.jugadoresPorLado))].sort((a, b) => a - b),
-    [club.canchas],
-  );
-  const [tipo, setTipo] = useState(tipos[0] ?? 5);
+  const tipos = useMemo(() => tiposDeCanchas(club.canchas), [club.canchas]);
+  const [tipo, setTipo] = useState(tipos[0] ?? 'FUTBOL-5');
   const [fecha, setFecha] = useState(hoy);
   const [sel, setSel] = useState<Seleccion | null>(null);
   const [datos, setDatos] = useState({ nombre: '', telefono: '', email: '', dni: '', acepto: false });
@@ -73,9 +73,12 @@ export function Reservar({ club }: { club: ClubPublico }) {
   const disponibilidad = useQuery({
     queryKey: ['disponibilidad', club.slug, fecha, tipo],
     queryFn: ({ signal }) =>
-      pedir<Disponibilidad>(`/public/clubs/${club.slug}/disponibilidad?fecha=${fecha}&jugadores=${tipo}`, {
-        signal,
-      }),
+      pedir<Disponibilidad>(
+        `/public/clubs/${club.slug}/disponibilidad?fecha=${fecha}&${consultaTipo(tipo)}`,
+        {
+          signal,
+        },
+      ),
   });
   useEventosTurnos(`${API_URL}/public/clubs/${club.slug}/eventos`, () =>
     qc.invalidateQueries({ queryKey: ['disponibilidad', club.slug] }),
@@ -231,10 +234,13 @@ export function Reservar({ club }: { club: ClubPublico }) {
             {tipos.length > 1 ? (
               <Segmentado
                 etiqueta="Tipo de cancha"
-                opciones={tipos.map((t) => ({ valor: String(t), etiqueta: nombreTipo(t) }))}
-                valor={String(tipo)}
+                opciones={tipos.map((t) => {
+                  const { deporte, jugadores } = tipoDeClave(t);
+                  return { valor: t, etiqueta: nombreTipo(deporte, jugadores) };
+                })}
+                valor={tipo}
                 onCambio={(v) => {
-                  setTipo(Number(v));
+                  setTipo(v);
                   setSel(null);
                   setHoja(false);
                 }}
@@ -373,7 +379,8 @@ export function Reservar({ club }: { club: ClubPublico }) {
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <h2 id={idTituloForm} className="text-base font-semibold">
-                    {elegido.cancha.nombre} · {nombreTipo(elegido.cancha.jugadoresPorLado)}
+                    {elegido.cancha.nombre} ·{' '}
+                    {nombreTipo(elegido.cancha.deporte, elegido.cancha.jugadoresPorLado)}
                   </h2>
                   <Numero className="mt-1 block text-[34px] uppercase">
                     {fechaCorta(fecha)} · {hora(elegido.slot.inicio, zona)}
@@ -505,7 +512,7 @@ export function Reservar({ club }: { club: ClubPublico }) {
 
       {club.habilitado ? (
         <div inert={hoja}>
-          <ListaEspera slug={club.slug} fecha={fecha} tipo={tipo} destacada={completo} />
+          <ListaEspera slug={club.slug} fecha={fecha} tipo={tipoDeClave(tipo)} destacada={completo} />
         </div>
       ) : null}
 

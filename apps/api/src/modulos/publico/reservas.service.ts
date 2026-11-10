@@ -272,7 +272,10 @@ export class ServicioReservas {
     fecha: string,
     inicio: Date,
   ): Promise<Alternativa[]> {
-    const jornada = await this.disponibilidad.jornada(cfg, fecha, { jugadores: cancha.jugadoresPorLado });
+    const jornada = await this.disponibilidad.jornada(cfg, fecha, {
+      deporte: cancha.deporte,
+      jugadores: cancha.jugadoresPorLado,
+    });
     const t = inicio.getTime();
     return jornada
       .flatMap((c) =>

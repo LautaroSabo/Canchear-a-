@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { mensajeDe, panel } from '@/lib/api';
+import { NOMBRE_DEPORTE, nombreTipo } from '@/lib/formato';
 import type { CanchaConfig, Superficie } from '@/lib/tipos';
 import { Aviso, Boton, Campo, Casilla, Selector, Tarjeta } from '../../ui';
 import { Dialogo } from '../Dialogo';
@@ -40,7 +41,8 @@ export function Canchas({ canchas }: { canchas: CanchaConfig[] }) {
                 )}
               </div>
               <div className="text-sm text-medio">
-                Fútbol {c.jugadoresPorLado} · {SUPERFICIES[c.superficie]} · turnos de {c.duracionTurnoMin} min
+                {nombreTipo(c.deporte, c.jugadoresPorLado)} · {SUPERFICIES[c.superficie]} · turnos de{' '}
+                {c.duracionTurnoMin} min
                 {c.techada ? ' · techada' : ''}
                 {c.iluminacion ? '' : ' · sin luz'}
               </div>
@@ -96,6 +98,7 @@ function FormCancha({
   const [f, setF] = useState<Datos>(
     cancha ?? {
       nombre: '',
+      deporte: 'FUTBOL',
       jugadoresPorLado: 5,
       superficie: 'SINTETICO',
       techada: false,
@@ -132,16 +135,38 @@ function FormCancha({
         />
       </div>
       <Selector
-        etiqueta="Jugadores por lado"
-        value={f.jugadoresPorLado}
-        onChange={(e) => setF({ ...f, jugadoresPorLado: Number(e.target.value) })}
+        etiqueta="Deporte"
+        value={f.deporte}
+        onChange={(e) => {
+          const deporte = e.target.value as Datos['deporte'];
+          // Pádel y tenis: turnos de 90 min de entrada, como se suele alquilar.
+          setF({
+            ...f,
+            deporte,
+            jugadoresPorLado: deporte === 'FUTBOL' ? Math.max(5, f.jugadoresPorLado) : 2,
+            ...(deporte !== 'FUTBOL' && !cancha ? { duracionTurnoMin: 90 as const } : {}),
+          });
+        }}
       >
-        {[5, 6, 7, 8, 9, 11].map((n) => (
-          <option key={n} value={n}>
-            Fútbol {n}
+        {(Object.keys(NOMBRE_DEPORTE) as Datos['deporte'][]).map((d) => (
+          <option key={d} value={d}>
+            {NOMBRE_DEPORTE[d]}
           </option>
         ))}
       </Selector>
+      {f.deporte === 'FUTBOL' ? (
+        <Selector
+          etiqueta="Jugadores por lado"
+          value={f.jugadoresPorLado}
+          onChange={(e) => setF({ ...f, jugadoresPorLado: Number(e.target.value) })}
+        >
+          {[5, 6, 7, 8, 9, 11].map((n) => (
+            <option key={n} value={n}>
+              Fútbol {n}
+            </option>
+          ))}
+        </Selector>
+      ) : null}
       <Selector
         etiqueta="Duración del turno"
         value={f.duracionTurnoMin}

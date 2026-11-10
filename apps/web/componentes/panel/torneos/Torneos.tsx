@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { mensajeDe, panel } from '@/lib/api';
-import { fechaCorta } from '@/lib/formato';
+import { fechaCorta, nombreTipo } from '@/lib/formato';
 import type { ConfigTorneo, TorneoResumen } from '@/lib/tipos';
 import { ESTADO_TORNEO } from '../../torneos/VistaTorneo';
 import { Aviso, Boton, Cargando, EncabezadoPagina, EstadoVacio, Insignia } from '../../ui';
@@ -70,8 +70,9 @@ export function Torneos() {
                 <span className="min-w-0">
                   <span className="block text-base font-bold">{t.nombre}</span>
                   <span className="text-sm text-tenue">
-                    Fútbol {t.jugadoresPorLado} · {t.equipos} {t.equipos === 1 ? 'equipo' : 'equipos'} · desde
-                    el {fechaCorta(t.fechaInicio).toLowerCase()}
+                    {nombreTipo(t.deporte, t.jugadoresPorLado)} · {t.equipos}{' '}
+                    {t.equipos === 1 ? 'equipo' : 'equipos'} · desde el{' '}
+                    {fechaCorta(t.fechaInicio).toLowerCase()}
                   </span>
                 </span>
                 <span className="flex flex-wrap gap-2">

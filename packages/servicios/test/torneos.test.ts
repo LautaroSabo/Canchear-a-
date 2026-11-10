@@ -358,3 +358,17 @@ describe('avisos a los delegados', () => {
     expect(await ctx.torneos.recordarPartidos()).toEqual({ partidos: 0 });
   });
 });
+
+describe('pádel', () => {
+  it('se cargan sets y no se acepta empate', async () => {
+    const t = await conEquipos(2, { deporte: 'PADEL', nombre: 'Americano' });
+    await ctx.torneos.iniciar(ctx.club.id, t.id, ctx.usuario.id);
+    const [p] = await partidos(t.id);
+    await expect(
+      ctx.torneos.cargarResultado(ctx.club.id, t.id, p!.id, { golesLocal: 1, golesVisitante: 1 }),
+    ).rejects.toMatchObject({ codigo: 'SIN_EMPATE' });
+    await ctx.torneos.cargarResultado(ctx.club.id, t.id, p!.id, { golesLocal: 2, golesVisitante: 1 });
+    const v = await ctx.torneos.vistaPublica(ctx.slug, t.slug);
+    expect(v.torneo).toMatchObject({ deporte: 'PADEL', jugadoresPorLado: 2, estado: 'FINALIZADO' });
+  });
+});

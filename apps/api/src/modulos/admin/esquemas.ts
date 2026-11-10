@@ -109,10 +109,13 @@ export const cuerpoClub = z.object({
   horasRecordatorio: z.number().int().min(0).max(48).optional(),
 });
 
+export const deporte = z.enum(['FUTBOL', 'PADEL', 'TENIS']);
+
 export const cuerpoCancha = z.object({
   nombre: texto(60),
-  jugadoresPorLado: z.number().int().min(3).max(11),
-  superficie: z.enum(['SINTETICO', 'CESPED_NATURAL', 'CEMENTO', 'PARQUET', 'OTRO']),
+  deporte: deporte.optional(),
+  jugadoresPorLado: z.number().int().min(1).max(11),
+  superficie: z.enum(['SINTETICO', 'CESPED_NATURAL', 'CEMENTO', 'PARQUET', 'POLVO_LADRILLO', 'OTRO']),
   techada: z.boolean(),
   iluminacion: z.boolean(),
   duracionTurnoMin: z.union([z.literal(30), z.literal(60), z.literal(90), z.literal(120)]),
@@ -303,6 +306,7 @@ export const paramsMensaje = z.object({ clubId: z.uuid(), mensajeId: z.uuid() })
 export const cuerpoTorneo = z.object({
   nombre: texto(80),
   descripcion: textoOpcional(500).optional(),
+  deporte: deporte.optional(),
   jugadoresPorLado: z.number().int().min(1).max(11),
   inscripcionOnline: z.boolean(),
   cantidadGrupos: z.number().int().min(1).max(16),

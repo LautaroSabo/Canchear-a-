@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { API_URL, panel } from '@/lib/api';
-import { fechaLarga, fechaLocal, hora, hoyEn, pesos, sumarDias } from '@/lib/formato';
+import { fechaLarga, fechaLocal, hora, hoyEn, pesos, sumarDias, tipoCorto } from '@/lib/formato';
 import { useAhora, useEventosTurnos } from '@/lib/hooks';
 import type { Agenda as TipoAgenda, TurnoAgenda } from '@/lib/tipos';
 import { IconoCerrar, IconoDerecha, IconoEscanear, IconoIzquierda } from '../iconos';
@@ -401,7 +401,7 @@ function Linea({
               className="sticky top-0 z-20 border-b border-l border-linea bg-superficie px-3 py-2.5"
             >
               <span className="text-base font-semibold">{c.nombre}</span>{' '}
-              <span className="text-sm text-tenue">F{c.jugadoresPorLado}</span>
+              <span className="text-sm text-tenue">{tipoCorto(c.deporte, c.jugadoresPorLado)}</span>
             </div>
           ))}
           <div className="relative" style={{ height: alto }}>

@@ -14,6 +14,7 @@ export const SUPERFICIES = {
   CESPED_NATURAL: 'Césped natural',
   CEMENTO: 'Cemento',
   PARQUET: 'Parquet',
+  POLVO_LADRILLO: 'Polvo de ladrillo',
   OTRO: 'Otra',
 } as const;
 

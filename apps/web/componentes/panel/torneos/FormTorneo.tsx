@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { type FormEvent, useState } from 'react';
 import { pedir } from '@/lib/api';
-import { hoyEn } from '@/lib/formato';
+import { claveTipo, hoyEn, tipoDeClave } from '@/lib/formato';
 import type { ClubPublico, ConfigTorneo } from '@/lib/tipos';
 import { Aviso, Boton, Campo, Casilla, Segmentado, Selector } from '../../ui';
 import { DIAS, ORDEN_SEMANA } from '../config/comunes';
@@ -52,7 +52,8 @@ export function FormTorneo({
     alEnviar({
       nombre: String(f.get('nombre')),
       descripcion: String(f.get('descripcion') ?? '') || null,
-      jugadoresPorLado: Number(f.get('jugadores')),
+      deporte: tipoDeClave(String(f.get('tipo'))).deporte,
+      jugadoresPorLado: tipoDeClave(String(f.get('tipo'))).jugadores,
       inscripcionOnline: f.get('online') === 'on',
       cantidadGrupos: grupos ? Number(f.get('grupos')) : 1,
       idaYVuelta: f.get('idaYVuelta') === 'on',
@@ -88,16 +89,14 @@ export function FormTorneo({
         />
       </label>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Selector
-          etiqueta="Jugadores por lado"
-          name="jugadores"
-          defaultValue={inicial?.jugadoresPorLado ?? 5}
-        >
+        <Selector etiqueta="Deporte" name="tipo" defaultValue={inicial ? claveTipo(inicial) : 'FUTBOL-5'}>
           {[5, 6, 7, 8, 9, 11].map((n) => (
-            <option key={n} value={n}>
+            <option key={n} value={`FUTBOL-${n}`}>
               Fútbol {n}
             </option>
           ))}
+          <option value="PADEL">Pádel (parejas)</option>
+          <option value="TENIS">Tenis</option>
         </Selector>
         <Campo
           etiqueta="Empieza"

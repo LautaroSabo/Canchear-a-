@@ -13,6 +13,7 @@ import { and, asc, eq, gte, type SQL, sql } from 'drizzle-orm';
 export interface Cancha {
   id: string;
   nombre: string;
+  deporte: 'FUTBOL' | 'PADEL' | 'TENIS';
   jugadoresPorLado: number;
   superficie: string;
   techada: boolean;
@@ -109,6 +110,7 @@ export class RepoClubs {
         .select({
           id: canchas.id,
           nombre: canchas.nombre,
+          deporte: canchas.deporte,
           jugadoresPorLado: canchas.jugadoresPorLado,
           superficie: canchas.superficie,
           techada: canchas.techada,

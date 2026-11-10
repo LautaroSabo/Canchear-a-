@@ -15,6 +15,7 @@ export const tipoSuperficie = pgEnum('tipo_superficie', [
   'CEMENTO',
   'PARQUET',
   'OTRO',
+  'POLVO_LADRILLO',
 ]);
 export const rolMiembro = pgEnum('rol_miembro', ['OWNER', 'ADMIN', 'RECEPCION']);
 export const proveedorPago = pgEnum('proveedor_pago', ['MERCADO_PAGO', 'TRANSFERENCIA', 'EFECTIVO', 'OTRO']);

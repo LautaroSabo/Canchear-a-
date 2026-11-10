@@ -4,7 +4,7 @@ import { PieLegal } from '@/componentes/legal/PieLegal';
 import { EncabezadoClub } from '@/componentes/publico/EncabezadoClub';
 import { ESTADO_TORNEO } from '@/componentes/torneos/comunes';
 import { EstadoVacio, Insignia } from '@/componentes/ui';
-import { fechaLarga } from '@/lib/formato';
+import { fechaLarga, nombreTipo } from '@/lib/formato';
 import { cargarClub, cargarTorneos } from '@/lib/servidor';
 
 type Props = { params: Promise<{ slug: string }> };
@@ -38,8 +38,9 @@ export default async function PaginaTorneos({ params }: Props) {
                   <span className="min-w-0">
                     <span className="block font-display text-2xl font-bold uppercase">{t.nombre}</span>
                     <span className="text-sm text-tenue">
-                      Fútbol {t.jugadoresPorLado} · {t.equipos} {t.equipos === 1 ? 'equipo' : 'equipos'} ·
-                      desde el {fechaLarga(t.fechaInicio).toLowerCase()}
+                      {nombreTipo(t.deporte, t.jugadoresPorLado)} · {t.equipos}{' '}
+                      {t.equipos === 1 ? 'equipo' : 'equipos'} · desde el{' '}
+                      {fechaLarga(t.fechaInicio).toLowerCase()}
                     </span>
                   </span>
                   <Insignia tono={ESTADO_TORNEO[t.estado].tono}>{ESTADO_TORNEO[t.estado].texto}</Insignia>

@@ -109,6 +109,7 @@ export class ConsultasAdmin {
       canchas: cfg.canchas.map((c) => ({
         id: c.id,
         nombre: c.nombre,
+        deporte: c.deporte,
         jugadoresPorLado: c.jugadoresPorLado,
         duracionMin: c.duracionTurnoMin,
       })),

@@ -3,7 +3,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 import { ErrorApi, pedir } from '@/lib/api';
-import { fechaCorta } from '@/lib/formato';
+import { fechaCorta, nombreTipo, type TipoCancha } from '@/lib/formato';
 import { Aviso, Boton, Campo, Selector } from '../ui';
 
 const HORAS = [
@@ -21,7 +21,7 @@ export function ListaEspera({
 }: {
   slug: string;
   fecha: string;
-  tipo: number;
+  tipo: TipoCancha;
   /** El día está completo: la lista de espera es la salida principal. */
   destacada?: boolean;
 }) {
@@ -37,7 +37,8 @@ export function ListaEspera({
           fecha,
           desde: f.desde,
           hasta: f.hasta,
-          jugadores: tipo,
+          deporte: tipo.deporte,
+          ...(tipo.deporte === 'FUTBOL' ? { jugadores: tipo.jugadores } : {}),
         },
       }),
     onSuccess: () => setAnotado({ fecha, desde: f.desde, hasta: f.hasta }),
@@ -83,7 +84,7 @@ export function ListaEspera({
           }}
         >
           <p className="text-base font-semibold sm:col-span-2">
-            Para el {fechaCorta(fecha)} · Fútbol {tipo}
+            Para el {fechaCorta(fecha)} · {nombreTipo(tipo.deporte, tipo.jugadores)}
           </p>
           <Selector etiqueta="Desde" value={f.desde} onChange={(e) => setF({ ...f, desde: e.target.value })}>
             {HORAS.map((h) => (
