@@ -41,8 +41,8 @@ export default function Inicio() {
               Reservá cancha sin llamar a nadie
             </h1>
             <p className="mt-5 max-w-md text-lg text-tenue">
-              Fútbol, pádel o tenis: cada club tiene su link. Elegís el horario libre, dejás tus datos y
-              te queda el QR para entrar. Sin crear cuenta.
+              Fútbol, pádel o tenis: cada club tiene su link. Elegís el horario libre, dejás tus datos y te
+              queda el QR para entrar. Sin crear cuenta.
             </p>
           </div>
           <MuestraGrilla />
