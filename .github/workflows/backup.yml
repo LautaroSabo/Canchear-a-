@@ -1,0 +1,63 @@
+name: Backup
+
+# Copia diaria de la base de producción, fuera de Railway. Cada copia se restaura en una
+# base vacía para comprobar que sirve, se cifra con CLAVE_BACKUP y queda 30 días como
+# artefacto del workflow. Cómo activarlo y cómo restaurar: docs/backups.md.
+on:
+  schedule:
+    - cron: '17 6 * * *' # 03:17 en Argentina
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      ORIGEN_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+      CLAVE_BACKUP: ${{ secrets.CLAVE_BACKUP }}
+    steps:
+      - name: ¿Está configurado?
+        id: config
+        run: |
+          if [ -z "$ORIGEN_URL" ] || [ -z "$CLAVE_BACKUP" ]; then
+            echo "::warning::Faltan los secretos BACKUP_DATABASE_URL y/o CLAVE_BACKUP: no se hizo la copia (ver docs/backups.md)."
+            echo "listo=no" >> "$GITHUB_OUTPUT"
+          else
+            echo "listo=si" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.config.outputs.listo == 'si'
+      # Las herramientas de la versión más nueva de Postgres sirven para servidores más viejos.
+      - name: Base vacía para probar la restauración
+        if: steps.config.outputs.listo == 'si'
+        run: |
+          docker run -d --name verificar -p 5433:5432 -e POSTGRES_PASSWORD=verificar postgres:18
+          for i in $(seq 1 60); do docker exec verificar pg_isready -U postgres && break; sleep 1; done
+      - name: Copiar y probar
+        if: steps.config.outputs.listo == 'si'
+        run: |
+          docker run --rm --network host -v "$PWD:/trabajo" -w /trabajo \
+            -e ORIGEN_URL -e VERIFICAR_URL=postgres://postgres:verificar@localhost:5433/postgres \
+            -e SALIDA=backup.dump postgres:18 bash scripts/backup.sh
+      - name: Cifrar
+        if: steps.config.outputs.listo == 'si'
+        run: |
+          nombre="backup-$(date -u +%Y-%m-%d).dump.gpg"
+          gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 \
+            --symmetric --cipher-algo AES256 --output "$nombre" backup.dump <<<"$CLAVE_BACKUP"
+          rm backup.dump
+          echo "NOMBRE=$nombre" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@v4
+        if: steps.config.outputs.listo == 'si'
+        with:
+          name: ${{ env.NOMBRE }}
+          path: ${{ env.NOMBRE }}
+          retention-days: 30
+          if-no-files-found: error

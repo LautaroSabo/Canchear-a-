@@ -30,7 +30,7 @@ Qué protege la app, cómo está verificado y qué queda por hacer.
   Mercado Pago de los clubes.
 - **Usuario de la base:** no compartas la URL pública de Postgres. Usala solo para los
   comandos `pnpm superadmin`, `club:crear` y `usuario:contrasena`.
-- **Backups:** activá los backups automáticos del Postgres de Railway.
+- **Backups:** backups de Railway + copia diaria cifrada en GitHub, probada con una restauración cada vez. Ver [backups.md](backups.md).
 - **Tu cuenta de superadmin:** usá una contraseña larga y única, y no la compartas: da
   acceso a todos los clubes.
 - **Railway y GitHub:** activá la verificación en dos pasos en las dos cuentas. Quien
