@@ -33,6 +33,9 @@ jobs:
           elif [[ "$ORIGEN_URL" == *'$''{''{'* ]]; then
             echo "::error::BACKUP_DATABASE_URL tiene la plantilla de las variables de Railway, no la dirección real. Copiala desde Postgres → Connect → Public Network (ver docs/backups.md)."
             exit 1
+          elif ! [[ "$ORIGEN_URL" =~ ^postgres(ql)?://[^@/]+@[^:/]+(:[0-9]+)?/[^/]+ ]]; then
+            echo "::error::BACKUP_DATABASE_URL no es una dirección completa. Tiene que verse así: postgresql://postgres:CLAVE@algo.proxy.rlwy.net:12345/railway (Postgres → Connect → Public Network → Connection URL)."
+            exit 1
           else
             echo "listo=si" >> "$GITHUB_OUTPUT"
           fi
