@@ -11,6 +11,7 @@ import {
   type Reloj,
   RepoClubs,
   ServicioAuth,
+  ServicioCaja,
   ServicioCantina,
   ServicioConfiguracion,
   ServicioFidelizacion,
@@ -135,6 +136,7 @@ export async function construirApp({
   const configuracion = new ServicioConfiguracion({ ...entorno, clubs });
   const turnosFijos = new ServicioTurnosFijos({ ...entorno, clubs, listaEspera });
   const cantina = new ServicioCantina({ ...entorno, clubs });
+  const caja = new ServicioCaja({ ...entorno, clubs });
   const fidelizacion = new ServicioFidelizacion(entorno);
   const reportes = new ServicioReportes({ ...entorno, clubs });
   const torneos = new ServicioTorneos({ ...entorno, clubs });
@@ -164,6 +166,7 @@ export async function construirApp({
     db,
     config,
     auth,
+    caja,
     cantina,
     clubs,
     consultas,

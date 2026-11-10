@@ -13,6 +13,7 @@ import {
   type PasarelaMp,
   type RepoClubs,
   type ServicioAuth,
+  type ServicioCaja,
   type ServicioCantina,
   type ServicioConfiguracion,
   type ServicioFidelizacion,
@@ -39,6 +40,7 @@ import {
   cuerpoCancha,
   cuerpoCanje,
   cuerpoCheckin,
+  cuerpoCierreCaja,
   cuerpoClub,
   cuerpoContrasena,
   cuerpoDiaEspecial,
@@ -107,6 +109,7 @@ interface Opciones {
   db: Db;
   config: Config;
   auth: ServicioAuth;
+  caja: ServicioCaja;
   cantina: ServicioCantina;
   clubs: RepoClubs;
   consultas: ConsultasAdmin;
@@ -445,6 +448,20 @@ export const rutasAdmin: FastifyPluginAsync<Opciones> = async (app, o) => {
       );
 
       rutasTorneos(club, o.torneos);
+
+      // --- Caja: lo cobrado desde el último cierre y los cierres -------------------
+
+      club.get('/caja', async (req) => o.caja.actual(clubIdDe(req)));
+
+      club.post('/caja/cierres', async (req, reply) =>
+        reply
+          .status(201)
+          .send(await o.caja.cerrar(clubIdDe(req), usuarioDe(req).id, cuerpoCierreCaja.parse(req.body))),
+      );
+
+      club.get('/caja/cierres', { config: { rolMinimo: 'ADMIN' } }, async (req) =>
+        o.caja.historial(clubIdDe(req)),
+      );
 
       // --- Turnos fijos -----------------------------------------------------------
 

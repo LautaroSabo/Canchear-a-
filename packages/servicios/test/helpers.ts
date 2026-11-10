@@ -6,6 +6,7 @@ import { eq } from 'drizzle-orm';
 import { inject } from 'vitest';
 import { AlmacenMemoria } from '../src/almacen.ts';
 import { ServicioAuth } from '../src/auth.ts';
+import { ServicioCaja } from '../src/caja.ts';
 import { ServicioCantina } from '../src/cantina.ts';
 import { Cifrador } from '../src/cifrado.ts';
 import { RepoClubs } from '../src/config-club.ts';
@@ -72,6 +73,7 @@ export async function crearContexto({ conMp = true, pool = 10 } = {}) {
   const reportes = new ServicioReportes({ ...entorno, clubs });
   const torneos = new ServicioTorneos({ ...entorno, clubs });
   const recordatorios = new ServicioRecordatorios(entorno);
+  const caja = new ServicioCaja({ ...entorno, clubs });
   // Un mismo canal de memoria para los dos medios: los tests miran destino y plantilla.
   const despachador = new Despachador(db, reloj, { WHATSAPP: canal, EMAIL: canal });
 
@@ -114,6 +116,7 @@ export async function crearContexto({ conMp = true, pool = 10 } = {}) {
     reportes,
     torneos,
     recordatorios,
+    caja,
     ahora: () => ahora,
     setAhora: (d: Date) => {
       ahora = d;

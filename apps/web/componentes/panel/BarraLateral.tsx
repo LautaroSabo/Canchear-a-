@@ -25,6 +25,7 @@ const GRUPOS: { nombre: string; secciones: Seccion[] }[] = [
   {
     nombre: 'Plata',
     secciones: [
+      { ruta: 'caja', nombre: 'Caja', rol: 'RECEPCION' },
       { ruta: 'transferencias', nombre: 'Transferencias', corto: 'Cobros', rol: 'RECEPCION' },
       { ruta: 'reembolsos', nombre: 'Reembolsos', rol: 'RECEPCION' },
     ],

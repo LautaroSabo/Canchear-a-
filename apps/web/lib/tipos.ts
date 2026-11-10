@@ -629,3 +629,37 @@ export interface PartidoCompartido {
   fin: string;
   organizador: string;
 }
+
+// --- Caja ---------------------------------------------------------------------------
+
+export type MedioCaja = 'EFECTIVO' | 'TRANSFERENCIA' | 'MERCADO_PAGO' | 'OTRO';
+
+export interface FilaCaja {
+  medio: MedioCaja;
+  senas: number;
+  saldos: number;
+  cantina: number;
+  devoluciones: number;
+  total: number;
+}
+
+export interface CajaActual {
+  desde: string;
+  hasta: string;
+  porMedio: FilaCaja[];
+  total: number;
+  efectivoEsperado: number;
+  movimientos: number;
+  ultimoCierre: { hasta: string; usuario: string } | null;
+}
+
+export interface CierreCaja {
+  id: string;
+  desde: string;
+  hasta: string;
+  efectivoEsperado: number;
+  efectivoContado: number;
+  diferencia: number;
+  nota: string | null;
+  usuario?: string;
+}

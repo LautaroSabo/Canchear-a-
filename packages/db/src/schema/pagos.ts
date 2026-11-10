@@ -37,3 +37,18 @@ export const reembolsos = pgTable('reembolsos', {
   creadoEn: ts().notNull().defaultNow(),
   hechoEn: ts(),
 });
+
+/** Cierre de caja: lo cobrado entre el cierre anterior y este, y el efectivo contado. */
+export const cierresCaja = pgTable('cierres_caja', {
+  id: uuid().primaryKey().defaultRandom(),
+  clubId: uuid().notNull(),
+  desde: ts().notNull(),
+  hasta: ts().notNull(),
+  usuarioId: uuid().notNull(),
+  /** centavos */
+  efectivoEsperado: bigint({ mode: 'number' }).notNull(),
+  efectivoContado: bigint({ mode: 'number' }).notNull(),
+  detalle: jsonb().$type<Record<string, unknown>>().notNull(),
+  nota: text(),
+  creadoEn: ts().notNull().defaultNow(),
+});

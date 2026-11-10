@@ -155,6 +155,16 @@ El mismo cliente, cancha y horario cada 1, 2 o 4 semanas. Se guarda como plantil
 
 Para saltear una sola semana se cancela ese turno desde la agenda: no se vuelve a generar (índice único `(turno_fijo_id, inicio)`).
 
+## Caja — `/admin/clubs/:clubId/caja`
+
+Lo cobrado entre el último cierre y ahora (el primero, desde el comienzo del día), por medio de pago: señas, saldos de turnos, cantina de mostrador y devoluciones (restan). Cada cierre arranca donde terminó el anterior, así sirve por turno de trabajo.
+
+| Método | Ruta | Rol | Descripción |
+|---|---|---|---|
+| GET | `` | RECEPCION | `{ desde, hasta, porMedio: [{ medio, senas, saldos, cantina, devoluciones, total }], total, efectivoEsperado, movimientos, ultimoCierre }` |
+| POST | `/cierres` | RECEPCION | `{ efectivoContado, nota? }` (centavos) → `201 { id, desde, hasta, efectivoEsperado, efectivoContado, diferencia, nota }`. Diferencia positiva: sobra. `409 RECIEN_CERRADA` si otro acaba de cerrar |
+| GET | `/cierres` | ADMIN | Los últimos 30 cierres, con quién cerró |
+
 ## Torneos y ligas — `/admin/clubs/:clubId/torneos`
 
 Una liga es **1 grupo sin eliminación**; un torneo con grupos suma una **eliminación directa** con los mejores de cada grupo (`clasificanPorGrupo`). El torneo pasa por `INSCRIPCION` → `EN_CURSO` (al sortear) → `FINALIZADO` (al jugarse la final, o el último partido de una liga, o a mano).
