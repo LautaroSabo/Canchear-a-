@@ -13,6 +13,7 @@ export function General({ club }: { club: ConfigClub['club'] }) {
     direccion: club.direccion ?? '',
     minutos: String(club.minutosRevisionTransferencia),
     horasCancelacion: String(club.horasCancelacion),
+    horasRecordatorio: String(club.horasRecordatorio),
   };
   const [f, setF] = useState(inicial);
   const guardar = useGuardar((clubId) =>
@@ -22,6 +23,7 @@ export function General({ club }: { club: ConfigClub['club'] }) {
       direccion: f.direccion.trim() || null,
       minutosRevisionTransferencia: Number(f.minutos),
       horasCancelacion: Number(f.horasCancelacion),
+      horasRecordatorio: Number(f.horasRecordatorio),
     }),
   );
   const cambiado = JSON.stringify(f) !== JSON.stringify(inicial);
@@ -76,6 +78,15 @@ export function General({ club }: { club: ConfigClub['club'] }) {
           value={f.horasCancelacion}
           onChange={(e) => setF({ ...f, horasCancelacion: e.target.value })}
           ayuda="Hasta ese momento cancela solo desde su comprobante y se le devuelve la seña. Después tiene que escribirte. Con 0, no se cancela online."
+        />
+        <Campo
+          etiqueta="Recordatorio por mail, horas antes del partido"
+          type="number"
+          min={0}
+          max={48}
+          value={f.horasRecordatorio}
+          onChange={(e) => setF({ ...f, horasRecordatorio: e.target.value })}
+          ayuda="Le llega a quien reservó (si dejó su email), con el QR. Baja las ausencias. Con 0, no se manda."
         />
         <div className="text-sm text-suave sm:self-end sm:pb-3">
           Link público: <code className="text-tinta">/{club.slug}</code>

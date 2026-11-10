@@ -20,6 +20,7 @@ import { CanalMemoria } from '../src/notificaciones/canales.ts';
 import { Despachador } from '../src/notificaciones/despachador.ts';
 import { ServicioOperacion } from '../src/operacion.ts';
 import { ServicioPagos } from '../src/pagos.ts';
+import { ServicioRecordatorios } from '../src/recordatorios.ts';
 import { ServicioReembolsos } from '../src/reembolsos.ts';
 import { ServicioReportes } from '../src/reportes.ts';
 import { ServicioTorneos } from '../src/torneos.ts';
@@ -70,6 +71,7 @@ export async function crearContexto({ conMp = true, pool = 10 } = {}) {
   const fidelizacion = new ServicioFidelizacion(entorno);
   const reportes = new ServicioReportes({ ...entorno, clubs });
   const torneos = new ServicioTorneos({ ...entorno, clubs });
+  const recordatorios = new ServicioRecordatorios(entorno);
   // Un mismo canal de memoria para los dos medios: los tests miran destino y plantilla.
   const despachador = new Despachador(db, reloj, { WHATSAPP: canal, EMAIL: canal });
 
@@ -111,6 +113,7 @@ export async function crearContexto({ conMp = true, pool = 10 } = {}) {
     fidelizacion,
     reportes,
     torneos,
+    recordatorios,
     ahora: () => ahora,
     setAhora: (d: Date) => {
       ahora = d;

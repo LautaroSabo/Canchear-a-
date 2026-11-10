@@ -15,6 +15,7 @@ import {
   ServicioExpiracion,
   ServicioListaEspera,
   ServicioPagos,
+  ServicioRecordatorios,
   ServicioReembolsos,
   ServicioTurnosFijos,
 } from '@cancheria/servicios';
@@ -69,6 +70,7 @@ const despachador = new Despachador(db, reloj, {
 });
 const auth = new ServicioAuth(entorno);
 const turnosFijos = new ServicioTurnosFijos({ ...entorno, clubs, listaEspera });
+const recordatorios = new ServicioRecordatorios(entorno);
 
 const programador = new Programador(
   [
@@ -95,6 +97,11 @@ const programador = new Programador(
       nombre: 'materializar-turnos-fijos',
       cadaMs: config.intervalos.turnosFijosMs,
       ejecutar: () => turnosFijos.materializarPendientes(),
+    },
+    {
+      nombre: 'recordatorios',
+      cadaMs: config.intervalos.recordatoriosMs,
+      ejecutar: () => recordatorios.enviar(),
     },
   ],
   log,

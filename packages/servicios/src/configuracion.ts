@@ -34,6 +34,8 @@ export interface DatosClub {
   minutosRevisionTransferencia?: number | undefined;
   /** Horas antes del turno hasta las que el jugador cancela online. 0 = no puede. */
   horasCancelacion?: number | undefined;
+  /** Horas antes del partido para el recordatorio por mail. 0 = no se manda. */
+  horasRecordatorio?: number | undefined;
 }
 
 export interface DatosCancha {
@@ -233,6 +235,7 @@ export class ServicioConfiguracion {
         zonaHoraria: clubs.zonaHoraria,
         minutosRevisionTransferencia: clubs.minutosRevisionTransferencia,
         horasCancelacion: clubs.horasCancelacion,
+        horasRecordatorio: clubs.horasRecordatorio,
       })
       .from(clubs)
       .where(eq(clubs.id, clubId));
@@ -308,6 +311,7 @@ export class ServicioConfiguracion {
             ? { minutosRevisionTransferencia: datos.minutosRevisionTransferencia }
             : {}),
           ...(datos.horasCancelacion !== undefined ? { horasCancelacion: datos.horasCancelacion } : {}),
+          ...(datos.horasRecordatorio !== undefined ? { horasRecordatorio: datos.horasRecordatorio } : {}),
         })
         .where(eq(clubs.id, clubId)),
     );

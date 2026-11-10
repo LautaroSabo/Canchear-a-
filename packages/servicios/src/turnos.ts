@@ -103,8 +103,8 @@ export async function notificarTurno(
   extra: Record<string, string> = {},
 ) {
   const d = await datosParaMensaje(tx, turnoId, urlWeb);
-  if (!d) return; // turnos sin cliente (bloqueos del admin)
-  await encolarNotificacion(tx, {
+  if (!d) return false; // turnos sin cliente (bloqueos del admin)
+  return encolarNotificacion(tx, {
     clubId: d.clubId,
     clienteId: d.clienteId,
     telefono: d.telefono,

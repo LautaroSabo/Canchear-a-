@@ -31,6 +31,8 @@ export const clubs = pgTable('clubs', {
   minutosRevisionTransferencia: integer().notNull().default(60),
   /** Hasta cuántas horas antes el jugador cancela online (con devolución). 0 = no puede. */
   horasCancelacion: integer().notNull().default(24),
+  /** Cuántas horas antes del partido se manda el recordatorio por mail. 0 = no se manda. */
+  horasRecordatorio: integer().notNull().default(3),
   mpCredencialesCifradas: bytea(),
   datosTransferencia: jsonb().$type<{ alias?: string; cbu?: string; titular?: string }>(),
   activo: boolean().notNull().default(true),

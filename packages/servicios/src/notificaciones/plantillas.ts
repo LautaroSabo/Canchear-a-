@@ -68,6 +68,14 @@ export const PLANTILLAS = {
     texto: (p: Record<string, string>) =>
       `📅 Quedó agendado tu turno fijo en ${p.club}: la ${p.cancha}, los ${p.dia} a las ${p.hora}, desde el ${p.desde}. Si una semana no pueden venir, avisale al club con tiempo.`,
   },
+  recordatorio_turno: {
+    /** Asunto cuando sale por mail. */
+    asunto: (p: Record<string, string>) => `Recordatorio: jugás en ${p.club} el ${p.fecha} a las ${p.hora}`,
+    parametros: ['club', 'cancha', 'fecha', 'hora', 'link'],
+    ejemplo: ['La Canchita F5', 'Cancha 2', 'sáb 24/10', '20:00', 'https://cancheria.app/r/4f9c2a7e'],
+    texto: (p: Record<string, string>) =>
+      `⏰ Te recordamos tu turno en ${p.club}: la ${p.cancha}, el ${p.fecha} a las ${p.hora}. Tu comprobante con el QR para entrar: ${p.link}. Si al final no pueden venir, avisale al club cuanto antes así otro aprovecha la cancha.`,
+  },
 } as const;
 
 export type Plantilla = keyof typeof PLANTILLAS;
@@ -87,6 +95,7 @@ export const CANAL_DE: Record<Plantilla, CanalAviso> = {
   transferencia_rechazada: 'EMAIL',
   oferta_lista_espera: 'WHATSAPP',
   turno_fijo_creado: 'EMAIL',
+  recordatorio_turno: 'EMAIL',
 };
 
 /** Cuerpo del mail: el mismo texto del aviso, más a quién escribirle. */

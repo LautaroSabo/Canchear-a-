@@ -288,6 +288,7 @@ export interface ConfigClub {
     zonaHoraria: string;
     minutosRevisionTransferencia: number;
     horasCancelacion: number;
+    horasRecordatorio: number;
   };
   canchas: CanchaConfig[];
   tarifas: TarifaConfig[];

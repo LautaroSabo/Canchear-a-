@@ -106,6 +106,7 @@ export const cuerpoClub = z.object({
   direccion: textoOpcional(200).optional(),
   minutosRevisionTransferencia: z.number().int().min(5).max(1440).optional(),
   horasCancelacion: z.number().int().min(0).max(168).optional(),
+  horasRecordatorio: z.number().int().min(0).max(48).optional(),
 });
 
 export const cuerpoCancha = z.object({

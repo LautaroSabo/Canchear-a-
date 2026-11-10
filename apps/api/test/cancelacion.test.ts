@@ -95,6 +95,16 @@ describe('el jugador cancela su reserva', () => {
     expect(res.json().error.codigo).toBe('CANCELACION_NO_DISPONIBLE');
   });
 
+  it('las horas del recordatorio se configuran igual (0 a 48)', async () => {
+    expect(
+      (await panel(ctx, dueno, 'PATCH', '/config/club', { horasRecordatorio: 6 })).statusCode,
+    ).toBeLessThan(300);
+    expect((await panel(ctx, dueno, 'GET', '/config')).json().club.horasRecordatorio).toBe(6);
+    expect((await panel(ctx, dueno, 'PATCH', '/config/club', { horasRecordatorio: 49 })).statusCode).toBe(
+      400,
+    );
+  });
+
   it('un código que no existe da 404', async () => {
     const res = await cancelar('0'.repeat(32));
     expect(res.statusCode).toBe(404);

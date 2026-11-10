@@ -78,6 +78,8 @@ export const turnos = pgTable('turnos', {
   codigoInvitacion: text().notNull().unique().default(sql`encode(gen_random_bytes(8), 'hex')`),
   /** Versión de los términos que aceptó quien reservó online (null: cargado por el club). */
   terminosVersion: text(),
+  /** Cuándo se procesó el recordatorio previo al partido (null: todavía no). */
+  recordatorioEn: ts(),
   checkinEn: ts(),
   checkinPor: uuid(),
   idempotencyKey: uuid(),
