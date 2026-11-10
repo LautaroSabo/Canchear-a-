@@ -32,6 +32,7 @@ export const cuerpoReserva = z.object({
   }),
   /** Generada por el front una vez por intento de reserva (doble clic / reintentos). */
   idempotencyKey: z.uuid(),
+  aceptaTerminos: z.literal(true, { error: 'Tenés que aceptar los Términos y la Política de privacidad' }),
 });
 
 export type CuerpoReserva = z.infer<typeof cuerpoReserva>;

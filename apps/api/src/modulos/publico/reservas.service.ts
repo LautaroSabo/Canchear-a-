@@ -1,4 +1,10 @@
-import { calcularExpiracion, partesLocales, sumarDias, sumarMinutos } from '@cancheria/core';
+import {
+  calcularExpiracion,
+  partesLocales,
+  sumarDias,
+  sumarMinutos,
+  VERSION_TERMINOS,
+} from '@cancheria/core';
 import { type Db, esTurnoOcupado, violaUnique } from '@cancheria/db';
 import { canchas, clientes, clubs, pagos, turnos } from '@cancheria/db/schema';
 import {
@@ -119,6 +125,7 @@ export class ServicioReservas {
             expiraEn: conSena ? expiracion.expiraEn : null,
             idempotencyKey: pedido.idempotencyKey,
             emailAviso: pedido.cliente.email?.trim().toLowerCase() || null,
+            terminosVersion: VERSION_TERMINOS,
           },
           ahora,
           this.config.urlWeb,

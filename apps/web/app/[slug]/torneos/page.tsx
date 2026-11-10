@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { PieLegal } from '@/componentes/legal/PieLegal';
 import { EncabezadoClub } from '@/componentes/publico/EncabezadoClub';
 import { ESTADO_TORNEO } from '@/componentes/torneos/comunes';
 import { EstadoVacio, Insignia } from '@/componentes/ui';
@@ -51,6 +52,7 @@ export default async function PaginaTorneos({ params }: Props) {
           Volver a reservar cancha
         </Link>
       </main>
+      <PieLegal />
     </div>
   );
 }

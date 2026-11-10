@@ -41,9 +41,12 @@ Grilla de la **jornada** `fecha` (fecha local del club). Una jornada que cierra 
   "canchaId": "uuid",
   "inicio": "2030-01-05T20:00:00-03:00",
   "cliente": { "nombre": "Lautaro", "telefono": "11 5555-1234", "dni": "30.123.456", "email": "opcional" },
-  "idempotencyKey": "uuid generado por el front en cada intento de reserva"
+  "idempotencyKey": "uuid generado por el front en cada intento de reserva",
+  "aceptaTerminos": true
 }
 ```
+
+`aceptaTerminos` tiene que venir en `true` (si no, `400`): la reserva guarda la versión de los Términos aceptados (`turnos.terminos_version`). Lo mismo al registrar un club (`POST /admin/registro`, se guarda en `usuarios`).
 
 - `201`: reserva creada. `PRE_RESERVADO` con `expiraEn` si la regla del horario pide seña; `CONFIRMADO` si no la pide.
 - `200`: la misma `idempotencyKey` ya había creado una reserva (doble clic o reintento); se devuelve esa.

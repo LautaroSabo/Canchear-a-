@@ -76,6 +76,8 @@ export const turnos = pgTable('turnos', {
   codigoCheckin: text().notNull().unique().default(sql`encode(gen_random_bytes(16), 'hex')`),
   /** Link de solo lectura para el grupo (no deja cancelar ni ver datos del que reservó). */
   codigoInvitacion: text().notNull().unique().default(sql`encode(gen_random_bytes(8), 'hex')`),
+  /** Versión de los términos que aceptó quien reservó online (null: cargado por el club). */
+  terminosVersion: text(),
   checkinEn: ts(),
   checkinPor: uuid(),
   idempotencyKey: uuid(),

@@ -238,6 +238,17 @@ function Inscripcion({ club, vista: v }: { club: { slug: string }; vista: VistaT
                 ayuda="Solo lo ve el club, para coordinar."
               />
               {inscribir.error ? <Aviso>{mensajeDe(inscribir.error)}</Aviso> : null}
+              <p className="text-sm text-tenue">
+                Al inscribir el equipo aceptás los{' '}
+                <a href="/terminos" target="_blank" rel="noreferrer" className="underline">
+                  Términos
+                </a>{' '}
+                y la{' '}
+                <a href="/privacidad" target="_blank" rel="noreferrer" className="underline">
+                  Política de privacidad
+                </a>
+                .
+              </p>
               <Boton type="submit" grande disabled={!hidratado || inscribir.isPending}>
                 {inscribir.isPending ? 'Enviando…' : 'Inscribir equipo'}
               </Boton>

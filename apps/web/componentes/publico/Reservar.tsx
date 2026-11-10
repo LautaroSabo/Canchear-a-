@@ -18,6 +18,7 @@ import { useEventosTurnos } from '@/lib/hooks';
 import type { Alternativa, ClubPublico, Disponibilidad, ReservaPublica, Slot } from '@/lib/tipos';
 import { uuid } from '@/lib/uuid';
 import { IconoCerrar, IconoDerecha, IconoIzquierda } from '../iconos';
+import { AceptoTerminos } from '../legal/AceptoTerminos';
 import { Aviso, Boton, Campo, Cargando, Numero, Segmentado } from '../ui';
 import { ListaEspera } from './ListaEspera';
 
@@ -30,15 +31,16 @@ interface Seleccion {
   inicio: string;
 }
 
-type Errores = { nombre?: string; telefono?: string; email?: string };
+type Errores = { nombre?: string; telefono?: string; email?: string; terminos?: string };
 
-function validar(datos: { nombre: string; telefono: string; email: string }): Errores {
+function validar(datos: { nombre: string; telefono: string; email: string; acepto: boolean }): Errores {
   const e: Errores = {};
   if (datos.nombre.trim().length < 2) e.nombre = 'Escribí tu nombre y apellido.';
   if (datos.telefono.replace(/\D/g, '').length < 8)
     e.telefono = 'Revisá el número: va con código de área, por ejemplo 11 5555-1234.';
   if (datos.email.trim() && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(datos.email.trim()))
     e.email = 'Revisá el email, o dejalo vacío.';
+  if (!datos.acepto) e.terminos = 'Para reservar tenés que aceptar los Términos y la Política de privacidad.';
   return e;
 }
 
@@ -54,7 +56,7 @@ export function Reservar({ club }: { club: ClubPublico }) {
   const [tipo, setTipo] = useState(tipos[0] ?? 5);
   const [fecha, setFecha] = useState(hoy);
   const [sel, setSel] = useState<Seleccion | null>(null);
-  const [datos, setDatos] = useState({ nombre: '', telefono: '', email: '', dni: '' });
+  const [datos, setDatos] = useState({ nombre: '', telefono: '', email: '', dni: '', acepto: false });
   const [errores, setErrores] = useState<Errores>({});
   const [aviso, setAviso] = useState<string | null>(null);
   // En el celular el formulario se abre como hoja desde la barra de abajo.
@@ -156,6 +158,7 @@ export function Reservar({ club }: { club: ClubPublico }) {
             ...(datos.email.trim() ? { email: datos.email.trim() } : {}),
           },
           idempotencyKey: idempotencia.current,
+          aceptaTerminos: true,
         },
       });
     },
@@ -171,12 +174,15 @@ export function Reservar({ club }: { club: ClubPublico }) {
     e.preventDefault();
     const nuevos = validar(datos);
     setErrores(nuevos);
-    if (nuevos.nombre || nuevos.telefono || nuevos.email) {
-      refAside.current
-        ?.querySelector<HTMLInputElement>(
-          `input[name="${nuevos.nombre ? 'nombre' : nuevos.telefono ? 'telefono' : 'email'}"]`,
-        )
-        ?.focus();
+    if (nuevos.nombre || nuevos.telefono || nuevos.email || nuevos.terminos) {
+      const campo = nuevos.nombre
+        ? 'nombre'
+        : nuevos.telefono
+          ? 'telefono'
+          : nuevos.email
+            ? 'email'
+            : 'terminos';
+      refAside.current?.querySelector<HTMLInputElement>(`input[name="${campo}"]`)?.focus();
       return;
     }
     if (!reservar.isPending) reservar.mutate();
@@ -436,6 +442,11 @@ export function Reservar({ club }: { club: ClubPublico }) {
                 placeholder="30.123.456"
                 value={datos.dni}
                 onChange={(e) => setDatos({ ...datos, dni: e.target.value })}
+              />
+              <AceptoTerminos
+                valor={datos.acepto}
+                onCambio={(acepto) => setDatos({ ...datos, acepto })}
+                error={errores.terminos}
               />
 
               {error ? (

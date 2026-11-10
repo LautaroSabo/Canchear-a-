@@ -48,7 +48,13 @@ URL_WEB=https://TU-WEB.up.railway.app
 # web
 NEXT_PUBLIC_API_URL=/api
 API_URL_INTERNA=http://api.railway.internal:3001
+LEGAL_TITULAR=Tu nombre y apellido (o tu empresa)
+LEGAL_CONTACTO=tu-email-de-contacto@ejemplo.com
 ```
+
+- `LEGAL_TITULAR` y `LEGAL_CONTACTO` aparecen en `/terminos` y `/privacidad` como quien opera
+  la plataforma y dónde pedir acceso o borrado de datos. Se leen al compilar la web: después de
+  cambiarlos, volvé a desplegar el servicio `web`.
 
 - `HOST=::` hace que la API escuche en la red interna de Railway.
 - `api.railway.internal` funciona si el servicio se llama exactamente `api`.

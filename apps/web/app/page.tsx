@@ -1,3 +1,4 @@
+import { PieLegal } from '@/componentes/legal/PieLegal';
 import { LineasCancha } from '@/componentes/publico/LineasCancha';
 import { BotonLink } from '@/componentes/ui';
 
@@ -86,6 +87,7 @@ export default function Inicio() {
           </div>
         </section>
       </main>
+      <PieLegal />
     </div>
   );
 }

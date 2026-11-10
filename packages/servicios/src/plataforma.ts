@@ -1,4 +1,4 @@
-import { partesLocales, sumarDias } from '@cancheria/core';
+import { partesLocales, sumarDias, VERSION_TERMINOS } from '@cancheria/core';
 import { violaUnique } from '@cancheria/db';
 import { canchas, clubs, miembrosClub, pagosAbono, turnos, usuarios } from '@cancheria/db/schema';
 import { and, desc, eq, sql } from 'drizzle-orm';
@@ -22,6 +22,8 @@ const SLUGS_RESERVADOS = new Set([
   'registrar',
   'plataforma',
   'login',
+  'terminos',
+  'privacidad',
 ]);
 
 /** null si el slug sirve; si no, por qué. */
@@ -59,6 +61,8 @@ export function sumarMeses(ymd: string, meses: number): string {
 export interface DatosRegistro {
   club: { nombre: string; slug: string; telefono: string; direccion?: string | undefined };
   dueno: { nombre: string; email: string; contrasena: string };
+  /** Tiene que venir en true: aceptó los Términos y la Política de privacidad. */
+  aceptaTerminos: true;
 }
 
 export interface ClubPlataforma {
@@ -137,7 +141,13 @@ export class ServicioPlataforma {
           .returning({ id: clubs.id });
         const [u] = await tx
           .insert(usuarios)
-          .values({ email, nombre: d.dueno.nombre.trim(), passwordHash })
+          .values({
+            email,
+            nombre: d.dueno.nombre.trim(),
+            passwordHash,
+            terminosVersion: VERSION_TERMINOS,
+            terminosAceptadosEn: this.e.reloj(),
+          })
           .returning({ id: usuarios.id });
         if (!club || !u) throw new Error('alta sin filas');
         await tx.insert(miembrosClub).values({ clubId: club.id, usuarioId: u.id, rol: 'OWNER' });

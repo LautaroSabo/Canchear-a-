@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { PieLegal } from '@/componentes/legal/PieLegal';
 import { EncabezadoClub } from '@/componentes/publico/EncabezadoClub';
 import { TorneoPublico } from '@/componentes/torneos/TorneoPublico';
 import { cargarClub, cargarTorneo } from '@/lib/servidor';
@@ -23,6 +24,7 @@ export default async function PaginaTorneo({ params }: Props) {
     <div className="tema-noche min-h-screen bg-fondo text-tinta">
       <EncabezadoClub club={club} compacto />
       <TorneoPublico club={{ slug, zona: club.zonaHoraria }} inicial={vista} />
+      <PieLegal />
     </div>
   );
 }

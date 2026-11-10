@@ -30,6 +30,7 @@ const cuerpoRegistro = z.object({
     email: z.email().max(120),
     contrasena: z.string().min(1).max(200),
   }),
+  aceptaTerminos: z.literal(true, { error: 'Tenés que aceptar los Términos y la Política de privacidad' }),
 });
 
 const cuerpoOlvide = z.object({ email: z.email().max(120) });

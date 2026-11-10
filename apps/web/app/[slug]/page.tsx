@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { PieLegal } from '@/componentes/legal/PieLegal';
 import { EncabezadoClub } from '@/componentes/publico/EncabezadoClub';
 import { Reservar } from '@/componentes/publico/Reservar';
 import { cargarClub, cargarTorneos } from '@/lib/servidor';
@@ -42,6 +43,7 @@ export default async function PaginaClub({ params }: Props) {
         </div>
       ) : null}
       <Reservar club={club} />
+      <PieLegal />
     </div>
   );
 }

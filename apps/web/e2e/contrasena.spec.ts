@@ -10,6 +10,7 @@ test('olvidé mi contraseña: llega el link por mail y se elige una nueva', asyn
   await page.getByLabel('Tu nombre').fill('Olvi Dadizo');
   await page.getByLabel('Email').fill('olvido@e2e.test');
   await page.getByLabel('Contraseña').fill('la-primera-clave');
+  await page.getByRole('checkbox', { name: /Acepto los Términos/ }).check();
   await page.getByRole('button', { name: 'Registrar mi club' }).click();
   await page.waitForURL(/\/configuracion/);
   await page.context().clearCookies();

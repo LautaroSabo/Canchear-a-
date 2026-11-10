@@ -49,7 +49,13 @@ export async function reservarPorApi(
   const c = disp.canchas.find((x: { nombre: string }) => x.nombre === cancha);
   const inicio = new Date(`${fecha}T${hora}:00-03:00`).toISOString();
   const res = await request.post(`${API}/public/clubs/${SLUG}/reservas`, {
-    data: { canchaId: c.id, inicio, cliente: { nombre, telefono }, idempotencyKey: crypto.randomUUID() },
+    data: {
+      canchaId: c.id,
+      inicio,
+      cliente: { nombre, telefono },
+      idempotencyKey: crypto.randomUUID(),
+      aceptaTerminos: true,
+    },
   });
   expect(res.status(), await res.text()).toBe(201);
   return (await res.json()) as { codigo: string; estado: string };

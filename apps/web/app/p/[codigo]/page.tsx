@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { IconoCalendario, IconoMapa } from '@/componentes/iconos';
+import { PieLegal } from '@/componentes/legal/PieLegal';
 import { EncabezadoClub } from '@/componentes/publico/EncabezadoClub';
 import { Aviso, Numero } from '@/componentes/ui';
 import { fechaCorta, fechaLarga, fechaLocal, hora } from '@/lib/formato';
@@ -108,6 +109,7 @@ export default async function PaginaPartido({ params }: Props) {
           .
         </p>
       </main>
+      <PieLegal />
     </div>
   );
 }

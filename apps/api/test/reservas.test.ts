@@ -1,4 +1,5 @@
-import { clientes } from '@cancheria/db/schema';
+import { VERSION_TERMINOS } from '@cancheria/core';
+import { clientes, turnos } from '@cancheria/db/schema';
 import { eq } from 'drizzle-orm';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { AHORA, type Contexto, crearContexto, iso, pedido, reservar } from './helpers.ts';
@@ -25,6 +26,15 @@ describe('POST /public/clubs/:slug/reservas', () => {
       expiraEn: new Date(AHORA.getTime() + 10 * 60_000).toISOString(),
     });
     expect(res.json().codigo).toMatch(/^[0-9a-f]{32}$/);
+  });
+
+  it('sin aceptar los términos no reserva; con aceptación queda la versión guardada', async () => {
+    const { aceptaTerminos: _a, ...sinAcepto } = pedido(ctx.canchas.f5a.id, iso('2030-01-06', '20:00'));
+    expect((await reservar(ctx, sinAcepto as ReturnType<typeof pedido>)).statusCode).toBe(400);
+    const ok = await reservar(ctx, pedido(ctx.canchas.f5a.id, iso('2030-01-06', '20:00')));
+    expect(ok.statusCode).toBe(201);
+    const [t] = await ctx.db.select().from(turnos).where(eq(turnos.codigoCheckin, ok.json().codigo));
+    expect(t?.terminosVersion).toBe(VERSION_TERMINOS);
   });
 
   it('siesta de semana: se confirma directo, sin seña', async () => {

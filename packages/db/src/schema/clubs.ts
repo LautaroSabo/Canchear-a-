@@ -66,6 +66,9 @@ export const usuarios = pgTable('usuarios', {
   passwordHash: text().notNull(),
   activo: boolean().notNull().default(true),
   esSuperadmin: boolean().notNull().default(false),
+  /** Términos aceptados al registrar el club (null: cuenta creada por otro usuario o CLI). */
+  terminosVersion: text(),
+  terminosAceptadosEn: ts(),
   creadoEn: ts().notNull().defaultNow(),
 });
 

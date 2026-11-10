@@ -106,6 +106,7 @@ export function pedido(
       ...cliente,
     },
     idempotencyKey: randomUUID(),
+    aceptaTerminos: true as const,
   };
 }
 

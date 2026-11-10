@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { ErrorApi, mensajeDe, panel } from '@/lib/api';
+import { AceptoTerminos } from '../legal/AceptoTerminos';
 import { Aviso, Boton, Campo } from '../ui';
 
 /** "El Potrero F5" → "el-potrero-f5" (lo mismo que hace la API). */
@@ -18,7 +19,9 @@ function slugDesde(nombre: string) {
     .replace(/-+$/, '');
 }
 
-type Errores = Partial<Record<'nombre' | 'slug' | 'telefono' | 'dueno' | 'email' | 'contrasena', string>>;
+type Errores = Partial<
+  Record<'nombre' | 'slug' | 'telefono' | 'dueno' | 'email' | 'contrasena' | 'terminos', string>
+>;
 
 const LARGO_CONTRASENA = 10;
 
@@ -37,6 +40,7 @@ export function Registro() {
   // Mientras no toque la dirección a mano, se arma sola con el nombre del club.
   const [slugTocado, setSlugTocado] = useState(false);
   const [errores, setErrores] = useState<Errores>({});
+  const [acepto, setAcepto] = useState(false);
   const formulario = useRef<HTMLFormElement>(null);
   const [origen, setOrigen] = useState('');
   useEffect(() => setOrigen(window.location.host), []);
@@ -67,6 +71,7 @@ export function Registro() {
           ...(f.direccion.trim() ? { direccion: f.direccion.trim() } : {}),
         },
         dueno: { nombre: f.dueno.trim(), email: f.email.trim(), contrasena: f.contrasena },
+        aceptaTerminos: true,
       }),
     onSuccess: async ({ clubId }) => {
       await qc.invalidateQueries({ queryKey: ['sesion'] });
@@ -85,6 +90,8 @@ export function Registro() {
     if (f.dueno.trim().length < 2) e.dueno = 'Escribí tu nombre.';
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email.trim())) e.email = 'Revisá el email.';
     if (f.contrasena.length < LARGO_CONTRASENA) e.contrasena = `Usá al menos ${LARGO_CONTRASENA} caracteres.`;
+    if (!acepto)
+      e.terminos = 'Para registrar el club tenés que aceptar los Términos y la Política de privacidad.';
     return e;
   };
 
@@ -201,6 +208,7 @@ export function Registro() {
         />
       </fieldset>
 
+      <AceptoTerminos valor={acepto} onCambio={setAcepto} error={errores.terminos} />
       {registrar.error ? (
         <Aviso>
           {errorApi?.codigo === 'EMAIL_EN_USO' ? (

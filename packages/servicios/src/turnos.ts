@@ -167,6 +167,8 @@ export interface NuevoTurno {
   turnoFijoId?: string | undefined;
   /** Email para los avisos de este turno (opcional). */
   emailAviso?: string | null | undefined;
+  /** Versión de los términos aceptados (reserva online). */
+  terminosVersion?: string | null | undefined;
 }
 
 /**
@@ -213,6 +215,7 @@ export async function insertarTurno(tx: Tx, t: NuevoTurno, ahora: Date, urlWeb: 
       nota: t.nota ?? null,
       turnoFijoId: t.turnoFijoId ?? null,
       emailAviso: t.emailAviso ?? null,
+      terminosVersion: t.terminosVersion ?? null,
     })
     .returning();
   if (!turno) throw new Error('insert de turno sin filas');

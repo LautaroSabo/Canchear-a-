@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
+import { PieLegal } from '@/componentes/legal/PieLegal';
 import { Comprobante } from '@/componentes/publico/Comprobante';
 import { Cargando } from '@/componentes/ui';
 
@@ -20,6 +21,7 @@ export default async function PaginaReserva({ params }: { params: Promise<{ codi
       >
         <Comprobante codigo={codigo} />
       </Suspense>
+      <PieLegal />
     </div>
   );
 }

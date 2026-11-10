@@ -14,7 +14,9 @@ test('un club se registra solo, espera aprobación y la plataforma lo habilita',
   await dueno.getByLabel('Contraseña').fill('corta');
   await dueno.getByRole('button', { name: 'Registrar mi club' }).click();
   await expect(dueno.getByText('Usá al menos 10 caracteres.')).toBeVisible();
+  await expect(dueno.getByText(/tenés que aceptar los Términos/)).toBeVisible();
   await dueno.getByLabel('Contraseña').fill('una-clave-larga');
+  await dueno.getByRole('checkbox', { name: /Acepto los Términos/ }).check();
   await dueno.getByRole('button', { name: 'Registrar mi club' }).click();
 
   await dueno.waitForURL(/\/panel\/[0-9a-f-]{36}\/configuracion/);

@@ -1,3 +1,4 @@
+import { VERSION_TERMINOS } from '@cancheria/core';
 import { usuarios } from '@cancheria/db/schema';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -21,7 +22,12 @@ afterAll(() => ctx.cerrar());
 
 const csrf = { 'x-cancheria-csrf': '1' };
 const registrar = (club: Record<string, string>, dueno: Record<string, string>) =>
-  ctx.app.inject({ method: 'POST', url: '/admin/registro', headers: csrf, payload: { club, dueno } });
+  ctx.app.inject({
+    method: 'POST',
+    url: '/admin/registro',
+    headers: csrf,
+    payload: { club, dueno, aceptaTerminos: true },
+  });
 const sa = (metodo: 'GET' | 'POST', url: string, payload?: unknown, cookie = superadmin) =>
   ctx.app.inject({
     method: metodo,
@@ -44,12 +50,33 @@ describe('registro de un club', () => {
     expect((await r('Con Espacios')).json()).toMatchObject({ disponible: false });
   });
 
+  it('sin aceptar los términos no se registra', async () => {
+    const res = await ctx.app.inject({
+      method: 'POST',
+      url: '/admin/registro',
+      headers: csrf,
+      payload: {
+        club: { nombre: 'Sin Acepto', slug: 'sin-acepto', telefono: '11 5555-0009' },
+        dueno: { nombre: 'Ana', email: 'sin-acepto@potrero.test', contrasena: 'una-clave-larga' },
+      },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(
+      (await ctx.app.inject({ method: 'GET', url: '/admin/registro/slug?slug=sin-acepto' })).json(),
+    ).toMatchObject({
+      disponible: true,
+    });
+  });
+
   it('crea el club PENDIENTE con su dueño y deja la sesión abierta', async () => {
     const res = await registrar(
       { nombre: 'El Potrero', slug: 'el-potrero', telefono: '11 5555-0001' },
       { nombre: 'Ana Dueña', email: 'ana@potrero.test', contrasena: 'una-clave-larga' },
     );
     expect(res.statusCode).toBe(201);
+    const [u] = await ctx.db.select().from(usuarios).where(eq(usuarios.email, 'ana@potrero.test'));
+    expect(u).toMatchObject({ terminosVersion: VERSION_TERMINOS });
+    expect(u?.terminosAceptadosEn).toBeInstanceOf(Date);
     // Te llega el aviso por mail para aprobarlo.
     await vi.waitFor(() => expect(ctx.correo.enviados).toHaveLength(1));
     expect(ctx.correo.enviados[0]).toMatchObject({

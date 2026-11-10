@@ -13,7 +13,9 @@ test('reserva con seña, pago por Mercado Pago y comprobante con QR', async ({ p
   await page.getByRole('textbox', { name: /Email/ }).fill('juana@mail');
   await page.getByRole('button', { name: 'Reservar y pagar la seña' }).click();
   await expect(page.getByText('Revisá el email, o dejalo vacío.')).toBeVisible();
+  await expect(page.getByText(/Para reservar tenés que aceptar/)).toBeVisible();
   await page.getByRole('textbox', { name: /Email/ }).fill('juana@e2e.test');
+  await page.getByRole('checkbox', { name: /Acepto los Términos/ }).check();
   await page.getByRole('button', { name: 'Reservar y pagar la seña' }).click();
 
   await page.waitForURL(/\/r\/[0-9a-f]{32}$/);
@@ -74,6 +76,7 @@ test('celular: grilla por horario, barra inferior y pago por transferencia', asy
   await barra.click();
   await page.getByLabel('Nombre y apellido').fill('Martín Gómez');
   await page.getByRole('textbox', { name: 'WhatsApp' }).fill('11 5100-2002');
+  await page.getByRole('checkbox', { name: /Acepto los Términos/ }).check();
   await page.getByRole('button', { name: 'Reservar y pagar la seña' }).click();
   await page.waitForURL(/\/r\/[0-9a-f]{32}$/);
 
@@ -123,4 +126,14 @@ test('si el horario se ocupa mientras completa los datos, se le avisa', async ({
 test('un club que no existe muestra la página de no encontrado', async ({ page }) => {
   await page.goto('/club-que-no-existe');
   await expect(page.getByRole('heading', { name: 'No encontramos ese club' })).toBeVisible();
+});
+
+test('términos y privacidad: se llega desde el pie y se ven', async ({ page }) => {
+  await page.goto(`/${SLUG}`);
+  await page.getByRole('contentinfo').getByRole('link', { name: 'Términos' }).click();
+  await expect(page.getByRole('heading', { name: 'Términos y condiciones' })).toBeVisible();
+  await expect(page.getByText(/El turno lo presta el club/)).toBeVisible();
+  await page.goto('/privacidad');
+  await expect(page.getByRole('heading', { name: 'Política de privacidad' })).toBeVisible();
+  await expect(page.getByText(/Ley Nº 25.326/).first()).toBeVisible();
 });

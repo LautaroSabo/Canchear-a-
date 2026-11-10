@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { PieLegal } from '@/componentes/legal/PieLegal';
 import { LineasCancha } from '@/componentes/publico/LineasCancha';
 import { Registro } from '@/componentes/publico/Registro';
 
@@ -50,6 +51,9 @@ export default function PaginaRegistro() {
         </div>
         <Registro />
       </main>
+      <div className="relative">
+        <PieLegal />
+      </div>
     </div>
   );
 }

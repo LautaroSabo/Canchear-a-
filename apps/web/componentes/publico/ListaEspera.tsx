@@ -118,6 +118,17 @@ export function ListaEspera({
             </div>
           ) : null}
           <div className="flex gap-2 sm:col-span-2">
+            <p className="text-sm text-tenue">
+              Al anotarte aceptás los{' '}
+              <a href="/terminos" target="_blank" rel="noreferrer" className="underline">
+                Términos
+              </a>{' '}
+              y la{' '}
+              <a href="/privacidad" target="_blank" rel="noreferrer" className="underline">
+                Política de privacidad
+              </a>
+              .
+            </p>
             <Boton type="submit" disabled={anotar.isPending}>
               {anotar.isPending ? 'Anotando…' : 'Anotarme'}
             </Boton>
