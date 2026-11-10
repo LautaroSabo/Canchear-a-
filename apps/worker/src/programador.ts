@@ -24,6 +24,7 @@ export class Programador {
   constructor(
     private readonly tareas: Tarea[],
     private readonly log: Logger,
+    private readonly avisar: (err: unknown, contexto: { tarea: string }) => void = () => {},
   ) {}
 
   iniciar() {
@@ -50,6 +51,7 @@ export class Programador {
       this.log.debug({ tarea: tarea.nombre, ms: Date.now() - inicio, resultado }, 'tarea ok');
     } catch (err) {
       this.log.error({ err, tarea: tarea.nombre }, 'tarea falló');
+      this.avisar(err, { tarea: tarea.nombre });
     }
   }
 

@@ -1,5 +1,6 @@
 export * from './almacen.ts';
 export * from './auth.ts';
+export * from './aviso-errores.ts';
 export * from './cantina.ts';
 export * from './cifrado.ts';
 export * from './clientes.ts';

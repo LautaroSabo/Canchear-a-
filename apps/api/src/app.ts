@@ -2,6 +2,7 @@ import type { Db } from '@cancheria/db';
 import {
   type AlmacenArchivos,
   AlmacenLocal,
+  type AvisoErrores,
   Cifrador,
   type Correo,
   crearCorreo,
@@ -31,7 +32,7 @@ import { sql } from 'drizzle-orm';
 import Fastify from 'fastify';
 import type postgres from 'postgres';
 import type { Config } from './config.ts';
-import { manejadorErrores } from './errores.ts';
+import { crearManejadorErrores } from './errores.ts';
 import { rutasAdmin } from './modulos/admin/admin.routes.ts';
 import { ConsultasAdmin } from './modulos/admin/consultas.ts';
 import { ServicioDisponibilidad } from './modulos/publico/disponibilidad.service.ts';
@@ -54,6 +55,8 @@ export interface Dependencias {
   /** Avisos por mail a la plataforma; por defecto, según la config (o ninguno). */
   correo?: Correo | null;
   almacen?: AlmacenArchivos;
+  /** Aviso de errores (Sentry); por defecto, ninguno. */
+  aviso?: AvisoErrores;
 }
 
 export async function construirApp({
@@ -65,6 +68,7 @@ export async function construirApp({
   pasarela = new PasarelaMpHttp(),
   almacen = new AlmacenLocal(config.dirComprobantes),
   correo = crearCorreo(config.correo),
+  aviso,
 }: Dependencias) {
   const app = Fastify({
     logger: logger && {
@@ -80,7 +84,7 @@ export async function construirApp({
     forceCloseConnections: true,
   });
 
-  app.setErrorHandler(manejadorErrores);
+  app.setErrorHandler(crearManejadorErrores(aviso));
   // Encabezados de seguridad básicos en todas las respuestas de la API.
   app.addHook('onSend', async (_req, reply) => {
     reply.header('x-content-type-options', 'nosniff');

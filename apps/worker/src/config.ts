@@ -15,6 +15,8 @@ const esquema = z.object({
   CORREO_REMITENTE: z.string().optional(),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  /** Aviso de errores (Sentry): el mismo DSN que la API. */
+  SENTRY_DSN: z.url().optional(),
 });
 
 export function cargarConfig(env: NodeJS.ProcessEnv = process.env) {
@@ -44,6 +46,7 @@ export function cargarConfig(env: NodeJS.ProcessEnv = process.env) {
     /** En desarrollo, un medio sin configurar imprime el aviso en la consola. */
     desarrollo: e.NODE_ENV !== 'production',
     nivelLog: e.LOG_LEVEL,
+    sentryDsn: e.SENTRY_DSN,
     logsLegibles: e.NODE_ENV === 'development' && Boolean(process.stdout.isTTY),
     intervalos: {
       expiracionMs: 30_000,

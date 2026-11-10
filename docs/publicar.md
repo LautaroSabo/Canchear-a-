@@ -52,6 +52,8 @@ LEGAL_TITULAR=Tu nombre y apellido (o tu empresa)
 LEGAL_CONTACTO=tu-email-de-contacto@ejemplo.com
 ```
 
+- `SENTRY_DSN` (en `api`, `worker` y `web`, opcional): aviso por mail de los errores. Ver
+  [errores.md](errores.md).
 - `LEGAL_TITULAR` y `LEGAL_CONTACTO` aparecen en `/terminos` y `/privacidad` como quien opera
   la plataforma y dónde pedir acceso o borrado de datos. Se leen al compilar la web: después de
   cambiarlos, volvé a desplegar el servicio `web`.

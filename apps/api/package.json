@@ -9,6 +9,7 @@
     "test": "vitest run",
     "superadmin": "node --env-file-if-exists=../../.env --import tsx src/cli/superadmin.ts",
     "usuario:contrasena": "node --env-file-if-exists=../../.env --import tsx src/cli/nueva-contrasena.ts",
+    "aviso:prueba": "node --env-file-if-exists=../../.env --import tsx src/cli/probar-aviso.ts",
     "club:crear": "node --env-file-if-exists=../../.env --import tsx src/cli/crear-club.ts",
     "admin:crear-usuario": "node --env-file-if-exists=../../.env --import tsx src/cli/crear-usuario.ts",
     "demo:usuario": "node --env-file-if-exists=../../.env --import tsx src/cli/demo.ts"

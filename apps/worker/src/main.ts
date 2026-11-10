@@ -8,6 +8,7 @@ import {
   Cifrador,
   crearCorreo,
   Despachador,
+  iniciarAvisoErrores,
   PasarelaMpHttp,
   RepoClubs,
   ServicioAuth,
@@ -22,6 +23,11 @@ import { cargarConfig } from './config.ts';
 import { Programador } from './programador.ts';
 
 const config = cargarConfig();
+const aviso = iniciarAvisoErrores({
+  dsn: config.sentryDsn,
+  servicio: 'worker',
+  version: process.env.RAILWAY_GIT_COMMIT_SHA,
+});
 const log = pino({
   level: config.nivelLog,
   ...(config.logsLegibles ? { transport: { target: 'pino-pretty' } } : {}),
@@ -92,12 +98,14 @@ const programador = new Programador(
     },
   ],
   log,
+  (err, contexto) => aviso.capturar(err, contexto),
 );
 
 const apagar = async (senal: string) => {
   log.info(`${senal}: esperando que terminen las tareas en curso…`);
   await programador.detener();
   await cerrar();
+  await aviso.cerrar();
   process.exit(0);
 };
 process.once('SIGINT', () => void apagar('SIGINT'));

@@ -34,6 +34,7 @@ describe('Programador', () => {
 
   it('un error no mata la tarea: se loguea y sigue en la próxima vuelta', async () => {
     const errores: unknown[] = [];
+    const avisos: { err: unknown; tarea: string }[] = [];
     let corridas = 0;
     const p = new Programador(
       [
@@ -47,12 +48,16 @@ describe('Programador', () => {
         },
       ],
       { debug: () => {}, error: (o) => errores.push(o) },
+      (err, { tarea }) => avisos.push({ err, tarea }),
     );
     p.iniciar();
     await esperar(30);
     await p.detener();
     expect(corridas).toBeGreaterThan(1);
     expect(errores.length).toBe(corridas);
+    // Cada falla va al aviso de errores, con el nombre de la tarea.
+    expect(avisos.length).toBe(corridas);
+    expect(avisos[0]).toMatchObject({ tarea: 'falla', err: new Error('boom') });
   });
 
   it('detener() espera a que termine la corrida en curso y no arranca otra', async () => {

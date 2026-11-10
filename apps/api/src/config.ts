@@ -23,6 +23,8 @@ const esquema = z.object({
   PROXIES_CONFIABLES: z.coerce.number().int().min(0).max(5).default(1),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  /** Aviso de errores (Sentry). Sin esto, los errores solo van al log. */
+  SENTRY_DSN: z.url().optional(),
   WHATSAPP_TOKEN: z.string().optional(),
   WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
   /** Abono mensual de la plataforma, en pesos (se muestra a cada club en su panel). */
@@ -54,6 +56,7 @@ export interface Config {
   proxiesConfiables: number;
   rutaCookie: string;
   nivelLog: z.infer<typeof esquema>['LOG_LEVEL'];
+  sentryDsn: string | undefined;
   logsLegibles: boolean;
   /** Cookie de sesión con Secure (HTTPS). Siempre en producción. */
   cookiesSeguras: boolean;
@@ -98,6 +101,7 @@ export function cargarConfig(env: NodeJS.ProcessEnv = process.env): Config {
     proxiesConfiables: e.PROXIES_CONFIABLES,
     rutaCookie: e.COOKIE_RUTA,
     nivelLog: e.LOG_LEVEL,
+    sentryDsn: e.SENTRY_DSN,
     // Logs con colores solo en una terminal de desarrollo; en el hosting, JSON.
     logsLegibles: e.NODE_ENV === 'development' && Boolean(process.stdout.isTTY),
     // Publicada detrás de HTTPS la cookie va siempre con Secure, aunque no se defina NODE_ENV.

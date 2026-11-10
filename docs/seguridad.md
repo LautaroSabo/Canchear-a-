@@ -30,6 +30,7 @@ Qué protege la app, cómo está verificado y qué queda por hacer.
   Mercado Pago de los clubes.
 - **Usuario de la base:** no compartas la URL pública de Postgres. Usala solo para los
   comandos `pnpm superadmin`, `club:crear` y `usuario:contrasena`.
+- **Errores:** aviso por mail con Sentry, sin datos personales. Ver [errores.md](errores.md).
 - **Backups:** backups de Railway + copia diaria cifrada en GitHub, probada con una restauración cada vez. Ver [backups.md](backups.md).
 - **Tu cuenta de superadmin:** usá una contraseña larga y única, y no la compartas: da
   acceso a todos los clubes.
