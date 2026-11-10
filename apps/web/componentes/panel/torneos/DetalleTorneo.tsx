@@ -312,8 +312,12 @@ function Equipos({
 }) {
   const abierto = v.torneo.estado === 'INSCRIPCION';
   const agregar = useMutation({
-    mutationFn: (d: { nombre: string; delegadoNombre: string; delegadoTelefono: string }) =>
-      panel.post(`${ruta}/equipos`, d),
+    mutationFn: (d: {
+      nombre: string;
+      delegadoNombre: string;
+      delegadoTelefono: string;
+      delegadoEmail: string | null;
+    }) => panel.post(`${ruta}/equipos`, d),
     onSuccess: alCambiar,
   });
   const cambiar = useMutation({
@@ -332,6 +336,7 @@ function Equipos({
         nombre: String(f.get('nombre')),
         delegadoNombre: String(f.get('delegado')),
         delegadoTelefono: String(f.get('telefono')),
+        delegadoEmail: String(f.get('email') ?? '').trim() || null,
       },
       { onSuccess: () => form.reset() },
     );
@@ -374,6 +379,7 @@ function Equipos({
                     <a href={linkWhatsApp(e.delegadoTelefono)} className="underline">
                       {telefonoLegible(e.delegadoTelefono)}
                     </a>
+                    {e.delegadoEmail ? ` · ${e.delegadoEmail}` : ' · sin email (no recibe avisos)'}
                   </span>
                 ) : null}
               </span>
@@ -421,7 +427,7 @@ function Equipos({
       {abierto && esAdmin ? (
         <form onSubmit={enviar} className="flex flex-col gap-3 border border-linea bg-superficie p-4">
           <h2 className="text-base font-bold">Agregar equipo</h2>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <Campo etiqueta="Equipo" name="nombre" required maxLength={60} autoComplete="off" />
             <Campo etiqueta="Delegado" name="delegado" required maxLength={80} autoComplete="off" />
             <Campo
@@ -432,6 +438,14 @@ function Equipos({
               minLength={6}
               maxLength={30}
               autoComplete="off"
+            />
+            <Campo
+              etiqueta="Email (opcional)"
+              name="email"
+              type="email"
+              maxLength={120}
+              autoComplete="off"
+              ayuda="Para avisarle el fixture, los cambios y cada partido."
             />
           </div>
           {agregar.error ? <Aviso>{mensajeDe(agregar.error)}</Aviso> : null}

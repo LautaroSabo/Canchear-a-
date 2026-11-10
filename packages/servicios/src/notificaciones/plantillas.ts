@@ -76,6 +76,49 @@ export const PLANTILLAS = {
     texto: (p: Record<string, string>) =>
       `⏰ Te recordamos tu turno en ${p.club}: la ${p.cancha}, el ${p.fecha} a las ${p.hora}. Tu comprobante con el QR para entrar: ${p.link}. Si al final no pueden venir, avisale al club cuanto antes así otro aprovecha la cancha.`,
   },
+  torneo_fixture: {
+    /** Asunto cuando sale por mail. */
+    asunto: (p: Record<string, string>) => `${p.torneo}: ya está el fixture`,
+    parametros: ['torneo', 'club', 'equipo', 'primero', 'link'],
+    ejemplo: [
+      'Liga de Verano',
+      'La Canchita F5',
+      'Los Pibes',
+      'mar 13/01 21:00 en la Cancha 1 contra Rojos',
+      'https://cancheria.app/la-canchita/torneos/liga-de-verano',
+    ],
+    texto: (p: Record<string, string>) =>
+      `🏆 Arrancó el torneo ${p.torneo} en ${p.club}. El primer partido de ${p.equipo} es el ${p.primero}. El fixture completo, la tabla y los horarios de cada fecha están en ${p.link} (se actualiza con cada resultado).`,
+  },
+  torneo_partido_movido: {
+    /** Asunto cuando sale por mail. */
+    asunto: (p: Record<string, string>) => `${p.torneo}: cambió el horario de ${p.partido}`,
+    parametros: ['torneo', 'club', 'partido', 'cuando', 'link'],
+    ejemplo: [
+      'Liga de Verano',
+      'La Canchita F5',
+      'Los Pibes vs Rojos',
+      'jue 15/01 22:00 en la Cancha 2',
+      'https://cancheria.app/la-canchita/torneos/liga-de-verano',
+    ],
+    texto: (p: Record<string, string>) =>
+      `📅 Cambió un horario del torneo ${p.torneo} en ${p.club}: el partido ${p.partido} ahora se juega el ${p.cuando}. Todos los horarios están en ${p.link} (se actualiza solo).`,
+  },
+  torneo_proximo_partido: {
+    /** Asunto cuando sale por mail. */
+    asunto: (p: Record<string, string>) => `${p.torneo}: ${p.equipo} juega el ${p.cuando}`,
+    parametros: ['torneo', 'club', 'equipo', 'rival', 'cuando', 'link'],
+    ejemplo: [
+      'Liga de Verano',
+      'La Canchita F5',
+      'Los Pibes',
+      'Rojos',
+      'mar 13/01 21:00 en la Cancha 1',
+      'https://cancheria.app/la-canchita/torneos/liga-de-verano',
+    ],
+    texto: (p: Record<string, string>) =>
+      `⚽ Recordatorio del torneo ${p.torneo} en ${p.club}. Tu equipo, ${p.equipo}, juega contra ${p.rival} el ${p.cuando}. La tabla y el fixture están en ${p.link} (se actualizan con cada resultado).`,
+  },
 } as const;
 
 export type Plantilla = keyof typeof PLANTILLAS;
@@ -96,6 +139,9 @@ export const CANAL_DE: Record<Plantilla, CanalAviso> = {
   oferta_lista_espera: 'WHATSAPP',
   turno_fijo_creado: 'EMAIL',
   recordatorio_turno: 'EMAIL',
+  torneo_fixture: 'EMAIL',
+  torneo_partido_movido: 'EMAIL',
+  torneo_proximo_partido: 'EMAIL',
 };
 
 /** Cuerpo del mail: el mismo texto del aviso, más a quién escribirle. */

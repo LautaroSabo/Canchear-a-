@@ -173,7 +173,12 @@ function Inscripcion({ club, vista: v }: { club: { slug: string }; vista: VistaT
   const [listo, setListo] = useState<string | null>(null);
   const hidratado = useHidratado();
   const inscribir = useMutation({
-    mutationFn: (d: { nombre: string; delegadoNombre: string; delegadoTelefono: string }) =>
+    mutationFn: (d: {
+      nombre: string;
+      delegadoNombre: string;
+      delegadoTelefono: string;
+      delegadoEmail?: string;
+    }) =>
       pedir(`/public/clubs/${club.slug}/torneos/${v.torneo.slug}/inscripcion`, { metodo: 'POST', json: d }),
     onSuccess: (_r, d) => setListo(d.nombre),
   });
@@ -184,6 +189,7 @@ function Inscripcion({ club, vista: v }: { club: { slug: string }; vista: VistaT
       nombre: String(f.get('nombre') ?? ''),
       delegadoNombre: String(f.get('delegado') ?? ''),
       delegadoTelefono: String(f.get('telefono') ?? ''),
+      ...(String(f.get('email') ?? '').trim() ? { delegadoEmail: String(f.get('email')).trim() } : {}),
     });
   }
   return (
@@ -236,6 +242,18 @@ function Inscripcion({ club, vista: v }: { club: { slug: string }; vista: VistaT
                 maxLength={30}
                 autoComplete="tel"
                 ayuda="Solo lo ve el club, para coordinar."
+              />
+              <Campo
+                etiqueta={
+                  <span>
+                    Email del delegado <span className="font-normal text-tenue">(opcional)</span>
+                  </span>
+                }
+                name="email"
+                type="email"
+                maxLength={120}
+                autoComplete="email"
+                ayuda="Le avisamos los horarios del fixture, si cambia un partido y el día antes de cada partido."
               />
               {inscribir.error ? <Aviso>{mensajeDe(inscribir.error)}</Aviso> : null}
               <p className="text-sm text-tenue">

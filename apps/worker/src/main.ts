@@ -17,6 +17,7 @@ import {
   ServicioPagos,
   ServicioRecordatorios,
   ServicioReembolsos,
+  ServicioTorneos,
   ServicioTurnosFijos,
 } from '@cancheria/servicios';
 import pino from 'pino';
@@ -71,6 +72,7 @@ const despachador = new Despachador(db, reloj, {
 const auth = new ServicioAuth(entorno);
 const turnosFijos = new ServicioTurnosFijos({ ...entorno, clubs, listaEspera });
 const recordatorios = new ServicioRecordatorios(entorno);
+const torneos = new ServicioTorneos({ ...entorno, clubs });
 
 const programador = new Programador(
   [
@@ -102,6 +104,12 @@ const programador = new Programador(
       nombre: 'recordatorios',
       cadaMs: config.intervalos.recordatoriosMs,
       ejecutar: () => recordatorios.enviar(),
+    },
+    {
+      // Partidos de torneo de las próximas 24 horas: aviso a los delegados.
+      nombre: 'recordar-partidos-torneo',
+      cadaMs: config.intervalos.partidosTorneoMs,
+      ejecutar: () => torneos.recordarPartidos(),
     },
   ],
   log,

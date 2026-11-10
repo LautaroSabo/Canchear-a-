@@ -98,3 +98,36 @@ describe('torneos por la API', () => {
     expect((await panel(ctx, admin, 'POST', '/torneos', cuerpo({ dias: [] }))).statusCode).toBe(400);
   });
 });
+
+describe('email del delegado', () => {
+  it('se guarda desde la inscripción online y solo lo ve el panel', async () => {
+    const alta = await panel(ctx, admin, 'POST', '/torneos', cuerpo({ nombre: 'Copa Mail' }));
+    const { id, slug } = alta.json();
+    const insc = await ctx.app.inject({
+      method: 'POST',
+      url: `/public/clubs/${ctx.slug}/torneos/${slug}/inscripcion`,
+      payload: {
+        nombre: 'Con Mail',
+        delegadoNombre: 'Ana',
+        delegadoTelefono: '11 5000-3333',
+        delegadoEmail: 'Ana@Equipo.test',
+      },
+    });
+    expect(insc.statusCode).toBe(201);
+    const malo = await ctx.app.inject({
+      method: 'POST',
+      url: `/public/clubs/${ctx.slug}/torneos/${slug}/inscripcion`,
+      payload: {
+        nombre: 'Mal Mail',
+        delegadoNombre: 'X',
+        delegadoTelefono: '11 5000-4444',
+        delegadoEmail: 'no',
+      },
+    });
+    expect(malo.statusCode).toBe(400);
+    const v = (await panel(ctx, admin, 'GET', `/torneos/${id}`)).json();
+    expect(v.equipos[0]).toMatchObject({ nombre: 'Con Mail', delegadoEmail: 'ana@equipo.test' });
+    const pub = await ctx.app.inject(`/public/clubs/${ctx.slug}/torneos/${slug}`);
+    expect(pub.body).not.toContain('equipo.test');
+  });
+});

@@ -26,6 +26,9 @@ import { telefonoValido } from './clientes.ts';
 import type { RepoClubs } from './config-club.ts';
 import type { Entorno } from './entorno.ts';
 import { ErrorNegocio } from './errores.ts';
+import { fechaCorta, horaCorta } from './formato.ts';
+import { encolarNotificacion } from './notificaciones/encolar.ts';
+import type { Plantilla } from './notificaciones/plantillas.ts';
 import { slugDesde } from './plataforma.ts';
 import { insertarTurno, setActor } from './turnos.ts';
 
@@ -55,6 +58,8 @@ export interface DatosEquipo {
   nombre: string;
   delegadoNombre: string;
   delegadoTelefono: string;
+  /** Para los avisos del torneo (opcional). */
+  delegadoEmail?: string | null | undefined;
 }
 
 export interface ResultadoCarga {
@@ -180,7 +185,13 @@ export class ServicioTorneos {
         nombre: e.nombre,
         estado: e.estado,
         grupo: e.grupo,
-        ...(privado ? { delegadoNombre: e.delegadoNombre, delegadoTelefono: e.delegadoTelefono } : {}),
+        ...(privado
+          ? {
+              delegadoNombre: e.delegadoNombre,
+              delegadoTelefono: e.delegadoTelefono,
+              delegadoEmail: e.delegadoEmail,
+            }
+          : {}),
       })),
       grupos: t.estado === 'INSCRIPCION' ? [] : grupos,
       partidos: partidos.map((p) => ({
@@ -335,6 +346,7 @@ export class ServicioTorneos {
           nombre: d.nombre.trim(),
           delegadoNombre: d.delegadoNombre.trim(),
           delegadoTelefono: telefono,
+          delegadoEmail: d.delegadoEmail?.trim().toLowerCase() || null,
           estado,
         })
         .returning({ id: torneoEquipos.id, estado: torneoEquipos.estado });
@@ -457,6 +469,7 @@ export class ServicioTorneos {
         }
       }
       await tx.update(torneos).set({ estado: 'EN_CURSO' }).where(eq(torneos.id, t.id));
+      await this.avisarFixture(tx, t);
     });
   }
 
@@ -707,8 +720,9 @@ export class ServicioTorneos {
       );
       await tx
         .update(torneoPartidos)
-        .set({ canchaId: p.canchaId, inicio: p.inicio, fin, turnoId })
+        .set({ canchaId: p.canchaId, inicio: p.inicio, fin, turnoId, recordatorioEn: null })
         .where(eq(torneoPartidos.id, partido.id));
+      await this.avisarMovido(tx, t, partido.id);
     });
   }
 
@@ -840,6 +854,155 @@ export class ServicioTorneos {
       .where(and(eq(clubs.slug, slug.toLowerCase()), eq(clubs.activo, true)));
     if (!c) throw new ErrorNegocio(404, 'CLUB_NO_ENCONTRADO', 'No existe un club con ese link');
     return c;
+  }
+
+  // --- Avisos a los delegados (por mail, si dejaron uno) --------------------------------
+
+  /** Club, link público del torneo y equipos con su email, para armar los avisos. */
+  private async datosAviso(tx: Tx, t: Torneo) {
+    const [club] = await tx
+      .select({ nombre: clubs.nombre, slug: clubs.slug, zona: clubs.zonaHoraria })
+      .from(clubs)
+      .where(eq(clubs.id, t.clubId));
+    const equipos = await tx
+      .select({ id: torneoEquipos.id, nombre: torneoEquipos.nombre, email: torneoEquipos.delegadoEmail })
+      .from(torneoEquipos)
+      .where(eq(torneoEquipos.torneoId, t.id));
+    const listaCanchas = await tx
+      .select({ id: canchas.id, nombre: canchas.nombre })
+      .from(canchas)
+      .where(eq(canchas.clubId, t.clubId));
+    const zona = club?.zona ?? 'America/Argentina/Buenos_Aires';
+    const cancha = new Map(listaCanchas.map((c) => [c.id, c.nombre]));
+    return {
+      club: club?.nombre ?? '',
+      link: `${this.e.urlWeb.replace(/\/$/, '')}/${club?.slug}/torneos/${t.slug}`,
+      equipo: new Map(equipos.map((e) => [e.id, e])),
+      cuando: (p: { inicio: Date | null; canchaId: string | null }) =>
+        p.inicio
+          ? `${fechaCorta(p.inicio, zona)} ${horaCorta(p.inicio, zona)}${p.canchaId ? ` en la ${cancha.get(p.canchaId) ?? 'cancha'}` : ''}`
+          : 'a confirmar',
+    };
+  }
+
+  private async avisar(
+    tx: Tx,
+    t: Torneo,
+    email: string | null | undefined,
+    plantilla: Plantilla,
+    p: Record<string, string>,
+  ) {
+    await encolarNotificacion(tx, {
+      clubId: t.clubId,
+      clienteId: null,
+      telefono: null,
+      email: email ?? null,
+      plantilla,
+      parametros: p,
+    });
+  }
+
+  /** Al sortear: a cada delegado, el primer partido de su equipo y el link al fixture. */
+  private async avisarFixture(tx: Tx, t: Torneo) {
+    const d = await this.datosAviso(tx, t);
+    const partidos = await tx
+      .select()
+      .from(torneoPartidos)
+      .where(eq(torneoPartidos.torneoId, t.id))
+      .orderBy(asc(torneoPartidos.inicio));
+    for (const e of d.equipo.values()) {
+      if (!e.email) continue;
+      const p = partidos.find((x) => x.localId === e.id || x.visitanteId === e.id);
+      const rival = p
+        ? d.equipo.get((p.localId === e.id ? p.visitanteId : p.localId) ?? '')?.nombre
+        : undefined;
+      await this.avisar(tx, t, e.email, 'torneo_fixture', {
+        club: d.club,
+        torneo: t.nombre,
+        equipo: e.nombre,
+        primero: p ? `${d.cuando(p)} contra ${rival ?? 'a definir'}` : 'a confirmar',
+        link: d.link,
+      });
+    }
+  }
+
+  /** El club movió un partido: les avisa a los dos equipos. */
+  private async avisarMovido(tx: Tx, t: Torneo, partidoId: string) {
+    const [p] = await tx.select().from(torneoPartidos).where(eq(torneoPartidos.id, partidoId));
+    if (!p?.localId || !p.visitanteId) return;
+    const d = await this.datosAviso(tx, t);
+    const local = d.equipo.get(p.localId);
+    const visitante = d.equipo.get(p.visitanteId);
+    for (const e of [local, visitante]) {
+      await this.avisar(tx, t, e?.email, 'torneo_partido_movido', {
+        club: d.club,
+        torneo: t.nombre,
+        partido: `${local?.nombre} vs ${visitante?.nombre}`,
+        cuando: d.cuando(p),
+        link: d.link,
+      });
+    }
+  }
+
+  /**
+   * Para el worker: los partidos de las próximas 24 horas que todavía no se recordaron
+   * (con los dos equipos definidos). Cada partido se procesa una sola vez.
+   */
+  async recordarPartidos(): Promise<{ partidos: number }> {
+    const ahora = this.e.reloj();
+    const hasta = new Date(ahora.getTime() + 24 * 60 * 60_000);
+    return this.e.db.transaction(async (tx) => {
+      const elegidos = await tx
+        .select({ id: torneoPartidos.id })
+        .from(torneoPartidos)
+        .where(
+          and(
+            eq(torneoPartidos.estado, 'PROGRAMADO'),
+            isNull(torneoPartidos.recordatorioEn),
+            gt(torneoPartidos.inicio, ahora),
+            lt(torneoPartidos.inicio, hasta),
+            sql`${torneoPartidos.localId} IS NOT NULL AND ${torneoPartidos.visitanteId} IS NOT NULL`,
+          ),
+        )
+        .limit(200)
+        .for('update', { skipLocked: true });
+      if (elegidos.length === 0) return { partidos: 0 };
+      const partidos = await tx
+        .update(torneoPartidos)
+        .set({ recordatorioEn: ahora })
+        .where(
+          inArray(
+            torneoPartidos.id,
+            elegidos.map((e) => e.id),
+          ),
+        )
+        .returning();
+      const porTorneo = new Map<string, typeof partidos>();
+      for (const p of partidos) porTorneo.set(p.torneoId, [...(porTorneo.get(p.torneoId) ?? []), p]);
+      for (const [torneoId, lista] of porTorneo) {
+        const [t] = await tx.select().from(torneos).where(eq(torneos.id, torneoId));
+        if (!t) continue;
+        const d = await this.datosAviso(tx, t);
+        for (const p of lista) {
+          const local = d.equipo.get(p.localId ?? '');
+          const visitante = d.equipo.get(p.visitanteId ?? '');
+          for (const [e, rival] of [
+            [local, visitante],
+            [visitante, local],
+          ] as const) {
+            await this.avisar(tx, t, e?.email, 'torneo_proximo_partido', {
+              club: d.club,
+              torneo: t.nombre,
+              equipo: e?.nombre ?? '',
+              rival: rival?.nombre ?? '',
+              cuando: d.cuando(p),
+              link: d.link,
+            });
+          }
+        }
+      }
+      return { partidos: partidos.length };
+    });
   }
 
   private async zonaDe(clubId: string) {

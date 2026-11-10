@@ -564,6 +564,7 @@ export interface EquipoTorneo {
   grupo: number | null;
   delegadoNombre?: string;
   delegadoTelefono?: string;
+  delegadoEmail?: string | null;
 }
 
 export interface FilaTabla {

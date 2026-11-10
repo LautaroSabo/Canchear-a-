@@ -35,6 +35,8 @@ export const torneoEquipos = pgTable('torneo_equipos', {
   nombre: citext().notNull(),
   delegadoNombre: text().notNull(),
   delegadoTelefono: text().notNull(),
+  /** Para los avisos del torneo (opcional). Solo lo ve el club. */
+  delegadoEmail: text(),
   estado: text().$type<'PENDIENTE' | 'APROBADO' | 'RECHAZADO'>().notNull().default('APROBADO'),
   grupo: smallint(),
   creadoEn: ts().notNull().defaultNow(),
@@ -54,6 +56,8 @@ export const torneoPartidos = pgTable('torneo_partidos', {
   inicio: ts(),
   fin: ts(),
   turnoId: uuid(),
+  /** Cuándo se procesó el recordatorio del partido (null: todavía no). */
+  recordatorioEn: ts(),
   golesLocal: smallint(),
   golesVisitante: smallint(),
   penalesLocal: smallint(),

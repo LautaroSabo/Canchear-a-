@@ -320,6 +320,7 @@ export const cuerpoEquipo = z.object({
   nombre: texto(60),
   delegadoNombre: texto(80),
   delegadoTelefono: z.string().trim().min(6).max(30),
+  delegadoEmail: z.email().max(120).nullable().optional(),
 });
 
 export const cuerpoEstadoEquipo = z.object({ estado: z.enum(['APROBADO', 'RECHAZADO']) });

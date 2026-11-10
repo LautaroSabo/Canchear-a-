@@ -56,6 +56,7 @@ export function cargarConfig(env: NodeJS.ProcessEnv = process.env) {
       sesionesMs: 6 * 60 * 60_000,
       turnosFijosMs: 60 * 60_000,
       recordatoriosMs: 5 * 60_000,
+      partidosTorneoMs: 15 * 60_000,
     },
   };
 }

@@ -34,6 +34,8 @@ async function conEquipos(n: number, x: Partial<DatosTorneo> = {}) {
       nombre: `Equipo ${i}`,
       delegadoNombre: `Delegado ${i}`,
       delegadoTelefono: `11 5000-00${String(i).padStart(2, '0')}`,
+      // El equipo 1 no deja email: no recibe avisos.
+      delegadoEmail: i === 1 ? null : `Delegado${i}@Equipo.test`,
     });
   }
   return t;
@@ -295,5 +297,64 @@ describe('grupos + eliminación', () => {
     expect(bye).toMatchObject({ estado: 'JUGADO', inicio: null, turnoId: null });
     const final = elim.find((p) => p.ronda === 1)!;
     expect([final.localId, final.visitanteId]).toContain(bye.ganadorId);
+  });
+});
+
+describe('avisos a los delegados', () => {
+  const avisos = async (plantilla: string) =>
+    (await ctx.mensajes(plantilla)).sort((a, b) => a.destino.localeCompare(b.destino));
+
+  it('al sortear, cada delegado con email recibe su primer partido y el link', async () => {
+    const t = await conEquipos(4);
+    await ctx.torneos.iniciar(ctx.club.id, t.id, ctx.usuario.id);
+    const ms = await avisos('torneo_fixture');
+    expect(ms.map((m) => m.destino)).toEqual([
+      'delegado2@equipo.test',
+      'delegado3@equipo.test',
+      'delegado4@equipo.test',
+    ]);
+    expect(ms[0]).toMatchObject({ canal: 'EMAIL', clienteId: null });
+    expect(ms[0]?.payload).toMatchObject({
+      torneo: 'Liga de Verano',
+      equipo: 'Equipo 2',
+      link: `https://cancheria.test/${ctx.slug}/torneos/liga-de-verano`,
+      primero: expect.stringMatching(/^(mar|jue) \d\d\/01 2[012]:00 en la Cancha 1 contra Equipo \d$/),
+    });
+    // La vista pública no muestra los emails; la del panel sí.
+    expect(JSON.stringify(await ctx.torneos.vistaPublica(ctx.slug, t.slug))).not.toContain('@equipo.test');
+    expect(
+      (await ctx.torneos.vistaPanel(ctx.club.id, t.id)).equipos.find((e) => e.nombre === 'Equipo 2'),
+    ).toMatchObject({
+      delegadoEmail: 'delegado2@equipo.test',
+    });
+  });
+
+  it('si el club mueve un partido, les avisa a los dos equipos', async () => {
+    const t = await conEquipos(3);
+    await ctx.torneos.iniciar(ctx.club.id, t.id, ctx.usuario.id);
+    const p = (await partidos(t.id)).find((x) => x.localId && x.visitanteId)!;
+    await ctx.torneos.moverPartido(
+      ctx.club.id,
+      t.id,
+      p.id,
+      { inicio: ba('2030-01-09', '18:00'), canchaId: ctx.canchas.f5b!.id },
+      ctx.usuario.id,
+    );
+    const ms = await avisos('torneo_partido_movido');
+    expect(ms.length).toBeGreaterThanOrEqual(1);
+    expect(ms[0]?.payload).toMatchObject({ cuando: 'mié 09/01 18:00 en la Cancha 2' });
+  });
+
+  it('el día anterior: recordatorio a los dos equipos, una sola vez', async () => {
+    const t = await conEquipos(2, { dias: [6], fechaInicio: '2030-01-05' }); // sábado 5, 20 h
+    await ctx.torneos.iniciar(ctx.club.id, t.id, ctx.usuario.id);
+    // El partido es el sábado a las 20: el viernes al mediodía faltan 32 horas, todavía no.
+    expect(await ctx.torneos.recordarPartidos()).toEqual({ partidos: 0 });
+    ctx.setAhora(ba('2030-01-04', '21:00'));
+    expect(await ctx.torneos.recordarPartidos()).toEqual({ partidos: 1 });
+    const ms = await avisos('torneo_proximo_partido');
+    expect(ms.map((m) => m.destino)).toEqual(['delegado2@equipo.test']);
+    expect(ms[0]?.payload).toMatchObject({ equipo: 'Equipo 2', rival: 'Equipo 1' });
+    expect(await ctx.torneos.recordarPartidos()).toEqual({ partidos: 0 });
   });
 });
