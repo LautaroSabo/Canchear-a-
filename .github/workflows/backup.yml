@@ -29,6 +29,10 @@ jobs:
           if [ -z "$ORIGEN_URL" ] || [ -z "$CLAVE_BACKUP" ]; then
             echo "::warning::Faltan los secretos BACKUP_DATABASE_URL y/o CLAVE_BACKUP: no se hizo la copia (ver docs/backups.md)."
             echo "listo=no" >> "$GITHUB_OUTPUT"
+          # La plantilla de Railway trae llaves dobles (se arma por partes: GitHub las interpreta).
+          elif [[ "$ORIGEN_URL" == *'$''{''{'* ]]; then
+            echo "::error::BACKUP_DATABASE_URL tiene la plantilla de las variables de Railway, no la dirección real. Copiala desde Postgres → Connect → Public Network (ver docs/backups.md)."
+            exit 1
           else
             echo "listo=si" >> "$GITHUB_OUTPUT"
           fi

@@ -25,7 +25,9 @@ Corre todos los días a las 03:17 (hora de Argentina).
 **a. Habilitar la conexión desde afuera a la base**
 
 1. Railway → servicio **Postgres** → **Settings** → **Networking** → **TCP Proxy** → activalo (puerto 5432).
-2. Pestaña **Variables** → copiá el valor de **`DATABASE_PUBLIC_URL`** (empieza con `postgresql://`).
+2. Botón **Connect** (arriba a la derecha) → pestaña **Public Network** → copiá la **Connection URL**.
+   Tiene que verse como `postgresql://postgres:…@algo.proxy.rlwy.net:12345/railway`. Si tiene
+   `${{…}}` adentro es la plantilla, no la dirección real: así no anda.
 
 **b. Cargar dos secretos en GitHub**
 
