@@ -73,7 +73,24 @@ y `https://TU-WEB.up.railway.app`.
 **Mercado Pago:** la URL de notificaciones que muestra el panel
 (`https://TU-WEB.up.railway.app/api/webhooks/mercadopago/<club>`) sirve igual.
 
-**Al pasar a dominio propio:** usá las variables del paso 3 (sin `COOKIE_RUTA`,
+**Dominio propio sin separar la API (lo más simple):** conectá el dominio solo al servicio
+`web` (*Settings → Networking → Custom Domain*) y cambiá únicamente estas variables, dejando
+`COOKIE_RUTA`, `API_URL_INTERNA` y `NEXT_PUBLIC_API_URL=/api` como están:
+
+```
+# api
+URL_WEB=https://tudominio.com.ar
+URL_API=https://tudominio.com.ar/api
+WEB_ORIGIN=https://tudominio.com.ar,https://TU-WEB.up.railway.app
+
+# worker
+URL_WEB=https://tudominio.com.ar
+```
+
+No hace falta volver a compilar la web. Los pagos nuevos de Mercado Pago ya avisan a la
+dirección nueva (se manda con cada pago); la vieja `up.railway.app` sigue andando.
+
+**Al pasar a dominio propio con la API aparte:** usá las variables del paso 3 (sin `COOKIE_RUTA`,
 `API_URL_INTERNA` ni `NEXT_PUBLIC_API_URL=/api`), conectá el dominio (paso 4) y volvé a
 desplegar `web` y `api`. Los clubes y los datos quedan. Si un club ya conectó Mercado
 Pago, tiene que actualizar la URL de notificaciones en su cuenta de MP.
