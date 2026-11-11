@@ -31,6 +31,8 @@ const esquema = z.object({
   ABONO_MENSUAL: z.coerce.number().int().min(0).optional(),
   /** Cómo pagar el abono (alias, CBU, link): texto libre que ve cada club. */
   ABONO_COMO_PAGAR: z.string().optional(),
+  /** Días gratis al aprobar un club nuevo (se muestran en la página de venta). */
+  DIAS_PRUEBA: z.coerce.number().int().min(0).max(90).default(15),
   /** Adónde avisar cuando se registra un club (por ejemplo, tu Gmail). */
   AVISOS_EMAIL: z.email().optional(),
   /** Envío por Resend (HTTPS): recomendado, anda en hostings que bloquean SMTP. */
@@ -78,6 +80,7 @@ export interface Config {
   /** Abono mensual en centavos, o null si no se configuró. */
   abonoMensual: number | null;
   comoPagarAbono: string | null;
+  diasPrueba: number;
   /** Destinatario de los avisos internos (registro de clubes). */
   avisosEmail: string | null;
   correo: {
@@ -109,6 +112,7 @@ export function cargarConfig(env: NodeJS.ProcessEnv = process.env): Config {
     whatsappConfigurado: Boolean(e.WHATSAPP_TOKEN && e.WHATSAPP_PHONE_NUMBER_ID),
     abonoMensual: e.ABONO_MENSUAL !== undefined ? e.ABONO_MENSUAL * 100 : null,
     comoPagarAbono: e.ABONO_COMO_PAGAR?.trim() || null,
+    diasPrueba: e.DIAS_PRUEBA,
     avisosEmail: e.AVISOS_EMAIL ?? null,
     correo: {
       resendApiKey: e.RESEND_API_KEY,

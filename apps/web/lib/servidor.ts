@@ -44,3 +44,12 @@ export async function cargarPartido(codigo: string): Promise<PartidoCompartido> 
     throw e;
   }
 }
+
+/** Precio del abono y días de prueba, para la página de venta. Si la API no responde, sin precio. */
+export async function cargarPlataforma(): Promise<{ abonoMensual: number | null; diasPrueba: number }> {
+  try {
+    return await pedir(`/public/plataforma`, { base: BASE_SSR });
+  } catch {
+    return { abonoMensual: null, diasPrueba: 15 };
+  }
+}

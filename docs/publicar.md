@@ -52,6 +52,7 @@ LEGAL_TITULAR=Tu nombre y apellido (o tu empresa)
 LEGAL_CONTACTO=tu-email-de-contacto@ejemplo.com
 ```
 
+- `DIAS_PRUEBA` (en `api`, opcional, 15 por defecto): días gratis al aprobar un club; se muestran en la página de venta `/clubes`.
 - `SENTRY_DSN` (en `api`, `worker` y `web`, opcional): aviso por mail de los errores. Ver
   [errores.md](errores.md).
 - `LEGAL_TITULAR` y `LEGAL_CONTACTO` aparecen en `/terminos` y `/privacidad` como quien opera

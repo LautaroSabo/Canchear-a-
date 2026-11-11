@@ -56,6 +56,12 @@ export const rutasPublicas: FastifyPluginAsync<Opciones> = async (
     }
   };
 
+  /** Precio y prueba gratis, para la página de venta (/clubes). */
+  app.get('/plataforma', async () => ({
+    abonoMensual: config.abonoMensual,
+    diasPrueba: config.diasPrueba,
+  }));
+
   app.get('/clubs/:slug', async (req) => {
     const { club, canchas, mediosPago } = await clubPorSlug(req.params);
     return {

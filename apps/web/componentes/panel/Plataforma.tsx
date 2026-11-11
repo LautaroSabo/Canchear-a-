@@ -354,7 +354,8 @@ function FormContrasena({ club }: { club: ClubPlataforma }) {
 
 function FormAprobar({ club, alHacer }: { club: ClubPlataforma; alHacer: (m: string) => void }) {
   const qc = useQueryClient();
-  const [dias, setDias] = useState('15');
+  const sesion = useSesion();
+  const [dias, setDias] = useState(String(sesion.data?.diasPrueba ?? 15));
   const aprobar = useMutation({
     mutationFn: () => panel.post(`/plataforma/clubs/${club.id}/aprobar`, { diasPrueba: Number(dias) || 0 }),
     onSuccess: () => {

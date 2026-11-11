@@ -24,6 +24,7 @@ const SLUGS_RESERVADOS = new Set([
   'login',
   'terminos',
   'privacidad',
+  'clubes',
 ]);
 
 /** null si el slug sirve; si no, por qué. */

@@ -100,6 +100,8 @@ export interface Sesion {
   /** Abono mensual de la plataforma, en centavos (null si no se configuró). */
   abonoMensual: number | null;
   comoPagarAbono: string | null;
+  /** Días gratis que se ofrecen al aprobar un club (DIAS_PRUEBA). */
+  diasPrueba?: number;
 }
 
 export interface ClubPlataforma {

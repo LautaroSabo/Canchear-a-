@@ -54,7 +54,11 @@ async function exigirSuperadmin(req: FastifyRequest) {
 
 /** Datos del abono que ve cada club en su panel (configurados en el servidor). */
 export function abonoPublico(config: Config) {
-  return { abonoMensual: config.abonoMensual, comoPagarAbono: config.comoPagarAbono };
+  return {
+    abonoMensual: config.abonoMensual,
+    comoPagarAbono: config.comoPagarAbono,
+    diasPrueba: config.diasPrueba,
+  };
 }
 
 /** Link para elegir una contraseña nueva (página de la web). */

@@ -78,8 +78,8 @@ export default function Inicio() {
             ))}
           </ul>
           <div className="flex flex-wrap gap-2">
-            <BotonLink href="/registrar" grande>
-              Registrá tu club
+            <BotonLink href="/clubes" grande>
+              Ver todo lo que hace
             </BotonLink>
             <BotonLink href="/panel" variante="secundario" grande>
               Entrar al panel

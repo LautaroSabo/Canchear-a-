@@ -201,3 +201,10 @@ describe('administración de la plataforma', () => {
     );
   });
 });
+
+describe('GET /public/plataforma', () => {
+  it('precio del abono y días de prueba para la página de venta', async () => {
+    const res = await ctx.app.inject('/public/plataforma');
+    expect(res.json()).toEqual({ abonoMensual: 2_500_000, diasPrueba: 15 });
+  });
+});
