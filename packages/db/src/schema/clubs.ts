@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import {
   bigint,
   boolean,
@@ -79,6 +80,12 @@ export const usuarios = pgTable('usuarios', {
   /** Términos aceptados al registrar el club (null: cuenta creada por otro usuario o CLI). */
   terminosVersion: text(),
   terminosAceptadosEn: ts(),
+  /** Verificación en dos pasos: secreto TOTP (base32); vale cuando hay totpActivoDesde. */
+  totpSecreto: text(),
+  totpActivoDesde: ts(),
+  totpUltimoPaso: bigint({ mode: 'number' }),
+  /** Hash sha256 (hex) de los códigos de recuperación sin usar. */
+  codigosRecuperacion: text().array().notNull().default(sql`'{}'::text[]`),
   creadoEn: ts().notNull().defaultNow(),
 });
 
@@ -102,6 +109,16 @@ export const sesiones = pgTable('sesiones', {
   renovadaEn: ts().notNull().defaultNow(),
   ip: inet(),
   userAgent: text(),
+});
+
+/** Login con contraseña correcta que todavía espera el código de dos pasos. */
+export const desafiosDosPasos = pgTable('desafios_dos_pasos', {
+  id: uuid().primaryKey().defaultRandom(),
+  usuarioId: uuid().notNull(),
+  tokenHash: bytea().notNull().unique(),
+  expiraEn: ts().notNull(),
+  intentos: smallint().notNull().default(0),
+  creadoEn: ts().notNull().defaultNow(),
 });
 
 export const miembrosClub = pgTable(

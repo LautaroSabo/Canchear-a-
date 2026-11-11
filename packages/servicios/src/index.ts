@@ -32,5 +32,6 @@ export * from './recordatorios.ts';
 export * from './reembolsos.ts';
 export * from './reportes.ts';
 export * from './torneos.ts';
+export * from './totp.ts';
 export * from './turnos.ts';
 export * from './turnos-fijos.ts';

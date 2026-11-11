@@ -1,9 +1,17 @@
 import { createHash, randomBytes, type ScryptOptions, scrypt, timingSafeEqual } from 'node:crypto';
 import { violaUnique } from '@cancheria/db';
-import { clubs, miembrosClub, restablecimientos, sesiones, usuarios } from '@cancheria/db/schema';
+import {
+  clubs,
+  desafiosDosPasos,
+  miembrosClub,
+  restablecimientos,
+  sesiones,
+  usuarios,
+} from '@cancheria/db/schema';
 import { and, eq, gt, isNull, lt, ne } from 'drizzle-orm';
-import type { Entorno } from './entorno.ts';
+import type { Ejecutor, Entorno } from './entorno.ts';
 import { ErrorNegocio } from './errores.ts';
+import { nuevoSecretoTotp, uriTotp, verificarTotp } from './totp.ts';
 
 export type Rol = 'OWNER' | 'ADMIN' | 'RECEPCION';
 
@@ -56,6 +64,22 @@ const hashToken = (token: string) => createHash('sha256').update(token).digest()
 
 const DURACION_RESTABLECIMIENTO_MS = 60 * 60_000;
 
+const DURACION_DESAFIO_MS = 5 * 60_000;
+const INTENTOS_DESAFIO = 5;
+const CODIGOS_RECUPERACION = 8;
+
+/** "K7QM-2XPV": sin letras que se confunden (0/O, 1/I/L). */
+function nuevoCodigoRecuperacion() {
+  const letras = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  const b = randomBytes(8);
+  const c = Array.from(b, (x) => letras[x % letras.length]).join('');
+  return `${c.slice(0, 4)}-${c.slice(4)}`;
+}
+const hashRecuperacion = (codigo: string) =>
+  createHash('sha256')
+    .update(codigo.toUpperCase().replace(/[^A-Z0-9]/g, ''))
+    .digest('hex');
+
 export interface UsuarioSesion {
   id: string;
   email: string;
@@ -96,10 +120,28 @@ export class ServicioAuth {
     if (!u || !ok || !u.activo) {
       throw new ErrorNegocio(401, 'CREDENCIALES_INVALIDAS', 'Email o contraseña incorrectos');
     }
+    // Con verificación en dos pasos: todavía no hay sesión, falta el código del celular.
+    if (u.totpActivoDesde) {
+      const desafio = randomBytes(32).toString('base64url');
+      await this.e.db.delete(desafiosDosPasos).where(lt(desafiosDosPasos.expiraEn, this.e.reloj()));
+      await this.e.db.insert(desafiosDosPasos).values({
+        usuarioId: u.id,
+        tokenHash: hashToken(desafio),
+        expiraEn: new Date(this.e.reloj().getTime() + DURACION_DESAFIO_MS),
+      });
+      return { dosPasos: true as const, desafio, token: undefined };
+    }
+    return this.abrirSesion(u, meta);
+  }
 
+  private async abrirSesion(
+    u: { id: string; email: string; nombre: string; esSuperadmin: boolean },
+    meta: { ip?: string | undefined; userAgent?: string | undefined },
+    db: Ejecutor = this.e.db,
+  ) {
     const token = randomBytes(32).toString('base64url');
     const expiraEn = new Date(this.e.reloj().getTime() + DURACION_SESION_MS);
-    await this.e.db.insert(sesiones).values({
+    await db.insert(sesiones).values({
       usuarioId: u.id,
       tokenHash: hashToken(token),
       expiraEn,
@@ -108,10 +150,153 @@ export class ServicioAuth {
       userAgent: meta.userAgent?.slice(0, 300) ?? null,
     });
     return {
+      dosPasos: false as const,
       token,
       expiraEn,
       usuario: { id: u.id, email: u.email, nombre: u.nombre, esSuperadmin: u.esSuperadmin },
     };
+  }
+
+  /**
+   * Segundo paso del login: el código de la app autenticadora (o uno de recuperación).
+   * Cada desafío dura 5 minutos y admite 5 intentos; después hay que volver a poner la
+   * contraseña (que tiene su propio límite de intentos).
+   */
+  async loginDosPasos(
+    desafio: string,
+    codigo: string,
+    meta: { ip?: string | undefined; userAgent?: string | undefined } = {},
+  ) {
+    const ahora = this.e.reloj();
+    const r = await this.e.db.transaction(async (tx) => {
+      const [d] = await tx
+        .select()
+        .from(desafiosDosPasos)
+        .where(and(eq(desafiosDosPasos.tokenHash, hashToken(desafio)), gt(desafiosDosPasos.expiraEn, ahora)))
+        .for('update');
+      if (!d || d.intentos >= INTENTOS_DESAFIO) {
+        throw new ErrorNegocio(
+          401,
+          'DESAFIO_VENCIDO',
+          'Se venció el tiempo para poner el código. Volvé a entrar.',
+        );
+      }
+      const [u] = await tx.select().from(usuarios).where(eq(usuarios.id, d.usuarioId)).for('update');
+      if (!u?.activo || !u.totpSecreto || !u.totpActivoDesde) {
+        throw new ErrorNegocio(401, 'DESAFIO_VENCIDO', 'Volvé a entrar.');
+      }
+      const paso = verificarTotp(u.totpSecreto, codigo, ahora, u.totpUltimoPaso ?? null);
+      const recuperacion = paso === null ? hashRecuperacion(codigo) : null;
+      const usaRecuperacion = recuperacion !== null && u.codigosRecuperacion.includes(recuperacion);
+      if (paso === null && !usaRecuperacion) {
+        await tx
+          .update(desafiosDosPasos)
+          .set({ intentos: d.intentos + 1 })
+          .where(eq(desafiosDosPasos.id, d.id));
+        // El intento fallido queda guardado (se confirma la transacción) y recién después se avisa.
+        return null;
+      }
+      await tx
+        .update(usuarios)
+        .set(
+          paso !== null
+            ? { totpUltimoPaso: paso }
+            : { codigosRecuperacion: u.codigosRecuperacion.filter((c) => c !== recuperacion) },
+        )
+        .where(eq(usuarios.id, u.id));
+      await tx.delete(desafiosDosPasos).where(eq(desafiosDosPasos.id, d.id));
+      const sesion = await this.abrirSesion(u, meta, tx);
+      return { ...sesion, codigosRestantes: usaRecuperacion ? u.codigosRecuperacion.length - 1 : undefined };
+    });
+    if (!r) {
+      throw new ErrorNegocio(
+        401,
+        'CODIGO_INVALIDO',
+        'El código no es correcto. Fijate el que muestra la app ahora.',
+      );
+    }
+    return r;
+  }
+
+  // --- Verificación en dos pasos: activar y desactivar ---------------------------
+
+  async estadoDosPasos(usuarioId: string) {
+    const [u] = await this.e.db
+      .select({ activo: usuarios.totpActivoDesde, codigos: usuarios.codigosRecuperacion })
+      .from(usuarios)
+      .where(eq(usuarios.id, usuarioId));
+    return {
+      activa: Boolean(u?.activo),
+      desde: u?.activo ?? null,
+      codigosRecuperacion: u?.codigos.length ?? 0,
+    };
+  }
+
+  /** Genera el secreto (todavía sin activar) para mostrar el QR. */
+  async prepararDosPasos(usuarioId: string) {
+    const [u] = await this.e.db
+      .select({ email: usuarios.email, activo: usuarios.totpActivoDesde })
+      .from(usuarios)
+      .where(eq(usuarios.id, usuarioId));
+    if (!u) throw new ErrorNegocio(404, 'USUARIO_NO_ENCONTRADO', 'No existe ese usuario');
+    if (u.activo) throw new ErrorNegocio(409, 'YA_ACTIVA', 'La verificación en dos pasos ya está activada');
+    const secreto = nuevoSecretoTotp();
+    await this.e.db.update(usuarios).set({ totpSecreto: secreto }).where(eq(usuarios.id, usuarioId));
+    return { secreto, uri: uriTotp(secreto, u.email) };
+  }
+
+  /** Con el primer código de la app queda activa; devuelve los códigos de recuperación (se ven una vez). */
+  async activarDosPasos(usuarioId: string, sesionId: string, codigo: string) {
+    const [u] = await this.e.db.select().from(usuarios).where(eq(usuarios.id, usuarioId));
+    if (!u?.totpSecreto) throw new ErrorNegocio(409, 'SIN_PREPARAR', 'Primero escaneá el código QR');
+    if (u.totpActivoDesde)
+      throw new ErrorNegocio(409, 'YA_ACTIVA', 'La verificación en dos pasos ya está activada');
+    const paso = verificarTotp(u.totpSecreto, codigo, this.e.reloj(), null);
+    if (paso === null) {
+      throw new ErrorNegocio(
+        422,
+        'CODIGO_INVALIDO',
+        'El código no es correcto. Fijate que la hora del celular esté bien.',
+      );
+    }
+    const codigos = Array.from({ length: CODIGOS_RECUPERACION }, nuevoCodigoRecuperacion);
+    await this.e.db.transaction(async (tx) => {
+      await tx
+        .update(usuarios)
+        .set({
+          totpActivoDesde: this.e.reloj(),
+          totpUltimoPaso: paso,
+          codigosRecuperacion: codigos.map(hashRecuperacion),
+        })
+        .where(eq(usuarios.id, usuarioId));
+      // Las otras sesiones abiertas (sin verificar) se cierran.
+      await tx.delete(sesiones).where(and(eq(sesiones.usuarioId, usuarioId), ne(sesiones.id, sesionId)));
+    });
+    return { codigosRecuperacion: codigos };
+  }
+
+  /** Desactivarla pide la contraseña y un código: quien agarra una sesión abierta no puede. */
+  async desactivarDosPasos(usuarioId: string, contrasena: string, codigo: string) {
+    const [u] = await this.e.db.select().from(usuarios).where(eq(usuarios.id, usuarioId));
+    if (!u?.totpActivoDesde || !u.totpSecreto) {
+      throw new ErrorNegocio(409, 'NO_ACTIVA', 'La verificación en dos pasos no está activada');
+    }
+    if (!(await verificarContrasena(contrasena, u.passwordHash))) {
+      throw new ErrorNegocio(422, 'CONTRASENA_ACTUAL_INCORRECTA', 'La contraseña no es correcta');
+    }
+    const okCodigo =
+      verificarTotp(u.totpSecreto, codigo, this.e.reloj(), u.totpUltimoPaso ?? null) !== null ||
+      u.codigosRecuperacion.includes(hashRecuperacion(codigo));
+    if (!okCodigo) throw new ErrorNegocio(422, 'CODIGO_INVALIDO', 'El código no es correcto');
+    await this.quitarDosPasos(usuarioId);
+  }
+
+  /** Para quien perdió el celular y los códigos (CLI o superadmin). */
+  async quitarDosPasos(usuarioId: string) {
+    await this.e.db
+      .update(usuarios)
+      .set({ totpSecreto: null, totpActivoDesde: null, totpUltimoPaso: null, codigosRecuperacion: [] })
+      .where(eq(usuarios.id, usuarioId));
   }
 
   /** Usuario de una sesión vigente (sliding: se extiende mientras se use). */

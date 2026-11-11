@@ -6,6 +6,15 @@ export const cuerpoLogin = z.object({
   contrasena: z.string().min(1).max(200),
 });
 
+/** Código de 6 dígitos de la app, o uno de recuperación ("K7QM-2XPV"). */
+const codigoDosPasos = z.string().trim().min(6).max(20);
+export const cuerpoLoginDosPasos = z.object({ desafio: z.string().min(20).max(100), codigo: codigoDosPasos });
+export const cuerpoCodigoDosPasos = z.object({ codigo: codigoDosPasos });
+export const cuerpoDesactivarDosPasos = z.object({
+  contrasena: z.string().min(1).max(200),
+  codigo: codigoDosPasos,
+});
+
 const centavos = z.number().int().min(0).max(100_000_000);
 
 export const queryAgenda = z.object({

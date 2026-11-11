@@ -30,6 +30,7 @@ Qué protege la app, cómo está verificado y qué queda por hacer.
   Mercado Pago de los clubes.
 - **Usuario de la base:** no compartas la URL pública de Postgres. Usala solo para los
   comandos `pnpm superadmin`, `club:crear` y `usuario:contrasena`.
+- **Verificación en dos pasos:** cada usuario del panel la puede activar en *Mi cuenta* (app autenticadora, TOTP). Recomendada para el dueño y el superadmin. Si alguien pierde el celular y los códigos de recuperación: `pnpm usuario:sin-dos-pasos <email>` (confirmá antes por otro medio que es la persona).
 - **Errores:** aviso por mail con Sentry, sin datos personales. Ver [errores.md](errores.md).
 - **Backups:** backups de Railway + copia diaria cifrada en GitHub, probada con una restauración cada vez. Ver [backups.md](backups.md).
 - **Tu cuenta de superadmin:** usá una contraseña larga y única, y no la compartas: da

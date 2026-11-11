@@ -43,11 +43,14 @@ import {
   cuerpoCheckin,
   cuerpoCierreCaja,
   cuerpoClub,
+  cuerpoCodigoDosPasos,
   cuerpoContrasena,
+  cuerpoDesactivarDosPasos,
   cuerpoDiaEspecial,
   cuerpoHorarios,
   cuerpoInvitar,
   cuerpoLogin,
+  cuerpoLoginDosPasos,
   cuerpoMercadoPago,
   cuerpoModificarFijo,
   cuerpoPago,
@@ -176,8 +179,29 @@ export const rutasAdmin: FastifyPluginAsync<Opciones> = async (app, o) => {
         throw err;
       }
       fallas.delete(clave);
+      // Verificación en dos pasos: sin cookie todavía; el front pide el código.
+      if (r.dosPasos) return { dosPasos: true, desafio: r.desafio };
       setCookieSesion(reply, r.token, r.expiraEn, o.config);
       return { usuario: r.usuario, clubs: await o.auth.clubsDe(r.usuario.id), ...abonoPublico(o.config) };
+    },
+  );
+
+  app.post(
+    '/auth/login/dos-pasos',
+    { config: { rateLimit: { max: o.config.loginsPorMinuto, timeWindow: '1 minute' } } },
+    async (req, reply) => {
+      const { desafio, codigo } = cuerpoLoginDosPasos.parse(req.body);
+      const r = await o.auth.loginDosPasos(desafio, codigo, {
+        ip: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+      setCookieSesion(reply, r.token, r.expiraEn, o.config);
+      return {
+        usuario: r.usuario,
+        clubs: await o.auth.clubsDe(r.usuario.id),
+        ...abonoPublico(o.config),
+        ...(r.codigosRestantes !== undefined ? { codigosRecuperacionRestantes: r.codigosRestantes } : {}),
+      };
     },
   );
 
@@ -196,6 +220,23 @@ export const rutasAdmin: FastifyPluginAsync<Opciones> = async (app, o) => {
       clubs: await o.auth.clubsDe(u.id),
       ...abonoPublico(o.config),
     };
+  });
+
+  // Verificación en dos pasos de la cuenta propia.
+  app.get('/auth/dos-pasos', { preHandler: exigirSesion(o.auth) }, async (req) =>
+    o.auth.estadoDosPasos(usuarioDe(req).id),
+  );
+  app.post('/auth/dos-pasos/preparar', { preHandler: exigirSesion(o.auth) }, async (req) =>
+    o.auth.prepararDosPasos(usuarioDe(req).id),
+  );
+  app.post('/auth/dos-pasos/activar', { preHandler: exigirSesion(o.auth) }, async (req) => {
+    const u = usuarioDe(req);
+    return o.auth.activarDosPasos(u.id, u.sesionId, cuerpoCodigoDosPasos.parse(req.body).codigo);
+  });
+  app.post('/auth/dos-pasos/desactivar', { preHandler: exigirSesion(o.auth) }, async (req, reply) => {
+    const { contrasena, codigo } = cuerpoDesactivarDosPasos.parse(req.body);
+    await o.auth.desactivarDosPasos(usuarioDe(req).id, contrasena, codigo);
+    return reply.status(204).send();
   });
 
   app.post('/auth/contrasena', { preHandler: exigirSesion(o.auth) }, async (req, reply) => {

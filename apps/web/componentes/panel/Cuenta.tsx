@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { mensajeDe, panel } from '@/lib/api';
 import { Aviso, Boton, Campo, Tarjeta } from '../ui';
 import { AbonoAutomatico } from './AbonoAutomatico';
+import { DosPasos } from './DosPasos';
 import { InstalarApp } from './InstalarApp';
 import { useSesion } from './sesion';
 
@@ -26,6 +27,7 @@ export function Cuenta() {
         <div className="text-sm text-medio">{usuario?.email}</div>
       </Tarjeta>
       <AbonoAutomatico />
+      <DosPasos />
       <InstalarApp />
       <Tarjeta>
         <form

@@ -16,6 +16,7 @@
     "superadmin": "pnpm --filter @cancheria/api superadmin",
     "club:crear": "pnpm --filter @cancheria/api club:crear",
     "usuario:contrasena": "pnpm --filter @cancheria/api usuario:contrasena",
+    "usuario:sin-dos-pasos": "pnpm --filter @cancheria/api usuario:sin-dos-pasos",
     "aviso:prueba": "pnpm --filter @cancheria/api aviso:prueba",
     "usuario:crear": "pnpm --filter @cancheria/api admin:crear-usuario",
     "demo:preparar": "pnpm db:migrate && pnpm db:seed && pnpm --filter @cancheria/api demo:usuario",

@@ -102,6 +102,8 @@ export async function rutasPlataforma(app: FastifyInstance, o: Opciones) {
       ip: req.ip,
       userAgent: req.headers['user-agent'],
     });
+    // Una cuenta recién creada no tiene verificación en dos pasos.
+    if (r.dosPasos) throw new Error('cuenta nueva con dos pasos');
     setCookieSesion(reply, r.token, r.expiraEn, o.config);
     req.log.info({ clubId, slug: datos.club.slug }, 'club nuevo registrado: espera aprobación');
     // El aviso sale en segundo plano: si el mail falla, el alta igual queda (y se ve en el panel).
