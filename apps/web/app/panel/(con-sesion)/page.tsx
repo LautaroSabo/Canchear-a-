@@ -12,7 +12,10 @@ export default function InicioPanel() {
   const primero = data?.clubs[0];
   const superadmin = data?.usuario.esSuperadmin;
   useEffect(() => {
-    if (primero) router.replace(`/panel/${primero.id}/agenda`);
+    // Accesos directos de la app instalada: /panel?ir=checkin.
+    const ir = new URLSearchParams(window.location.search).get('ir');
+    const destino = ir && ['checkin', 'caja', 'cantina'].includes(ir) ? ir : 'agenda';
+    if (primero) router.replace(`/panel/${primero.id}/${destino}`);
     else if (superadmin) router.replace('/panel/plataforma');
   }, [primero, superadmin, router]);
   if (data && !primero && !superadmin) {
