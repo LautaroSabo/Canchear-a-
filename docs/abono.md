@@ -9,8 +9,9 @@ quede registrado:
 2. **A mano**: el club te paga por transferencia y vos registrás el pago en *Plataforma*.
 3. **Prueba gratis** al aprobar un club (`DIAS_PRUEBA`, 15 por defecto).
 
-Si el abono queda vencido más de `DIAS_GRACIA_ABONO` días (5 por defecto), el worker
-**suspende el club solo**: su página se sigue viendo pero no toma reservas, y el panel le
+Si prendés la suspensión automática (`SUSPENSION_AUTOMATICA=1` en el worker) y el abono
+queda vencido más de `DIAS_GRACIA_ABONO` días (5 por defecto), el worker **suspende el club
+solo**: su página se sigue viendo pero no toma reservas, y el panel le
 avisa por qué. Cuando entra un pago (automático o a mano), **se reactiva solo**. Una
 suspensión que hiciste vos a mano no se levanta con un pago.
 
@@ -47,9 +48,12 @@ Sin `MP_ABONO_ACCESS_TOKEN` el botón no aparece y todo sigue como antes (pago a
 En el servicio **worker**:
 
 ```
+SUSPENSION_AUTOMATICA=1      # prenderla (por defecto está apagada)
 DIAS_GRACIA_ABONO=5          # días después del vencimiento hasta suspender
-SUSPENSION_AUTOMATICA=0      # para apagarla (por defecto está prendida)
 ```
+
+Antes de prenderla, mirá en *Plataforma* el vencimiento de cada club: los que ya estén
+vencidos hace más de los días de gracia se suspenden en la primera revisión.
 
 Revisa cada 6 horas. Solo toca clubes que tienen fecha de abono (los aprobados con prueba
 o con algún pago registrado). Para un club que no querés que pague (el tuyo de prueba, un

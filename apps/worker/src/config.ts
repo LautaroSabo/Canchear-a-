@@ -19,8 +19,8 @@ const esquema = z.object({
   SENTRY_DSN: z.url().optional(),
   /** Días después del vencimiento del abono hasta suspender el club solo. */
   DIAS_GRACIA_ABONO: z.coerce.number().int().min(0).max(60).default(5),
-  /** "0" apaga la suspensión automática por abono vencido. */
-  SUSPENSION_AUTOMATICA: z.enum(['0', '1']).default('1'),
+  /** "1" prende la suspensión automática por abono vencido (apagada por defecto). */
+  SUSPENSION_AUTOMATICA: z.enum(['0', '1']).default('0'),
 });
 
 export function cargarConfig(env: NodeJS.ProcessEnv = process.env) {
