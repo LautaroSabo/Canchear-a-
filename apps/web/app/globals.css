@@ -187,3 +187,21 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* Cartel con QR: al imprimir, solo la hoja (sin el menú ni los botones del panel). */
+@media print {
+  body:has(#cartel-imprimible) * {
+    visibility: hidden;
+  }
+  body:has(#cartel-imprimible) #cartel-imprimible,
+  body:has(#cartel-imprimible) #cartel-imprimible * {
+    visibility: visible;
+  }
+  body:has(#cartel-imprimible) #cartel-imprimible {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

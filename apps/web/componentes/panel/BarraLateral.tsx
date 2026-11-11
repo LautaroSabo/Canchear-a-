@@ -42,6 +42,7 @@ const GRUPOS: { nombre: string; secciones: Seccion[] }[] = [
     nombre: 'Club',
     secciones: [
       { ruta: 'reportes', nombre: 'Reportes', rol: 'ADMIN' },
+      { ruta: 'cartel', nombre: 'Cartel con QR', corto: 'Cartel', rol: 'RECEPCION' },
       { ruta: 'configuracion', nombre: 'Configuración', rol: 'ADMIN' },
       { ruta: 'cuenta', nombre: 'Mi cuenta', rol: 'RECEPCION' },
     ],
