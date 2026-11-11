@@ -21,6 +21,8 @@ const esquema = z.object({
   DIAS_GRACIA_ABONO: z.coerce.number().int().min(0).max(60).default(5),
   /** "1" prende la suspensión automática por abono vencido (apagada por defecto). */
   SUSPENSION_AUTOMATICA: z.enum(['0', '1']).default('0'),
+  /** Cuenta de MP de la plataforma (la misma que la API): para actualizar el monto de las suscripciones. */
+  MP_ABONO_ACCESS_TOKEN: z.string().optional(),
 });
 
 export function cargarConfig(env: NodeJS.ProcessEnv = process.env) {
@@ -51,6 +53,7 @@ export function cargarConfig(env: NodeJS.ProcessEnv = process.env) {
     desarrollo: e.NODE_ENV !== 'production',
     nivelLog: e.LOG_LEVEL,
     sentryDsn: e.SENTRY_DSN,
+    mpAbonoToken: e.MP_ABONO_ACCESS_TOKEN?.trim() || null,
     suspension: e.SUSPENSION_AUTOMATICA === '1' ? { diasGracia: e.DIAS_GRACIA_ABONO } : null,
     logsLegibles: e.NODE_ENV === 'development' && Boolean(process.stdout.isTTY),
     intervalos: {
@@ -63,6 +66,7 @@ export function cargarConfig(env: NodeJS.ProcessEnv = process.env) {
       recordatoriosMs: 5 * 60_000,
       partidosTorneoMs: 15 * 60_000,
       abonosVencidosMs: 6 * 60 * 60_000,
+      montosAbonoMs: 6 * 60 * 60_000,
     },
   };
 }

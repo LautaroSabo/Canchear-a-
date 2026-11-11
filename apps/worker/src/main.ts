@@ -10,11 +10,14 @@ import {
   Despachador,
   iniciarAvisoErrores,
   PasarelaMpHttp,
+  PasarelaSuscripcionesHttp,
   RepoClubs,
+  ServicioAbono,
   ServicioAuth,
   ServicioExpiracion,
   ServicioListaEspera,
   ServicioPagos,
+  ServicioPlanes,
   ServicioPlataforma,
   ServicioRecordatorios,
   ServicioReembolsos,
@@ -75,6 +78,13 @@ const turnosFijos = new ServicioTurnosFijos({ ...entorno, clubs, listaEspera });
 const recordatorios = new ServicioRecordatorios(entorno);
 const torneos = new ServicioTorneos({ ...entorno, clubs });
 const plataforma = new ServicioPlataforma(entorno);
+const abono = new ServicioAbono({
+  ...entorno,
+  plataforma,
+  planes: new ServicioPlanes(entorno),
+  pasarela: new PasarelaSuscripcionesHttp(),
+  token: config.mpAbonoToken,
+});
 
 const programador = new Programador(
   [
@@ -113,6 +123,17 @@ const programador = new Programador(
       cadaMs: config.intervalos.partidosTorneoMs,
       ejecutar: () => torneos.recordarPartidos(),
     },
+    ...(config.mpAbonoToken
+      ? [
+          {
+            // Si a un club le cambió el precio (sumó canchas, venció la promo, se
+            // actualizaron los planes), se actualiza el débito automático en MP.
+            nombre: 'sincronizar-montos-abono',
+            cadaMs: config.intervalos.montosAbonoMs,
+            ejecutar: () => abono.sincronizarMontos(),
+          },
+        ]
+      : []),
     ...(config.suspension
       ? [
           {

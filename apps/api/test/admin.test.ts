@@ -50,6 +50,8 @@ describe('sesión', () => {
         estado: 'ACTIVO',
         motivoSuspension: null,
         abonoHasta: null,
+        // Lo que paga de abono: el club demo tiene 3 canchas (plan Chico).
+        abono: { precio: 3_990_000, plan: 'Chico', canchas: 3 },
       },
     ]);
     const c = res.cookies.find((x) => x.name === 'cancheria_sesion');

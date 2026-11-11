@@ -69,7 +69,7 @@ const PASOS = [
 
 export default async function PaginaClubes() {
   await connection(); // el precio se lee en cada visita (de la configuración de la API)
-  const { abonoMensual, diasPrueba } = await cargarPlataforma();
+  const { planes, diasPrueba } = await cargarPlataforma();
   const contacto = process.env.LEGAL_CONTACTO?.trim();
   const prueba = diasPrueba > 0 ? `Probalo gratis ${diasPrueba} días` : 'Registrá tu club';
 
@@ -190,19 +190,44 @@ export default async function PaginaClubes() {
             </p>
           </div>
           <div className="border border-acento-texto bg-superficie p-6">
-            {abonoMensual ? (
+            {planes.length ? (
               <>
-                <p className="text-sm text-tenue">Abono mensual</p>
-                <p className="cifras font-display text-[64px] leading-none font-extrabold">
-                  {pesos(abonoMensual)}
-                </p>
-                <p className="mt-1 text-sm text-tenue">por mes, por club</p>
+                <p className="text-sm text-tenue">Según cuántas canchas tenés</p>
+                <table className="mt-3 w-full text-left">
+                  <tbody className="cifras">
+                    {planes.map((p, i) => {
+                      const siguiente = planes[i + 1];
+                      const hasta = siguiente ? siguiente.desdeCanchas - 1 : null;
+                      const canchas =
+                        hasta === null
+                          ? `${p.desdeCanchas} o más canchas`
+                          : p.desdeCanchas === hasta
+                            ? `${hasta} ${hasta === 1 ? 'cancha' : 'canchas'}`
+                            : `${p.desdeCanchas} a ${hasta} canchas`;
+                      return (
+                        <tr key={p.desdeCanchas} className="border-b border-linea last:border-b-0">
+                          <th scope="row" className="py-3 pr-3 font-normal">
+                            <span className="block font-bold">{p.nombre}</span>
+                            <span className="text-sm text-tenue">{canchas}</span>
+                          </th>
+                          <td className="py-3 text-right">
+                            <span className="font-display text-[36px] leading-none font-extrabold">
+                              {pesos(p.precio)}
+                            </span>
+                            <span className="block text-sm text-tenue">por mes</span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </>
             ) : (
               <p className="text-lg font-semibold">Escribinos y te pasamos el precio para tu club.</p>
             )}
             <ul className="mt-5 flex flex-col gap-1.5 text-sm">
               {diasPrueba > 0 ? <li>✓ {diasPrueba} días gratis para probarlo con tus clientes</li> : null}
+              <li>✓ Pagando el año, 2 meses gratis</li>
               <li>✓ Sin permanencia: lo dejás cuando quieras</li>
               <li>✓ La plata de las señas va directo a tu cuenta</li>
               <li>✓ Copia de seguridad diaria de tus datos</li>

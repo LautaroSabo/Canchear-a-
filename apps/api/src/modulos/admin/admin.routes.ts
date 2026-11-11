@@ -20,6 +20,7 @@ import {
   type ServicioFidelizacion,
   type ServicioOperacion,
   type ServicioPagos,
+  type ServicioPlanes,
   type ServicioPlataforma,
   type ServicioReembolsos,
   type ServicioReportes,
@@ -99,7 +100,7 @@ import {
   queryTransferencias,
   queryVentas,
 } from './esquemas.ts';
-import { abonoPublico, rutasPlataforma } from './plataforma.routes.ts';
+import { abonoPublico, conAbono, rutasPlataforma } from './plataforma.routes.ts';
 import {
   COOKIE_SESION,
   clubIdDe,
@@ -113,6 +114,7 @@ import { rutasTorneos } from './torneos.routes.ts';
 
 interface Opciones {
   captcha: VerificadorCaptcha;
+  planes: ServicioPlanes;
   db: Db;
   config: Config;
   auth: ServicioAuth;
@@ -184,7 +186,11 @@ export const rutasAdmin: FastifyPluginAsync<Opciones> = async (app, o) => {
       // Verificación en dos pasos: sin cookie todavía; el front pide el código.
       if (r.dosPasos) return { dosPasos: true, desafio: r.desafio };
       setCookieSesion(reply, r.token, r.expiraEn, o.config);
-      return { usuario: r.usuario, clubs: await o.auth.clubsDe(r.usuario.id), ...abonoPublico(o.config) };
+      return {
+        usuario: r.usuario,
+        clubs: await conAbono(o.planes, await o.auth.clubsDe(r.usuario.id)),
+        ...abonoPublico(o.config),
+      };
     },
   );
 
@@ -200,7 +206,7 @@ export const rutasAdmin: FastifyPluginAsync<Opciones> = async (app, o) => {
       setCookieSesion(reply, r.token, r.expiraEn, o.config);
       return {
         usuario: r.usuario,
-        clubs: await o.auth.clubsDe(r.usuario.id),
+        clubs: await conAbono(o.planes, await o.auth.clubsDe(r.usuario.id)),
         ...abonoPublico(o.config),
         ...(r.codigosRestantes !== undefined ? { codigosRecuperacionRestantes: r.codigosRestantes } : {}),
       };
@@ -219,7 +225,7 @@ export const rutasAdmin: FastifyPluginAsync<Opciones> = async (app, o) => {
     const u = usuarioDe(req);
     return {
       usuario: { id: u.id, email: u.email, nombre: u.nombre, esSuperadmin: u.esSuperadmin },
-      clubs: await o.auth.clubsDe(u.id),
+      clubs: await conAbono(o.planes, await o.auth.clubsDe(u.id)),
       ...abonoPublico(o.config),
     };
   });

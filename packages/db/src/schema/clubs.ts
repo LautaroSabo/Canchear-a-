@@ -48,6 +48,14 @@ export const clubs = pgTable('clubs', {
   mpSuscripcionEmail: text(),
   /** La suspendió el sistema por abono vencido: se reactiva sola cuando entra el pago. */
   suspendidoPorAbono: boolean().notNull().default(false),
+  /** Precio especial del abono: % de descuento sobre su plan, o un precio fijo (centavos). */
+  abonoDescuentoPct: smallint(),
+  abonoPrecioFijo: bigint({ mode: 'number' }),
+  /** Último día con el precio especial (null: sin vencimiento). */
+  abonoEspecialHasta: date({ mode: 'string' }),
+  abonoEspecialMotivo: text(),
+  /** Monto actual de la suscripción de MP (centavos). */
+  mpSuscripcionMonto: bigint({ mode: 'number' }),
   /** Último día cubierto por el abono mensual (incluye la prueba). */
   abonoHasta: date({ mode: 'string' }),
 });
@@ -68,6 +76,16 @@ export const pagosAbono = pgTable('pagos_abono', {
   /** Id del pago en Mercado Pago (cobro automático): se registra una sola vez. */
   mpPagoId: text().unique(),
   creadoEn: ts().notNull().defaultNow(),
+});
+
+/** Planes del abono según las canchas activas: vale desde `desdeCanchas` hasta el siguiente. */
+export const planesAbono = pgTable('planes_abono', {
+  id: uuid().primaryKey().defaultRandom(),
+  nombre: text().notNull(),
+  desdeCanchas: integer().notNull().unique(),
+  /** centavos por mes */
+  precio: bigint({ mode: 'number' }).notNull(),
+  actualizadoEn: ts().notNull().defaultNow(),
 });
 
 export const usuarios = pgTable('usuarios', {

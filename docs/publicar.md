@@ -190,11 +190,10 @@ el comando la crea y muestra la contraseña **una sola vez**. Con ese usuario en
 Para que cada club vea cuánto y cómo pagarte, en la **api** agregá:
 
 ```
-ABONO_MENSUAL=25000
 ABONO_COMO_PAGAR=Transferí al alias tu.alias.abono y mandanos el comprobante por WhatsApp.
 ```
 
-`ABONO_MENSUAL` va en pesos.
+El precio de cada club sale de los planes por cantidad de canchas, que editás en *Plataforma* (ver [abono.md](abono.md)).
 
 ### Mails a los clientes
 

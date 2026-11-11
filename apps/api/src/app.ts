@@ -22,6 +22,7 @@ import {
   ServicioListaEspera,
   ServicioOperacion,
   ServicioPagos,
+  ServicioPlanes,
   ServicioPlataforma,
   ServicioReembolsos,
   ServicioReportes,
@@ -154,12 +155,13 @@ export async function construirApp({
   const torneos = new ServicioTorneos({ ...entorno, clubs });
   const consultas = new ConsultasAdmin(db, reloj);
   const plataforma = new ServicioPlataforma(entorno);
+  const planes = new ServicioPlanes(entorno);
   const abono = new ServicioAbono({
     ...entorno,
     plataforma,
     pasarela: pasarelaSuscripciones,
+    planes,
     token: config.mpAbono.token,
-    abonoMensual: config.abonoMensual,
   });
 
   app.get('/health', async () => {
@@ -178,6 +180,7 @@ export async function construirApp({
     sse,
     torneos,
     captcha,
+    planes,
     config,
   });
   await app.register(rutasWebhooks, { prefix: '/webhooks', clubs, pagos, db, cifrador, abono, config });
@@ -188,6 +191,7 @@ export async function construirApp({
     auth,
     abono,
     captcha,
+    planes,
     caja,
     cantina,
     clubs,

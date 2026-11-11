@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { mensajeDe, panel } from '@/lib/api';
 import { fechaCorta, linkWhatsApp, pesos, sumarDias, telefonoLegible } from '@/lib/formato';
-import type { ClubPlataforma, PagoAbono } from '@/lib/tipos';
+import type { ClubPlataforma, PagoAbono, PlanAbono } from '@/lib/tipos';
 import {
   Aviso,
   Boton,
@@ -16,14 +16,19 @@ import {
   EstadoVacio,
   Insignia,
   Pestanas,
+  Segmentado,
   Selector,
+  Tarjeta,
   type Tono,
 } from '../ui';
 import { Dialogo } from './Dialogo';
 import { useSesion } from './sesion';
 
 type Filtro = 'pendientes' | 'activos' | 'vencidos' | 'suspendidos' | 'todos';
-type Accion = { tipo: 'aprobar' | 'suspender' | 'pago' | 'contrasena'; club: ClubPlataforma } | null;
+type Accion = {
+  tipo: 'aprobar' | 'suspender' | 'pago' | 'contrasena' | 'especial';
+  club: ClubPlataforma;
+} | null;
 
 const MEDIOS = {
   TRANSFERENCIA: 'Transferencia',
@@ -101,6 +106,7 @@ export function Plataforma() {
           bajada="Aprobá los clubes nuevos, registrá los pagos del abono y pausá a quien no pague."
         />
         {aviso ? <Aviso tipo="ok">{aviso}</Aviso> : null}
+        <EditorPlanes alGuardar={setAviso} />
         <Pestanas
           id="plataforma"
           etiqueta="Filtrar clubes"
@@ -133,7 +139,6 @@ export function Plataforma() {
 
       <DialogoAccion
         accion={accion}
-        abonoMensual={sesion.data?.abonoMensual ?? null}
         alCerrar={() => setAccion(null)}
         alHacer={(m) => {
           setAccion(null);
@@ -196,6 +201,26 @@ function FilaClub({ c, hoy, alElegir }: { c: ClubPlataforma; hoy: string; alEleg
               </>
             ) : null}
           </p>
+          {c.abono?.plan ? (
+            <p className="mt-1 text-sm">
+              Plan <strong>{c.abono.plan.nombre}</strong> ({c.abono.canchas}{' '}
+              {c.abono.canchas === 1 ? 'cancha activa' : 'canchas activas'}) ·{' '}
+              <strong className="cifras">{pesos(c.abono.precio ?? 0)}/mes</strong>
+              {c.abono.especial ? (
+                <>
+                  {' '}
+                  <Insignia tono="info">
+                    {c.abono.especial.descuentoPct !== null
+                      ? `−${c.abono.especial.descuentoPct}%`
+                      : 'Precio fijo'}
+                    {c.abono.especial.motivo ? ` · ${c.abono.especial.motivo}` : ''}
+                    {c.abono.especial.hasta ? ` · hasta ${fechaCorta(c.abono.especial.hasta)}` : ''}
+                  </Insignia>{' '}
+                  <span className="text-tenue line-through">{pesos(c.abono.precioLista ?? 0)}</span>
+                </>
+              ) : null}
+            </p>
+          ) : null}
           {c.motivoSuspension ? (
             <p className="mt-1 text-sm text-error-texto">Motivo: {c.motivoSuspension}</p>
           ) : null}
@@ -218,6 +243,9 @@ function FilaClub({ c, hoy, alElegir }: { c: ClubPlataforma; hoy: string; alEleg
               Reactivar
             </Boton>
           ) : null}
+          <Boton variante="fantasma" onClick={() => alElegir({ tipo: 'especial', club: c })}>
+            Precio especial
+          </Boton>
           {c.dueno ? (
             <Boton variante="fantasma" onClick={() => alElegir({ tipo: 'contrasena', club: c })}>
               Contraseña del dueño
@@ -281,12 +309,10 @@ function PagosDelClub({ clubId }: { clubId: string }) {
 
 function DialogoAccion({
   accion,
-  abonoMensual,
   alCerrar,
   alHacer,
 }: {
   accion: Accion;
-  abonoMensual: number | null;
   alCerrar: () => void;
   alHacer: (mensaje: string) => void;
 }) {
@@ -298,15 +324,16 @@ function DialogoAccion({
         ? `Suspender ${accion.club.nombre}`
         : accion.tipo === 'contrasena'
           ? `Contraseña nueva · ${accion.club.nombre}`
-          : `Pago del abono · ${accion.club.nombre}`;
+          : accion.tipo === 'especial'
+            ? `Precio especial · ${accion.club.nombre}`
+            : `Pago del abono · ${accion.club.nombre}`;
   return (
     <Dialogo abierto={accion !== null} alCerrar={alCerrar} titulo={titulo}>
       {accion?.tipo === 'aprobar' ? <FormAprobar club={accion.club} alHacer={alHacer} /> : null}
       {accion?.tipo === 'suspender' ? <FormSuspender club={accion.club} alHacer={alHacer} /> : null}
       {accion?.tipo === 'contrasena' ? <FormContrasena club={accion.club} /> : null}
-      {accion?.tipo === 'pago' ? (
-        <FormPago club={accion.club} abonoMensual={abonoMensual} alHacer={alHacer} />
-      ) : null}
+      {accion?.tipo === 'especial' ? <FormEspecial club={accion.club} alHacer={alHacer} /> : null}
+      {accion?.tipo === 'pago' ? <FormPago club={accion.club} alHacer={alHacer} /> : null}
     </Dialogo>
   );
 }
@@ -430,15 +457,10 @@ function FormSuspender({ club, alHacer }: { club: ClubPlataforma; alHacer: (m: s
   );
 }
 
-function FormPago({
-  club,
-  abonoMensual,
-  alHacer,
-}: {
-  club: ClubPlataforma;
-  abonoMensual: number | null;
-  alHacer: (m: string) => void;
-}) {
+function FormPago({ club, alHacer }: { club: ClubPlataforma; alHacer: (m: string) => void }) {
+  const abonoMensual = club.abono?.precio ?? null;
+  // Promo pago anual: 12 meses al precio de 10.
+  const montoPara = (m: number) => (abonoMensual ? (abonoMensual / 100) * (m === 12 ? 10 : m) : 0);
   const qc = useQueryClient();
   const [meses, setMeses] = useState('1');
   const [monto, setMonto] = useState(abonoMensual ? String(abonoMensual / 100) : '');
@@ -471,12 +493,13 @@ function FormPago({
           value={meses}
           onChange={(e) => {
             setMeses(e.target.value);
-            if (abonoMensual) setMonto(String((abonoMensual / 100) * Number(e.target.value)));
+            if (abonoMensual) setMonto(String(montoPara(Number(e.target.value))));
           }}
         >
           {[1, 2, 3, 6, 12].map((m) => (
             <option key={m} value={m}>
               {m} {m === 1 ? 'mes' : 'meses'}
+              {m === 12 ? ' (anual: paga 10)' : ''}
             </option>
           ))}
         </Selector>
@@ -511,6 +534,237 @@ function FormPago({
       <Boton type="submit" disabled={registrar.isPending}>
         Registrar pago
       </Boton>
+    </form>
+  );
+}
+
+/** Planes del abono según las canchas activas: el precio de cada club sale de acá. */
+function EditorPlanes({ alGuardar }: { alGuardar: (m: string) => void }) {
+  const qc = useQueryClient();
+  const datos = useQuery({
+    queryKey: ['planes'],
+    queryFn: () => panel.get<PlanAbono[]>('/plataforma/planes'),
+  });
+  const [abierto, setAbierto] = useState(false);
+  const [filas, setFilas] = useState<
+    { clave: string; nombre: string; desdeCanchas: string; precio: string }[] | null
+  >(null);
+  const actuales =
+    filas ??
+    (datos.data ?? []).map((p) => ({
+      clave: `plan-${p.desdeCanchas}`,
+      nombre: p.nombre,
+      desdeCanchas: String(p.desdeCanchas),
+      precio: String(p.precio / 100),
+    }));
+  const guardar = useMutation({
+    mutationFn: () =>
+      panel.put<PlanAbono[]>('/plataforma/planes', {
+        planes: actuales.map((f) => ({
+          nombre: f.nombre.trim(),
+          desdeCanchas: Number(f.desdeCanchas),
+          precio: Math.round(Number(f.precio) * 100),
+        })),
+      }),
+    onSuccess: () => {
+      setFilas(null);
+      setAbierto(false);
+      qc.invalidateQueries({ queryKey: ['planes'] });
+      qc.invalidateQueries({ queryKey: ['plataforma'] });
+      alGuardar('Planes guardados. Los débitos automáticos se actualizan solos en las próximas horas.');
+    },
+  });
+  const cambiar = (i: number, campo: 'nombre' | 'desdeCanchas' | 'precio', v: string) =>
+    setFilas(actuales.map((f, k) => (k === i ? { ...f, [campo]: v } : f)));
+  const resumen = (datos.data ?? [])
+    .map((p, i, l) => {
+      const siguiente = l[i + 1];
+      const hasta = siguiente ? siguiente.desdeCanchas - 1 : null;
+      const rango =
+        hasta === null
+          ? `${p.desdeCanchas}+`
+          : p.desdeCanchas === hasta
+            ? `${hasta}`
+            : `${p.desdeCanchas}–${hasta}`;
+      return `${p.nombre} (${rango}): ${pesos(p.precio)}`;
+    })
+    .join(' · ');
+
+  return (
+    <Tarjeta className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="min-w-0">
+          <h2 className="text-lg font-bold">Planes del abono</h2>
+          <p className="text-sm text-tenue">{resumen || 'Cargando…'}</p>
+        </div>
+        <Boton variante="secundario" aria-expanded={abierto} onClick={() => setAbierto(!abierto)}>
+          {abierto ? 'Cerrar' : 'Editar precios'}
+        </Boton>
+      </div>
+      {abierto ? (
+        <form
+          className="flex flex-col gap-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            guardar.mutate();
+          }}
+        >
+          <p className="text-sm text-tenue">
+            Cada plan vale desde esa cantidad de canchas activas hasta el siguiente. El primero arranca en 1.
+            Los precios especiales (descuentos) de cada club se aplican sobre estos.
+          </p>
+          {actuales.map((f, i) => (
+            <div key={f.clave} className="grid grid-cols-[1fr_110px_140px_auto] items-end gap-2">
+              <Campo
+                etiqueta="Plan"
+                value={f.nombre}
+                onChange={(e) => cambiar(i, 'nombre', e.target.value)}
+                required
+              />
+              <Campo
+                etiqueta="Desde canchas"
+                type="number"
+                min={1}
+                value={f.desdeCanchas}
+                onChange={(e) => cambiar(i, 'desdeCanchas', e.target.value)}
+                required
+              />
+              <Campo
+                etiqueta="Precio ($/mes)"
+                type="number"
+                min={0}
+                value={f.precio}
+                onChange={(e) => cambiar(i, 'precio', e.target.value)}
+                required
+              />
+              <Boton
+                variante="fantasma"
+                aria-label={`Quitar el plan ${f.nombre}`}
+                disabled={actuales.length === 1}
+                onClick={() => setFilas(actuales.filter((_, k) => k !== i))}
+              >
+                Quitar
+              </Boton>
+            </div>
+          ))}
+          <div className="flex flex-wrap gap-2">
+            <Boton
+              variante="fantasma"
+              onClick={() =>
+                setFilas([
+                  ...actuales,
+                  { clave: `nuevo-${Date.now()}`, nombre: '', desdeCanchas: '', precio: '' },
+                ])
+              }
+            >
+              + Agregar plan
+            </Boton>
+            <Boton type="submit" disabled={guardar.isPending}>
+              Guardar planes
+            </Boton>
+          </div>
+          {guardar.error ? <Aviso>{mensajeDe(guardar.error)}</Aviso> : null}
+        </form>
+      ) : null}
+    </Tarjeta>
+  );
+}
+
+/** Descuento en % o precio fijo para un club (fundador, acuerdo), con vencimiento opcional. */
+function FormEspecial({ club, alHacer }: { club: ClubPlataforma; alHacer: (m: string) => void }) {
+  const qc = useQueryClient();
+  const actual = club.abono?.especial ?? null;
+  const [tipo, setTipo] = useState<'pct' | 'fijo'>(actual?.precioFijo != null ? 'fijo' : 'pct');
+  const [valor, setValor] = useState(
+    actual?.precioFijo != null ? String(actual.precioFijo / 100) : String(actual?.descuentoPct ?? 40),
+  );
+  const [hasta, setHasta] = useState(actual?.hasta ?? '');
+  const [motivo, setMotivo] = useState(actual?.motivo ?? 'Fundador');
+  const listo = (m: string) => {
+    qc.invalidateQueries({ queryKey: ['plataforma'] });
+    alHacer(m);
+  };
+  const guardar = useMutation({
+    mutationFn: () =>
+      panel.put(`/plataforma/clubs/${club.id}/precio-especial`, {
+        ...(tipo === 'pct'
+          ? { descuentoPct: Number(valor) }
+          : { precioFijo: Math.round(Number(valor) * 100) }),
+        hasta: hasta || null,
+        motivo: motivo.trim() || null,
+      }),
+    onSuccess: () => listo(`Precio especial guardado para ${club.nombre}.`),
+  });
+  const quitar = useMutation({
+    mutationFn: () => panel.borrar(`/plataforma/clubs/${club.id}/precio-especial`),
+    onSuccess: () => listo(`${club.nombre} vuelve al precio de su plan.`),
+  });
+  const lista = club.abono?.precioLista ?? 0;
+  const resultado =
+    tipo === 'pct'
+      ? Math.round((lista * (100 - Number(valor || 0))) / 100 / 100) * 100
+      : Math.round(Number(valor || 0) * 100);
+
+  return (
+    <form
+      className="flex flex-col gap-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        guardar.mutate();
+      }}
+    >
+      <p className="text-sm">
+        Plan {club.abono?.plan?.nombre ?? '—'}: <strong>{pesos(lista)}/mes</strong>.
+      </p>
+      <Segmentado
+        etiqueta="Tipo de precio especial"
+        valor={tipo}
+        onCambio={setTipo}
+        opciones={[
+          { valor: 'pct', etiqueta: 'Descuento %' },
+          { valor: 'fijo', etiqueta: 'Precio fijo' },
+        ]}
+      />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Campo
+          etiqueta={tipo === 'pct' ? 'Descuento (%)' : 'Precio ($/mes)'}
+          type="number"
+          min={tipo === 'pct' ? 1 : 0}
+          max={tipo === 'pct' ? 100 : undefined}
+          value={valor}
+          onChange={(e) => setValor(e.target.value)}
+          required
+        />
+        <Campo
+          etiqueta="Hasta (opcional)"
+          type="date"
+          value={hasta}
+          onChange={(e) => setHasta(e.target.value)}
+          ayuda="Después vuelve solo al precio del plan."
+        />
+      </div>
+      <Campo
+        etiqueta="Motivo"
+        value={motivo}
+        onChange={(e) => setMotivo(e.target.value)}
+        placeholder="Fundador"
+      />
+      <p className="text-sm">
+        Va a pagar <strong className="cifras">{pesos(resultado)}/mes</strong>
+        {hasta ? ` hasta el ${fechaCorta(hasta)}` : ''}.
+      </p>
+      {guardar.error ? <Aviso>{mensajeDe(guardar.error)}</Aviso> : null}
+      {quitar.error ? <Aviso>{mensajeDe(quitar.error)}</Aviso> : null}
+      <div className="flex flex-wrap gap-2">
+        <Boton type="submit" disabled={guardar.isPending}>
+          Guardar
+        </Boton>
+        {actual ? (
+          <Boton variante="peligro" disabled={quitar.isPending} onClick={() => quitar.mutate()}>
+            Quitar precio especial
+          </Boton>
+        ) : null}
+      </div>
     </form>
   );
 }

@@ -96,9 +96,9 @@ export interface Sesion {
     motivoSuspension: string | null;
     /** Último día cubierto por el abono (YYYY-MM-DD). */
     abonoHasta: string | null;
+    /** Lo que paga por mes (centavos), su plan y cuántas canchas activas tiene. */
+    abono?: { precio: number | null; plan: string | null; canchas: number } | null;
   }[];
-  /** Abono mensual de la plataforma, en centavos (null si no se configuró). */
-  abonoMensual: number | null;
   comoPagarAbono: string | null;
   /** Días gratis que se ofrecen al aprobar un club (DIAS_PRUEBA). */
   diasPrueba?: number;
@@ -118,6 +118,27 @@ export interface ClubPlataforma {
   dueno: { nombre: string; email: string } | null;
   canchas: number;
   turnosUltimos30Dias: number;
+  abono: PrecioClub | null;
+}
+
+export interface PlanAbono {
+  nombre: string;
+  desdeCanchas: number;
+  /** centavos por mes */
+  precio: number;
+}
+
+export interface PrecioClub {
+  canchas: number;
+  plan: PlanAbono | null;
+  precioLista: number | null;
+  precio: number | null;
+  especial: {
+    descuentoPct: number | null;
+    precioFijo: number | null;
+    hasta: string | null;
+    motivo: string | null;
+  } | null;
 }
 
 export interface PagoAbono {
@@ -671,6 +692,7 @@ export interface CierreCaja {
 export interface EstadoAbono {
   abonoHasta: string | null;
   abonoMensual: number | null;
+  precio: PrecioClub;
   cobroAutomatico: boolean;
   suscripcion: {
     estado: 'pending' | 'authorized' | 'paused' | 'cancelled' | string;

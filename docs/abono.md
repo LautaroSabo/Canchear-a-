@@ -1,7 +1,27 @@
 # Abono de los clubes: cobro automático y suspensión
 
-Cada club paga un abono mensual a la plataforma (`ABONO_MENSUAL`). Hay tres formas de que
-quede registrado:
+## Cuánto paga cada club
+
+El precio sale de **cuántas canchas activas** tiene el club, según los planes que editás en
+*Plataforma → Planes del abono* (de entrada: **Chico** 1–3 canchas $39.900, **Mediano** 4–6
+$59.900, **Grande** 7 o más $79.900). Si un club suma canchas y pasa de plan, paga el nuevo
+precio desde el mes siguiente. Cuando ajustes por inflación, cambiás los precios ahí.
+
+**Precio especial** (botón *Precio especial* en cada club): un **% de descuento** sobre su
+plan o un **precio fijo**, con fecha de vencimiento opcional y un motivo. Ejemplo: precio
+fundador, −40% hasta dentro de 12 meses. Al vencer, vuelve solo al precio del plan.
+
+**Pago anual**: al registrar un pago de 12 meses, el monto sugerido es el de 10 (2 gratis).
+
+Si el club paga con débito automático, el worker actualiza el monto de la suscripción en
+Mercado Pago cuando cambia su precio (necesita `MP_ABONO_ACCESS_TOKEN` también en el
+servicio `worker`).
+
+`ABONO_MENSUAL` ya no se usa.
+
+## Cómo queda registrado el pago
+
+Hay tres formas:
 
 1. **Pago automático con Mercado Pago** (lo activa el dueño del club desde *Mi cuenta*): una
    suscripción de MP en **tu** cuenta, que debita todos los meses. Cada cobro aprobado
@@ -29,11 +49,10 @@ de los clubes.
      (con dominio propio para la API: `https://api.tudominio.com/webhooks/mercadopago-abono`).
    - Eventos: **Planes y suscripciones** (los dos: suscripciones y pagos de suscripciones).
    - Guardá y copiá la **Clave secreta** que te muestra.
-4. En Railway, servicio **api** → Variables:
+4. En Railway, servicios **api** y **worker** → Variables (el token en los dos; el secreto, en api):
    ```
    MP_ABONO_ACCESS_TOKEN=APP_USR-…
    MP_ABONO_WEBHOOK_SECRET=…la clave secreta…
-   ABONO_MENSUAL=25000            # en pesos
    ```
 5. Probalo con un club tuyo: *Mi cuenta* → **Pagar automáticamente con Mercado Pago** → en
    MP autorizás con una tarjeta. Al volver, en unos segundos tiene que decir **"Se paga

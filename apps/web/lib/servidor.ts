@@ -1,7 +1,7 @@
 import 'server-only';
 import { notFound } from 'next/navigation';
 import { API_URL, ErrorApi, pedir } from './api';
-import type { ClubPublico, PartidoCompartido, TorneoResumen, VistaTorneo } from './tipos';
+import type { ClubPublico, PartidoCompartido, PlanAbono, TorneoResumen, VistaTorneo } from './tipos';
 
 const BASE_SSR = (process.env.API_URL_INTERNA ?? API_URL).replace(/\/$/, '');
 
@@ -46,10 +46,10 @@ export async function cargarPartido(codigo: string): Promise<PartidoCompartido> 
 }
 
 /** Precio del abono y días de prueba, para la página de venta. Si la API no responde, sin precio. */
-export async function cargarPlataforma(): Promise<{ abonoMensual: number | null; diasPrueba: number }> {
+export async function cargarPlataforma(): Promise<{ planes: PlanAbono[]; diasPrueba: number }> {
   try {
     return await pedir(`/public/plataforma`, { base: BASE_SSR });
   } catch {
-    return { abonoMensual: null, diasPrueba: 15 };
+    return { planes: [], diasPrueba: 15 };
   }
 }

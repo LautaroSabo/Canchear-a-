@@ -33,7 +33,12 @@ describe('abono con pago automático', () => {
   it('el dueño lo activa, Mercado Pago avisa y el abono se extiende', async () => {
     expect((await panel(ctx, admin, 'GET', '/abono')).statusCode).toBe(403);
     const estado = (await panel(ctx, dueno, 'GET', '/abono')).json();
-    expect(estado).toMatchObject({ abonoMensual: 2_500_000, cobroAutomatico: true, suscripcion: null });
+    expect(estado).toMatchObject({
+      abonoMensual: 3_990_000,
+      precio: { plan: { nombre: 'Chico' }, canchas: 3 },
+      cobroAutomatico: true,
+      suscripcion: null,
+    });
 
     const r = await panel(ctx, dueno, 'POST', '/abono/suscripcion', { email: 'duenio@club.test' });
     expect(r.statusCode).toBe(200);

@@ -96,8 +96,17 @@ describe('registro de un club', () => {
     });
     expect(yo.json()).toMatchObject({
       usuario: { email: 'ana@potrero.test', esSuperadmin: false },
-      clubs: [{ id: nuevo.clubId, slug: 'el-potrero', rol: 'OWNER', estado: 'PENDIENTE', abonoHasta: null }],
-      abonoMensual: 2_500_000,
+      // Sin canchas todavía: se cotiza como el plan más chico.
+      clubs: [
+        {
+          id: nuevo.clubId,
+          slug: 'el-potrero',
+          rol: 'OWNER',
+          estado: 'PENDIENTE',
+          abonoHasta: null,
+          abono: { precio: 3_990_000, plan: 'Chico', canchas: 0 },
+        },
+      ],
       comoPagarAbono: 'Alias: cancheria.abono',
     });
     // Puede configurar su club mientras espera.
@@ -205,6 +214,45 @@ describe('administración de la plataforma', () => {
 describe('GET /public/plataforma', () => {
   it('precio del abono y días de prueba para la página de venta', async () => {
     const res = await ctx.app.inject('/public/plataforma');
-    expect(res.json()).toEqual({ abonoMensual: 2_500_000, diasPrueba: 15 });
+    expect(res.json()).toEqual({
+      planes: [
+        { nombre: 'Chico', desdeCanchas: 1, precio: 3_990_000 },
+        { nombre: 'Mediano', desdeCanchas: 4, precio: 5_990_000 },
+        { nombre: 'Grande', desdeCanchas: 7, precio: 7_990_000 },
+      ],
+      diasPrueba: 15,
+    });
+  });
+});
+
+describe('planes y precios especiales (superadmin)', () => {
+  it('edita los planes y le da un precio especial a un club; el dueño lo ve en su sesión', async () => {
+    const planes = await sa('GET', '/planes');
+    expect(planes.json()).toHaveLength(3);
+    const especial = await ctx.app.inject({
+      method: 'PUT',
+      url: `/admin/plataforma/clubs/${ctx.club.id}/precio-especial`,
+      headers: { cookie: superadmin, 'x-cancheria-csrf': '1' },
+      payload: { descuentoPct: 40, hasta: '2031-01-31', motivo: 'Fundador' },
+    });
+    expect(especial.statusCode).toBe(204);
+    const lista = (await sa('GET', '/clubs')).json().clubs;
+    expect(lista.find((c: { id: string }) => c.id === ctx.club.id).abono).toMatchObject({
+      plan: { nombre: 'Chico' },
+      precioLista: 3_990_000,
+      precio: 2_394_000,
+      especial: { descuentoPct: 40, motivo: 'Fundador' },
+    });
+    const yo = await ctx.app.inject({ method: 'GET', url: '/admin/auth/yo', headers: { cookie: dueno } });
+    expect(yo.json().clubs[0].abono).toEqual({ precio: 2_394_000, plan: 'Chico', canchas: 3 });
+
+    // Un club no superadmin no puede tocar los planes.
+    const ajeno = await ctx.app.inject({
+      method: 'PUT',
+      url: '/admin/plataforma/planes',
+      headers: { cookie: dueno, 'x-cancheria-csrf': '1' },
+      payload: { planes: [{ nombre: 'Gratis', desdeCanchas: 1, precio: 0 }] },
+    });
+    expect(ajeno.statusCode).toBe(404);
   });
 });

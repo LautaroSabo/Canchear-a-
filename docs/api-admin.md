@@ -31,7 +31,7 @@ pnpm --filter @cancheria/api admin:crear-usuario recepcion@club.com "Recepción"
 | POST | `/admin/auth/olvide` | `{ email }` → 204 siempre (exista o no). Si la cuenta existe, manda por mail un link de un solo uso que vence en 1 hora |
 | POST | `/admin/auth/restablecer` | `{ token, nueva }` → 204. Cierra todas las sesiones. `410 LINK_VENCIDO` · `422 CONTRASENA_CORTA` |
 
-`clubs[]` trae también `estado` (`PENDIENTE` · `ACTIVO` · `SUSPENDIDO`), `motivoSuspension` y `abonoHasta`; la respuesta, `abonoMensual` (centavos) y `comoPagarAbono` (de `ABONO_MENSUAL` y `ABONO_COMO_PAGAR`). `usuario.esSuperadmin` marca a quien administra la plataforma.
+`clubs[]` trae también `estado` (`PENDIENTE` · `ACTIVO` · `SUSPENDIDO`), `motivoSuspension` `abonoHasta` y `abono` (`{ precio, plan, canchas }`: lo que paga por mes según sus canchas activas y su precio especial); la respuesta, `comoPagarAbono` (de `ABONO_COMO_PAGAR`). `usuario.esSuperadmin` marca a quien administra la plataforma.
 
 ## Registro de clubes y plataforma
 

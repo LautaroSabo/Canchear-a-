@@ -56,6 +56,23 @@ test('un club se registra solo, espera aprobación y la plataforma lo habilita',
 
   await publica.reload();
   await expect(publica.getByText('Este club todavía no toma reservas online.')).toHaveCount(0);
+
+  // Precio fundador: 40% menos sobre su plan (sin canchas todavía: plan Chico, $39.900).
+  const fundador = admin.getByRole('listitem').filter({ hasText: 'El Potrero E2E' });
+  await expect(fundador).toContainText('Plan Chico');
+  await expect(fundador).toContainText('$39.900/mes');
+  await fundador.getByRole('button', { name: 'Precio especial' }).click();
+  const especial = admin.getByRole('dialog', { name: 'Precio especial · El Potrero E2E' });
+  await especial.getByLabel('Descuento (%)').fill('40');
+  await expect(especial.getByText('Va a pagar $23.940/mes')).toBeVisible();
+  await especial.getByRole('button', { name: 'Guardar' }).click();
+  await expect(admin.getByText('Precio especial guardado para El Potrero E2E.')).toBeVisible();
+  await expect(fundador).toContainText('$23.940/mes');
+  await expect(fundador).toContainText('−40% · Fundador');
+
+  // El dueño ve su plan y su precio en Mi cuenta.
+  await dueno.getByRole('link', { name: 'Mi cuenta' }).click();
+  await expect(dueno.getByText(/Plan Chico · 0 canchas activas · \$23\.940 por mes/)).toBeVisible();
   await club.close();
   await plataforma.close();
 });

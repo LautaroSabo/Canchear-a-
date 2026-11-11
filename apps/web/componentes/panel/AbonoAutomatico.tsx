@@ -50,10 +50,33 @@ export function AbonoAutomatico() {
         <h2 className="text-lg font-bold">Abono de Canchería</h2>
         {activa ? <Insignia tono="ok">Se paga solo</Insignia> : null}
       </div>
-      <p className="text-sm">
-        {d.abonoMensual ? `${pesos(d.abonoMensual)} por mes. ` : ''}
-        {d.abonoHasta ? `Pagado hasta el ${fechaLarga(d.abonoHasta).toLowerCase()}.` : ''}
-      </p>
+      {d.precio.plan ? (
+        <div className="flex flex-col gap-1 text-sm">
+          <p>
+            Plan <strong>{d.precio.plan.nombre}</strong> · {d.precio.canchas}{' '}
+            {d.precio.canchas === 1 ? 'cancha activa' : 'canchas activas'} ·{' '}
+            <strong className="cifras">{pesos(d.precio.precio ?? 0)} por mes</strong>
+            {d.precio.especial ? (
+              <span className="text-tenue">
+                {' '}
+                (en vez de <span className="line-through">{pesos(d.precio.precioLista ?? 0)}</span>
+                {d.precio.especial.motivo ? `, ${d.precio.especial.motivo.toLowerCase()}` : ''}
+                {d.precio.especial.hasta
+                  ? ` hasta el ${fechaLarga(d.precio.especial.hasta).toLowerCase()}`
+                  : ''}
+                )
+              </span>
+            ) : null}
+          </p>
+          <p className="text-tenue">
+            El precio depende de cuántas canchas activas tenés. Si sumás canchas y pasás de plan, el nuevo
+            precio corre desde el mes siguiente.
+          </p>
+        </div>
+      ) : null}
+      {d.abonoHasta ? (
+        <p className="text-sm">Pagado hasta el {fechaLarga(d.abonoHasta).toLowerCase()}.</p>
+      ) : null}
       {volvio && !activa ? (
         <Aviso tipo="info">
           Listo. En cuanto Mercado Pago confirme la autorización, acá va a decir "Se paga solo".

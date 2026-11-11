@@ -18,7 +18,7 @@ export function EstadoClub() {
   const sesion = useSesion();
   if (!club) return null;
   const comoPagar = sesion.data?.comoPagarAbono;
-  const monto = sesion.data?.abonoMensual;
+  const monto = club.abono?.precio;
   const textoPago = [monto ? `El abono es de ${pesos(monto)} por mes.` : null, comoPagar]
     .filter(Boolean)
     .join(' ');

@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { ServicioAbono } from '../src/abono.ts';
 import { PasarelaSuscripcionesFalsa } from '../src/mercadopago/suscripciones.ts';
+import { ServicioPlanes } from '../src/planes.ts';
 import { ServicioPlataforma } from '../src/plataforma.ts';
 import { ba, type Contexto, crearContexto } from './helpers.ts';
 
@@ -10,19 +11,16 @@ let ctx: Contexto;
 let pasarela: PasarelaSuscripcionesFalsa;
 let plataforma: ServicioPlataforma;
 let abono: ServicioAbono;
-const ABONO = 2_500_000;
+let planes: ServicioPlanes;
+// El club demo tiene 3 canchas activas: plan Chico.
+const ABONO = 3_990_000;
 beforeEach(async () => {
   ctx = await crearContexto();
   pasarela = new PasarelaSuscripcionesFalsa();
   const entorno = { db: ctx.db, reloj: ctx.ahora, urlWeb: 'https://cancheria.test' };
   plataforma = new ServicioPlataforma(entorno);
-  abono = new ServicioAbono({
-    ...entorno,
-    plataforma,
-    pasarela,
-    token: 'TOKEN-PLATAFORMA',
-    abonoMensual: ABONO,
-  });
+  planes = new ServicioPlanes(entorno);
+  abono = new ServicioAbono({ ...entorno, plataforma, pasarela, planes, token: 'TOKEN-PLATAFORMA' });
   await ctx.db.insert(miembrosClub).values({ clubId: ctx.club.id, usuarioId: ctx.usuario.id, rol: 'OWNER' });
   return () => ctx.cerrar();
 });
@@ -127,12 +125,27 @@ describe('cobro automático del abono', () => {
       urlWeb: 'https://cancheria.test',
       plataforma,
       pasarela,
+      planes,
       token: null,
-      abonoMensual: ABONO,
     });
     expect((await sin.estado(ctx.club.id)).cobroAutomatico).toBe(false);
     await expect(sin.iniciar(ctx.club.id, 'x@y.test')).rejects.toMatchObject({
       codigo: 'COBRO_AUTOMATICO_APAGADO',
     });
+  });
+});
+
+describe('sincronizar el monto de la suscripción', () => {
+  it('si le vence la promo al club, el débito de MP se actualiza', async () => {
+    await planes.ponerEspecial(ctx.club.id, { descuentoPct: 40, hasta: '2030-01-31', motivo: 'Fundador' });
+    await abono.iniciar(ctx.club.id, 'duenio@club.test');
+    const [s] = [...pasarela.suscripciones.values()];
+    expect(s?.datos.monto).toBe(2_394_000); // 3.990.000 − 40%
+    expect(await abono.sincronizarMontos()).toEqual({ actualizadas: 0 });
+
+    // Vence la promo: vuelve al precio de lista.
+    ctx.setAhora(new Date('2030-02-01T12:00:00-03:00'));
+    expect(await abono.sincronizarMontos()).toEqual({ actualizadas: 1 });
+    expect(pasarela.suscripciones.get(s!.id)?.datos.monto).toBe(ABONO);
   });
 });

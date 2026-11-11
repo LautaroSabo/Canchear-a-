@@ -1,9 +1,10 @@
 import { instanteLocal, partesLocales, sumarDias } from '@cancheria/core';
 import { clubs, miembrosClub, usuarios } from '@cancheria/db/schema';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull } from 'drizzle-orm';
 import type { Entorno } from './entorno.ts';
 import { ErrorNegocio } from './errores.ts';
 import type { PasarelaSuscripciones } from './mercadopago/suscripciones.ts';
+import type { ServicioPlanes } from './planes.ts';
 import type { ServicioPlataforma } from './plataforma.ts';
 
 const ZONA = 'America/Argentina/Buenos_Aires';
@@ -18,15 +19,15 @@ export class ServicioAbono {
     private readonly e: Entorno & {
       plataforma: ServicioPlataforma;
       pasarela: PasarelaSuscripciones;
+      /** El precio de cada club (planes por canchas y precio especial). */
+      planes: ServicioPlanes;
       /** Access token de la cuenta de MP de la plataforma; null = cobro automático apagado. */
       token: string | null;
-      /** centavos por mes; null = sin abono configurado. */
-      abonoMensual: number | null;
     },
   ) {}
 
   private get disponible() {
-    return Boolean(this.e.token && this.e.abonoMensual);
+    return Boolean(this.e.token);
   }
 
   async estado(clubId: string) {
@@ -40,9 +41,13 @@ export class ServicioAbono {
       .from(clubs)
       .where(eq(clubs.id, clubId));
     if (!c) throw new ErrorNegocio(404, 'CLUB_NO_ENCONTRADO', 'No existe ese club');
+    const precio = await this.e.planes.precioDe(clubId);
     return {
       abonoHasta: c.abonoHasta,
-      abonoMensual: this.e.abonoMensual,
+      /** Lo que paga por mes hoy (con el precio especial, si tiene). */
+      abonoMensual: precio.precio,
+      /** Plan, canchas activas, precio de lista y precio especial: para explicarle el precio. */
+      precio,
       /** La plataforma tiene el cobro automático configurado. */
       cobroAutomatico: this.disponible,
       suscripcion: c.estado ? { estado: c.estado, email: c.email } : null,
@@ -54,7 +59,8 @@ export class ServicioAbono {
 
   /** Crea la suscripción y devuelve el link de Mercado Pago donde el dueño la autoriza. */
   async iniciar(clubId: string, email: string) {
-    if (!this.disponible || !this.e.token || !this.e.abonoMensual) {
+    const { precio } = await this.e.planes.precioDe(clubId);
+    if (!this.disponible || !this.e.token || !precio) {
       throw new ErrorNegocio(
         409,
         'COBRO_AUTOMATICO_APAGADO',
@@ -88,7 +94,7 @@ export class ServicioAbono {
       motivo: `Canchería: abono mensual de ${c.nombre}`,
       referenciaExterna: clubId,
       email: email.trim().toLowerCase(),
-      monto: this.e.abonoMensual,
+      monto: precio,
       moneda: 'ARS',
       inicio,
       urlRetorno: `${this.e.urlWeb.replace(/\/$/, '')}/panel/${clubId}/cuenta?abono=listo`,
@@ -99,9 +105,37 @@ export class ServicioAbono {
         mpSuscripcionId: s.id,
         mpSuscripcionEstado: 'pending',
         mpSuscripcionEmail: email.trim().toLowerCase(),
+        mpSuscripcionMonto: precio,
       })
       .where(eq(clubs.id, clubId));
     return { urlCheckout: s.urlCheckout };
+  }
+
+  /**
+   * Para el worker: si el precio de un club cambió (sumó canchas, venció la promo o se
+   * actualizaron los planes), actualiza el monto de su suscripción en Mercado Pago.
+   */
+  async sincronizarMontos() {
+    if (!this.e.token) return { actualizadas: 0 };
+    const subs = await this.e.db
+      .select({ id: clubs.id, mpId: clubs.mpSuscripcionId, monto: clubs.mpSuscripcionMonto })
+      .from(clubs)
+      .where(
+        and(
+          isNotNull(clubs.mpSuscripcionId),
+          inArray(clubs.mpSuscripcionEstado, ['authorized', 'pending', 'paused']),
+        ),
+      );
+    const precios = await this.e.planes.precios(subs.map((x) => x.id));
+    let actualizadas = 0;
+    for (const x of subs) {
+      const precio = precios.get(x.id)?.precio;
+      if (!x.mpId || !precio || precio === x.monto) continue;
+      await this.e.pasarela.actualizarMonto(this.e.token, x.mpId, precio, 'ARS');
+      await this.e.db.update(clubs).set({ mpSuscripcionMonto: precio }).where(eq(clubs.id, x.id));
+      actualizadas++;
+    }
+    return { actualizadas };
   }
 
   async cancelar(clubId: string) {

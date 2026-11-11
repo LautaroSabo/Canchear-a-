@@ -5,6 +5,7 @@ import {
   type ServicioListaEspera,
   type ServicioOperacion,
   type ServicioPagos,
+  type ServicioPlanes,
   type ServicioTorneos,
   type VerificadorCaptcha,
 } from '@cancheria/servicios';
@@ -35,12 +36,13 @@ interface Opciones {
   sse: StreamsSse;
   torneos: ServicioTorneos;
   captcha: VerificadorCaptcha;
+  planes: ServicioPlanes;
   config: Config;
 }
 
 export const rutasPublicas: FastifyPluginAsync<Opciones> = async (
   app,
-  { clubs, disponibilidad, reservas, pagos, listaEspera, operacion, sse, torneos, captcha, config },
+  { clubs, disponibilidad, reservas, pagos, listaEspera, operacion, sse, torneos, captcha, planes, config },
 ) => {
   const clubPorSlug = async (params: unknown) => {
     const { slug } = paramsSlug.parse(params);
@@ -61,7 +63,7 @@ export const rutasPublicas: FastifyPluginAsync<Opciones> = async (
 
   /** Precio y prueba gratis, para la página de venta (/clubes). */
   app.get('/plataforma', async () => ({
-    abonoMensual: config.abonoMensual,
+    planes: await planes.planes(),
     diasPrueba: config.diasPrueba,
   }));
 

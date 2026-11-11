@@ -37,6 +37,8 @@ export interface PasarelaSuscripciones {
   crear(token: string, d: DatosSuscripcion): Promise<{ id: string; urlCheckout: string }>;
   obtener(token: string, id: string): Promise<SuscripcionMp | null>;
   cancelar(token: string, id: string): Promise<void>;
+  /** Cambia el monto mensual (los próximos débitos). */
+  actualizarMonto(token: string, id: string, monto: number, moneda: string): Promise<void>;
   obtenerCobro(token: string, id: string): Promise<CobroSuscripcionMp | null>;
 }
 
@@ -110,6 +112,12 @@ export class PasarelaSuscripcionesHttp implements PasarelaSuscripciones {
     await this.pedir(token, 'PUT', `/preapproval/${encodeURIComponent(id)}`, { status: 'cancelled' });
   }
 
+  async actualizarMonto(token: string, id: string, monto: number, moneda: string) {
+    await this.pedir(token, 'PUT', `/preapproval/${encodeURIComponent(id)}`, {
+      auto_recurring: { transaction_amount: monto / 100, currency_id: moneda },
+    });
+  }
+
   async obtenerCobro(token: string, id: string) {
     const r = await this.pedir<CobroCrudo>(token, 'GET', `/authorized_payments/${encodeURIComponent(id)}`);
     if (!r) return null;
@@ -150,6 +158,10 @@ export class PasarelaSuscripcionesFalsa implements PasarelaSuscripciones {
   }
   async obtenerCobro(_token: string, id: string) {
     return this.cobros.get(id) ?? null;
+  }
+  async actualizarMonto(_token: string, id: string, monto: number) {
+    const s = this.suscripciones.get(id);
+    if (s) s.datos.monto = monto;
   }
   /** Simula que el cliente autorizó la suscripción en Mercado Pago. */
   autorizar(id: string) {

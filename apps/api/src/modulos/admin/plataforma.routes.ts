@@ -3,6 +3,7 @@ import {
   ErrorNegocio,
   type RepoClubs,
   type ServicioAuth,
+  type ServicioPlanes,
   type ServicioPlataforma,
   type VerificadorCaptcha,
 } from '@cancheria/servicios';
@@ -14,6 +15,7 @@ import { exigirSesion, setCookieSesion, usuarioDe } from './sesion.ts';
 
 interface Opciones {
   captcha: VerificadorCaptcha;
+  planes: ServicioPlanes;
   config: Config;
   auth: ServicioAuth;
   clubs: RepoClubs;
@@ -50,6 +52,26 @@ const cuerpoPagoAbono = z.object({
   nota: z.string().trim().max(300).optional(),
 });
 
+const centavos = z.number().int().min(0).max(100_000_000);
+const cuerpoPlanes = z.object({
+  planes: z
+    .array(
+      z.object({
+        nombre: z.string().trim().min(1).max(40),
+        desdeCanchas: z.number().int().min(1).max(200),
+        precio: centavos,
+      }),
+    )
+    .min(1)
+    .max(10),
+});
+const cuerpoPrecioEspecial = z.object({
+  descuentoPct: z.number().int().min(1).max(100).nullable().optional(),
+  precioFijo: centavos.nullable().optional(),
+  hasta: z.iso.date().nullable().optional(),
+  motivo: z.string().trim().max(120).nullable().optional(),
+});
+
 async function exigirSuperadmin(req: FastifyRequest) {
   // Para quien no es superadmin, estas rutas no existen.
   if (!usuarioDe(req).esSuperadmin) throw new ErrorNegocio(404, 'NO_ENCONTRADO', 'No encontrado');
@@ -58,10 +80,18 @@ async function exigirSuperadmin(req: FastifyRequest) {
 /** Datos del abono que ve cada club en su panel (configurados en el servidor). */
 export function abonoPublico(config: Config) {
   return {
-    abonoMensual: config.abonoMensual,
     comoPagarAbono: config.comoPagarAbono,
     diasPrueba: config.diasPrueba,
   };
+}
+
+/** Los clubes del usuario con lo que paga cada uno de abono (plan por canchas y especial). */
+export async function conAbono<T extends { id: string }>(planes: ServicioPlanes, lista: T[]) {
+  const precios = await planes.precios(lista.map((c) => c.id));
+  return lista.map((c) => {
+    const p = precios.get(c.id);
+    return { ...c, abono: p ? { precio: p.precio, plan: p.plan?.nombre ?? null, canchas: p.canchas } : null };
+  });
 }
 
 /** Link para elegir una contraseña nueva (página de la web). */
@@ -116,9 +146,11 @@ export async function rutasPlataforma(app: FastifyInstance, o: Opciones) {
       avisarRegistro(o, datos).catch((err) =>
         req.log.error({ err, clubId }, 'no se pudo mandar el aviso de registro'),
       );
-      return reply
-        .status(201)
-        .send({ clubId, usuario: r.usuario, clubs: await o.auth.clubsDe(r.usuario.id) });
+      return reply.status(201).send({
+        clubId,
+        usuario: r.usuario,
+        clubs: await conAbono(o.planes, await o.auth.clubsDe(r.usuario.id)),
+      });
     },
   );
 
@@ -178,10 +210,34 @@ export async function rutasPlataforma(app: FastifyInstance, o: Opciones) {
       return { email: r.email, nombre: r.nombre, link: linkRestablecer(o, r.token), venceEnMinutos: 60 };
     });
 
-    sa.get('/plataforma/clubs', async () => ({
-      hoy: o.plataforma.hoy(),
-      clubs: await o.plataforma.listar(),
-    }));
+    sa.get('/plataforma/clubs', async () => {
+      const lista = await o.plataforma.listar();
+      const precios = await o.planes.precios(lista.map((c) => c.id));
+      return {
+        hoy: o.plataforma.hoy(),
+        clubs: lista.map((c) => ({ ...c, abono: precios.get(c.id) ?? null })),
+      };
+    });
+
+    // --- Planes del abono y precios especiales -----------------------------------
+
+    sa.get('/plataforma/planes', async () => o.planes.planes());
+
+    sa.put('/plataforma/planes', async (req) => {
+      await o.planes.guardarPlanes(cuerpoPlanes.parse(req.body).planes);
+      return o.planes.planes();
+    });
+
+    sa.put('/plataforma/clubs/:id/precio-especial', async (req, reply) => {
+      const { id } = paramsClubPlataforma.parse(req.params);
+      await o.planes.ponerEspecial(id, cuerpoPrecioEspecial.parse(req.body));
+      return reply.status(204).send();
+    });
+
+    sa.delete('/plataforma/clubs/:id/precio-especial', async (req, reply) => {
+      await o.planes.quitarEspecial(paramsClubPlataforma.parse(req.params).id);
+      return reply.status(204).send();
+    });
 
     sa.post('/plataforma/clubs/:id/aprobar', async (req, reply) => {
       const { id } = paramsClubPlataforma.parse(req.params);
