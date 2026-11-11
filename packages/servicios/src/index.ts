@@ -1,3 +1,4 @@
+export * from './abono.ts';
 export * from './almacen.ts';
 export * from './auth.ts';
 export * from './aviso-errores.ts';
@@ -18,6 +19,7 @@ export * from './fidelizacion.ts';
 export * from './lista-espera.ts';
 export * from './mercadopago/firma.ts';
 export * from './mercadopago/pasarela.ts';
+export * from './mercadopago/suscripciones.ts';
 export * from './notificaciones/canales.ts';
 export * from './notificaciones/despachador.ts';
 export * from './notificaciones/encolar.ts';

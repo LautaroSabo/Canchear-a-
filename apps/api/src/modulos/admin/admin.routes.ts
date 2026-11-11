@@ -12,6 +12,7 @@ import {
   leerCredencialesMp,
   type PasarelaMp,
   type RepoClubs,
+  type ServicioAbono,
   type ServicioAuth,
   type ServicioCaja,
   type ServicioCantina,
@@ -60,6 +61,7 @@ import {
   cuerpoRegla,
   cuerpoReposicion,
   cuerpoRol,
+  cuerpoSuscripcionAbono,
   cuerpoTarifa,
   cuerpoTransferencia,
   cuerpoTurnoFijo,
@@ -109,6 +111,7 @@ interface Opciones {
   db: Db;
   config: Config;
   auth: ServicioAuth;
+  abono: ServicioAbono;
   caja: ServicioCaja;
   cantina: ServicioCantina;
   clubs: RepoClubs;
@@ -448,6 +451,18 @@ export const rutasAdmin: FastifyPluginAsync<Opciones> = async (app, o) => {
       );
 
       rutasTorneos(club, o.torneos);
+
+      // --- Abono de la plataforma: pago automático con Mercado Pago (dueño) -------
+
+      const dueno = { config: { rolMinimo: 'OWNER' as const } };
+      club.get('/abono', dueno, async (req) => o.abono.estado(clubIdDe(req)));
+      club.post('/abono/suscripcion', dueno, async (req) =>
+        o.abono.iniciar(clubIdDe(req), cuerpoSuscripcionAbono.parse(req.body).email),
+      );
+      club.delete('/abono/suscripcion', dueno, async (req, reply) => {
+        await o.abono.cancelar(clubIdDe(req));
+        return reply.status(204).send();
+      });
 
       // --- Caja: lo cobrado desde el último cierre y los cierres -------------------
 

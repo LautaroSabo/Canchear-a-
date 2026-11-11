@@ -15,6 +15,7 @@ import {
   ServicioExpiracion,
   ServicioListaEspera,
   ServicioPagos,
+  ServicioPlataforma,
   ServicioRecordatorios,
   ServicioReembolsos,
   ServicioTorneos,
@@ -73,6 +74,7 @@ const auth = new ServicioAuth(entorno);
 const turnosFijos = new ServicioTurnosFijos({ ...entorno, clubs, listaEspera });
 const recordatorios = new ServicioRecordatorios(entorno);
 const torneos = new ServicioTorneos({ ...entorno, clubs });
+const plataforma = new ServicioPlataforma(entorno);
 
 const programador = new Programador(
   [
@@ -111,6 +113,22 @@ const programador = new Programador(
       cadaMs: config.intervalos.partidosTorneoMs,
       ejecutar: () => torneos.recordarPartidos(),
     },
+    ...(config.suspension
+      ? [
+          {
+            // Abono vencido hace más de los días de gracia: la página se ve pero no toma
+            // reservas. Se reactiva sola cuando entra el pago.
+            nombre: 'suspender-abonos-vencidos',
+            cadaMs: config.intervalos.abonosVencidosMs,
+            ejecutar: async () => {
+              const suspendidos = await plataforma.suspenderVencidos(config.suspension?.diasGracia ?? 5);
+              if (suspendidos.length)
+                log.warn({ clubs: suspendidos }, 'clubes suspendidos por abono vencido');
+              return { suspendidos: suspendidos.length };
+            },
+          },
+        ]
+      : []),
   ],
   log,
   (err, contexto) => aviso.capturar(err, contexto),

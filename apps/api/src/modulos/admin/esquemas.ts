@@ -301,6 +301,8 @@ export const queryExportar = queryReporte.extend({ tipo: z.enum(['turnos', 'pago
 export const queryMensajes = z.object({ estado: z.enum(['PENDIENTE', 'ENVIADA', 'FALLIDA']).optional() });
 export const paramsMensaje = z.object({ clubId: z.uuid(), mensajeId: z.uuid() });
 
+export const cuerpoSuscripcionAbono = z.object({ email: z.email().max(120) });
+
 // --- Caja ------------------------------------------------------------------------
 
 export const cuerpoCierreCaja = z.object({

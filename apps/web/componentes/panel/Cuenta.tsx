@@ -4,6 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 import { mensajeDe, panel } from '@/lib/api';
 import { Aviso, Boton, Campo, Tarjeta } from '../ui';
+import { AbonoAutomatico } from './AbonoAutomatico';
 import { useSesion } from './sesion';
 
 export function Cuenta() {
@@ -23,6 +24,7 @@ export function Cuenta() {
         <div className="font-bold">{usuario?.nombre}</div>
         <div className="text-sm text-medio">{usuario?.email}</div>
       </Tarjeta>
+      <AbonoAutomatico />
       <Tarjeta>
         <form
           className="flex flex-col gap-3"

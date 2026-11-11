@@ -665,3 +665,17 @@ export interface CierreCaja {
   nota: string | null;
   usuario?: string;
 }
+
+// --- Abono de la plataforma ------------------------------------------------------------
+
+export interface EstadoAbono {
+  abonoHasta: string | null;
+  abonoMensual: number | null;
+  cobroAutomatico: boolean;
+  suscripcion: {
+    estado: 'pending' | 'authorized' | 'paused' | 'cancelled' | string;
+    email: string | null;
+  } | null;
+  suspendidoPorAbono: boolean;
+  emailDueno: string | null;
+}

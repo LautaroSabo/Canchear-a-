@@ -1,6 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { crearClubDemo, crearDb } from '@cancheria/db';
-import { Cifrador, CorreoMemoria, guardarCredencialesMp, type Rol, ServicioAuth } from '@cancheria/servicios';
+import {
+  Cifrador,
+  CorreoMemoria,
+  guardarCredencialesMp,
+  PasarelaSuscripcionesFalsa,
+  type Rol,
+  ServicioAuth,
+} from '@cancheria/servicios';
 import { AlmacenMemoria, PasarelaMpFalsa } from '@cancheria/servicios/testing';
 import { inject } from 'vitest';
 import { construirApp } from '../src/app.ts';
@@ -22,12 +29,14 @@ export async function crearContexto({
   abonoMensual = null,
   comoPagarAbono = null,
   avisosEmail = null,
+  mpAbono = { token: null, webhookSecret: null },
 }: {
   pool?: number;
   loginsPorMinuto?: number;
   abonoMensual?: number | null;
   comoPagarAbono?: string | null;
   avisosEmail?: string | null;
+  mpAbono?: { token: string | null; webhookSecret: string | null };
 } = {}) {
   const url = inject('databaseUrl');
   const conexion = crearDb(url, { max: pool });
@@ -47,8 +56,10 @@ export async function crearContexto({
     abonoMensual,
     comoPagarAbono,
     avisosEmail,
+    mpAbono,
   };
   const pasarela = new PasarelaMpFalsa();
+  const pasarelaSuscripciones = new PasarelaSuscripcionesFalsa();
   const almacen = new AlmacenMemoria();
   const correo = new CorreoMemoria();
   const app = await construirApp({
@@ -58,6 +69,7 @@ export async function crearContexto({
     reloj: () => ahora,
     logger: false,
     pasarela,
+    pasarelaSuscripciones,
     almacen,
     correo,
   });
@@ -75,6 +87,7 @@ export async function crearContexto({
     club,
     slug,
     pasarela,
+    pasarelaSuscripciones,
     almacen,
     correo,
     canchas: { f5a, f5b, f7 },

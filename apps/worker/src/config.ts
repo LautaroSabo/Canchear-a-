@@ -17,6 +17,10 @@ const esquema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   /** Aviso de errores (Sentry): el mismo DSN que la API. */
   SENTRY_DSN: z.url().optional(),
+  /** Días después del vencimiento del abono hasta suspender el club solo. */
+  DIAS_GRACIA_ABONO: z.coerce.number().int().min(0).max(60).default(5),
+  /** "0" apaga la suspensión automática por abono vencido. */
+  SUSPENSION_AUTOMATICA: z.enum(['0', '1']).default('1'),
 });
 
 export function cargarConfig(env: NodeJS.ProcessEnv = process.env) {
@@ -47,6 +51,7 @@ export function cargarConfig(env: NodeJS.ProcessEnv = process.env) {
     desarrollo: e.NODE_ENV !== 'production',
     nivelLog: e.LOG_LEVEL,
     sentryDsn: e.SENTRY_DSN,
+    suspension: e.SUSPENSION_AUTOMATICA === '1' ? { diasGracia: e.DIAS_GRACIA_ABONO } : null,
     logsLegibles: e.NODE_ENV === 'development' && Boolean(process.stdout.isTTY),
     intervalos: {
       expiracionMs: 30_000,
@@ -57,6 +62,7 @@ export function cargarConfig(env: NodeJS.ProcessEnv = process.env) {
       turnosFijosMs: 60 * 60_000,
       recordatoriosMs: 5 * 60_000,
       partidosTorneoMs: 15 * 60_000,
+      abonosVencidosMs: 6 * 60 * 60_000,
     },
   };
 }

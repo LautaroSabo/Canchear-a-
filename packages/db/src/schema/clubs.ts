@@ -41,6 +41,12 @@ export const clubs = pgTable('clubs', {
   estado: text().$type<EstadoClub>().notNull().default('ACTIVO'),
   aprobadoEn: ts(),
   motivoSuspension: text(),
+  /** Suscripción de Mercado Pago para el abono (cuenta de la plataforma). */
+  mpSuscripcionId: text().unique(),
+  mpSuscripcionEstado: text(),
+  mpSuscripcionEmail: text(),
+  /** La suspendió el sistema por abono vencido: se reactiva sola cuando entra el pago. */
+  suspendidoPorAbono: boolean().notNull().default(false),
   /** Último día cubierto por el abono mensual (incluye la prueba). */
   abonoHasta: date({ mode: 'string' }),
 });
@@ -58,6 +64,8 @@ export const pagosAbono = pgTable('pagos_abono', {
   medio: text().notNull(),
   nota: text(),
   registradoPor: uuid(),
+  /** Id del pago en Mercado Pago (cobro automático): se registra una sola vez. */
+  mpPagoId: text().unique(),
   creadoEn: ts().notNull().defaultNow(),
 });
 

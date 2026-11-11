@@ -8,8 +8,11 @@ import {
   crearCorreo,
   type PasarelaMp,
   PasarelaMpHttp,
+  type PasarelaSuscripciones,
+  PasarelaSuscripcionesHttp,
   type Reloj,
   RepoClubs,
+  ServicioAbono,
   ServicioAuth,
   ServicioCaja,
   ServicioCantina,
@@ -56,6 +59,8 @@ export interface Dependencias {
   /** Avisos por mail a la plataforma; por defecto, según la config (o ninguno). */
   correo?: Correo | null;
   almacen?: AlmacenArchivos;
+  /** Suscripciones de MP (abono); los tests inyectan una falsa. */
+  pasarelaSuscripciones?: PasarelaSuscripciones;
   /** Aviso de errores (Sentry); por defecto, ninguno. */
   aviso?: AvisoErrores;
 }
@@ -67,6 +72,7 @@ export async function construirApp({
   reloj = () => new Date(),
   logger = true,
   pasarela = new PasarelaMpHttp(),
+  pasarelaSuscripciones = new PasarelaSuscripcionesHttp(),
   almacen = new AlmacenLocal(config.dirComprobantes),
   correo = crearCorreo(config.correo),
   aviso,
@@ -142,6 +148,13 @@ export async function construirApp({
   const torneos = new ServicioTorneos({ ...entorno, clubs });
   const consultas = new ConsultasAdmin(db, reloj);
   const plataforma = new ServicioPlataforma(entorno);
+  const abono = new ServicioAbono({
+    ...entorno,
+    plataforma,
+    pasarela: pasarelaSuscripciones,
+    token: config.mpAbono.token,
+    abonoMensual: config.abonoMensual,
+  });
 
   app.get('/health', async () => {
     await db.execute(sql`SELECT 1`);
@@ -160,12 +173,13 @@ export async function construirApp({
     torneos,
     config,
   });
-  await app.register(rutasWebhooks, { prefix: '/webhooks', clubs, pagos, db, cifrador });
+  await app.register(rutasWebhooks, { prefix: '/webhooks', clubs, pagos, db, cifrador, abono, config });
   await app.register(rutasAdmin, {
     prefix: '/admin',
     db,
     config,
     auth,
+    abono,
     caja,
     cantina,
     clubs,

@@ -231,7 +231,7 @@ export class ServicioPlataforma {
     }
     await this.e.db
       .update(clubs)
-      .set({ estado: 'SUSPENDIDO', motivoSuspension: motivo.trim() })
+      .set({ estado: 'SUSPENDIDO', motivoSuspension: motivo.trim(), suspendidoPorAbono: false })
       .where(eq(clubs.id, clubId));
   }
 
@@ -242,8 +242,32 @@ export class ServicioPlataforma {
     }
     await this.e.db
       .update(clubs)
-      .set({ estado: 'ACTIVO', motivoSuspension: null })
+      .set({ estado: 'ACTIVO', motivoSuspension: null, suspendidoPorAbono: false })
       .where(eq(clubs.id, clubId));
+  }
+
+  /**
+   * Para el worker: suspende los clubes con el abono vencido hace más de `diasGracia` días
+   * (la página se sigue viendo pero no toma reservas). Se reactivan solos al pagar.
+   */
+  async suspenderVencidos(diasGracia: number) {
+    const limite = sumarDias(this.hoy(), -diasGracia);
+    const filas = await this.e.db
+      .update(clubs)
+      .set({
+        estado: 'SUSPENDIDO',
+        suspendidoPorAbono: true,
+        motivoSuspension: sql`'El abono venció el ' || to_char(${clubs.abonoHasta}, 'DD/MM/YYYY') || '. Pagalo para volver a tomar reservas.'`,
+      })
+      .where(
+        and(
+          eq(clubs.estado, 'ACTIVO'),
+          eq(clubs.activo, true),
+          sql`${clubs.abonoHasta} IS NOT NULL AND ${clubs.abonoHasta} < ${limite}::date`,
+        ),
+      )
+      .returning({ id: clubs.id, nombre: clubs.nombre });
+    return filas;
   }
 
   /**
@@ -252,12 +276,30 @@ export class ServicioPlataforma {
    */
   async registrarPago(
     clubId: string,
-    usuarioId: string,
-    p: { meses: number; monto: number; medio: string; nota?: string | undefined },
+    usuarioId: string | null,
+    p: {
+      meses: number;
+      monto: number;
+      medio: string;
+      nota?: string | undefined;
+      /** Cobro automático: el mismo pago de MP se registra una sola vez. */
+      mpPagoId?: string | undefined;
+    },
   ) {
+    if (p.mpPagoId) {
+      const [ya] = await this.e.db
+        .select({ id: pagosAbono.id })
+        .from(pagosAbono)
+        .where(eq(pagosAbono.mpPagoId, p.mpPagoId));
+      if (ya) return null;
+    }
     return this.e.db.transaction(async (tx) => {
       const [c] = await tx
-        .select({ abonoHasta: clubs.abonoHasta })
+        .select({
+          abonoHasta: clubs.abonoHasta,
+          estado: clubs.estado,
+          suspendidoPorAbono: clubs.suspendidoPorAbono,
+        })
         .from(clubs)
         .where(and(eq(clubs.id, clubId), eq(clubs.activo, true)))
         .for('update');
@@ -276,9 +318,22 @@ export class ServicioPlataforma {
           medio: p.medio,
           nota: p.nota?.trim() || null,
           registradoPor: usuarioId,
+          mpPagoId: p.mpPagoId ?? null,
         })
+        .onConflictDoNothing({ target: pagosAbono.mpPagoId })
         .returning();
-      await tx.update(clubs).set({ abonoHasta: hasta }).where(eq(clubs.id, clubId));
+      if (!pago) return null; // otro aviso del mismo cobro llegó primero
+      // Si lo suspendió el sistema por falta de pago, con el pago vuelve a tomar reservas.
+      const reactivar = c.estado === 'SUSPENDIDO' && c.suspendidoPorAbono && hasta >= hoy;
+      await tx
+        .update(clubs)
+        .set({
+          abonoHasta: hasta,
+          ...(reactivar
+            ? { estado: 'ACTIVO' as const, motivoSuspension: null, suspendidoPorAbono: false }
+            : {}),
+        })
+        .where(eq(clubs.id, clubId));
       return pago;
     });
   }

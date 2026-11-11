@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { fechaLarga, hoyEn, pesos, sumarDias } from '@/lib/formato';
 import { Aviso } from '../ui';
 import { alcanza, useClubActual, useSesion } from './sesion';
@@ -18,9 +19,24 @@ export function EstadoClub() {
   if (!club) return null;
   const comoPagar = sesion.data?.comoPagarAbono;
   const monto = sesion.data?.abonoMensual;
-  const pago = [monto ? `El abono es de ${pesos(monto)} por mes.` : null, comoPagar]
+  const textoPago = [monto ? `El abono es de ${pesos(monto)} por mes.` : null, comoPagar]
     .filter(Boolean)
     .join(' ');
+  // El dueño lo puede dejar pagándose solo desde Mi cuenta.
+  const pago = (
+    <>
+      {textoPago}
+      {alcanza(rol, 'OWNER') ? (
+        <>
+          {' '}
+          <Link href={`/panel/${club.id}/cuenta`} className="font-semibold underline">
+            Pagalo automático con Mercado Pago
+          </Link>
+          .
+        </>
+      ) : null}
+    </>
+  );
 
   if (club.estado === 'PENDIENTE') {
     return (
@@ -35,7 +51,9 @@ export function EstadoClub() {
       <Aviso>
         <strong>Las reservas online están pausadas.</strong>
         {club.motivoSuspension ? ` Motivo: ${club.motivoSuspension}.` : ''}{' '}
-        {alcanza(rol, 'ADMIN') && pago ? pago : 'Escribinos para reactivarlas.'}
+        {alcanza(rol, 'ADMIN') && (textoPago || alcanza(rol, 'OWNER'))
+          ? pago
+          : 'Escribinos para reactivarlas.'}
       </Aviso>
     );
   }
