@@ -6,9 +6,11 @@ import {
   type ServicioOperacion,
   type ServicioPagos,
   type ServicioTorneos,
+  type VerificadorCaptcha,
 } from '@cancheria/servicios';
 import type { FastifyPluginAsync } from 'fastify';
 import type { Config } from '../../config.ts';
+import { exigirCaptcha } from '../../plugins/captcha.ts';
 import type { StreamsSse } from '../../plugins/eventos.ts';
 import type { ServicioDisponibilidad } from './disponibilidad.service.ts';
 import {
@@ -32,12 +34,13 @@ interface Opciones {
   operacion: ServicioOperacion;
   sse: StreamsSse;
   torneos: ServicioTorneos;
+  captcha: VerificadorCaptcha;
   config: Config;
 }
 
 export const rutasPublicas: FastifyPluginAsync<Opciones> = async (
   app,
-  { clubs, disponibilidad, reservas, pagos, listaEspera, operacion, sse, torneos, config },
+  { clubs, disponibilidad, reservas, pagos, listaEspera, operacion, sse, torneos, captcha, config },
 ) => {
   const clubPorSlug = async (params: unknown) => {
     const { slug } = paramsSlug.parse(params);
@@ -102,7 +105,7 @@ export const rutasPublicas: FastifyPluginAsync<Opciones> = async (
 
   app.post(
     '/clubs/:slug/torneos/:torneo/inscripcion',
-    { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } },
+    { config: { rateLimit: { max: 5, timeWindow: '1 minute' } }, preHandler: exigirCaptcha(captcha) },
     async (req, reply) => {
       const { slug, torneo } = paramsTorneoPublico.parse(req.params);
       await torneos.inscribirOnline(slug, torneo, cuerpoInscripcion.parse(req.body));
@@ -192,7 +195,10 @@ export const rutasPublicas: FastifyPluginAsync<Opciones> = async (
 
   app.post(
     '/clubs/:slug/lista-espera',
-    { config: { rateLimit: { max: config.reservasPorMinuto, timeWindow: '1 minute' } } },
+    {
+      config: { rateLimit: { max: config.reservasPorMinuto, timeWindow: '1 minute' } },
+      preHandler: exigirCaptcha(captcha),
+    },
     async (req, reply) => {
       const cfg = await clubPorSlug(req.params);
       exigirHabilitado(cfg);

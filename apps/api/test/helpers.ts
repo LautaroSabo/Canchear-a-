@@ -7,6 +7,7 @@ import {
   PasarelaSuscripcionesFalsa,
   type Rol,
   ServicioAuth,
+  type VerificadorCaptcha,
 } from '@cancheria/servicios';
 import { AlmacenMemoria, PasarelaMpFalsa } from '@cancheria/servicios/testing';
 import { inject } from 'vitest';
@@ -30,6 +31,7 @@ export async function crearContexto({
   comoPagarAbono = null,
   avisosEmail = null,
   mpAbono = { token: null, webhookSecret: null },
+  captcha,
 }: {
   pool?: number;
   loginsPorMinuto?: number;
@@ -37,6 +39,7 @@ export async function crearContexto({
   comoPagarAbono?: string | null;
   avisosEmail?: string | null;
   mpAbono?: { token: string | null; webhookSecret: string | null };
+  captcha?: VerificadorCaptcha;
 } = {}) {
   const url = inject('databaseUrl');
   const conexion = crearDb(url, { max: pool });
@@ -72,6 +75,7 @@ export async function crearContexto({
     pasarelaSuscripciones,
     almacen,
     correo,
+    ...(captcha ? { captcha } : {}),
   });
   const slug = `club-${randomUUID().slice(0, 8)}`;
   const { club, canchas } = await crearClubDemo(conexion.db, slug);

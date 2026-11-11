@@ -3,6 +3,7 @@ import {
   type AlmacenArchivos,
   AlmacenLocal,
   type AvisoErrores,
+  CaptchaTurnstile,
   Cifrador,
   type Correo,
   crearCorreo,
@@ -26,7 +27,9 @@ import {
   ServicioReportes,
   ServicioTorneos,
   ServicioTurnosFijos,
+  SIN_CAPTCHA,
   TAMANO_MAXIMO_COMPROBANTE,
+  type VerificadorCaptcha,
 } from '@cancheria/servicios';
 import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
@@ -61,6 +64,8 @@ export interface Dependencias {
   almacen?: AlmacenArchivos;
   /** Suscripciones de MP (abono); los tests inyectan una falsa. */
   pasarelaSuscripciones?: PasarelaSuscripciones;
+  /** Captcha de los formularios públicos; por defecto Turnstile si hay clave. */
+  captcha?: VerificadorCaptcha;
   /** Aviso de errores (Sentry); por defecto, ninguno. */
   aviso?: AvisoErrores;
 }
@@ -73,6 +78,7 @@ export async function construirApp({
   logger = true,
   pasarela = new PasarelaMpHttp(),
   pasarelaSuscripciones = new PasarelaSuscripcionesHttp(),
+  captcha = config.turnstileSecret ? new CaptchaTurnstile(config.turnstileSecret) : SIN_CAPTCHA,
   almacen = new AlmacenLocal(config.dirComprobantes),
   correo = crearCorreo(config.correo),
   aviso,
@@ -171,6 +177,7 @@ export async function construirApp({
     operacion,
     sse,
     torneos,
+    captcha,
     config,
   });
   await app.register(rutasWebhooks, { prefix: '/webhooks', clubs, pagos, db, cifrador, abono, config });
@@ -180,6 +187,7 @@ export async function construirApp({
     config,
     auth,
     abono,
+    captcha,
     caja,
     cantina,
     clubs,

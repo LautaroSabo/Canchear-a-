@@ -53,6 +53,9 @@ LEGAL_CONTACTO=tu-email-de-contacto@ejemplo.com
 ```
 
 - `MP_ABONO_ACCESS_TOKEN`, `MP_ABONO_WEBHOOK_SECRET` (en `api`) y `DIAS_GRACIA_ABONO`, `SUSPENSION_AUTOMATICA` (en `worker`): cobro automático del abono y suspensión por falta de pago. Ver [abono.md](abono.md).
+- Captcha (opcional): creá un widget en Cloudflare → Turnstile (gratis), con el dominio de tu web. Cargá
+  `TURNSTILE_SECRET` (clave secreta) en `api` y `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (clave del sitio) en
+  `web`, y volvé a desplegar `web`.
 - `DIAS_PRUEBA` (en `api`, opcional, 15 por defecto): días gratis al aprobar un club; se muestran en la página de venta `/clubes`.
 - `SENTRY_DSN` (en `api`, `worker` y `web`, opcional): aviso por mail de los errores. Ver
   [errores.md](errores.md).

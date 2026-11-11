@@ -21,6 +21,8 @@ interface Opciones {
   panel?: boolean;
   /** SSR: URL base distinta (red interna). */
   base?: string;
+  /** Headers extra (por ejemplo, el token del captcha). */
+  cabeceras?: Record<string, string>;
   signal?: AbortSignal;
 }
 
@@ -29,6 +31,7 @@ export async function pedir<T>(ruta: string, o: Opciones = {}): Promise<T> {
   const headers: Record<string, string> = {};
   if (o.json !== undefined) headers['content-type'] = 'application/json';
   if (o.panel && metodo !== 'GET') headers['x-cancheria-csrf'] = '1';
+  Object.assign(headers, o.cabeceras);
 
   let res: Response;
   try {
@@ -68,7 +71,8 @@ export async function pedir<T>(ruta: string, o: Opciones = {}): Promise<T> {
 
 export const panel = {
   get: <T>(ruta: string) => pedir<T>(`/admin${ruta}`, { panel: true }),
-  post: <T>(ruta: string, json?: unknown) => pedir<T>(`/admin${ruta}`, { panel: true, metodo: 'POST', json }),
+  post: <T>(ruta: string, json?: unknown, cabeceras?: Record<string, string>) =>
+    pedir<T>(`/admin${ruta}`, { panel: true, metodo: 'POST', json, ...(cabeceras ? { cabeceras } : {}) }),
   put: <T>(ruta: string, json?: unknown) => pedir<T>(`/admin${ruta}`, { panel: true, metodo: 'PUT', json }),
   patch: <T>(ruta: string, json?: unknown) =>
     pedir<T>(`/admin${ruta}`, { panel: true, metodo: 'PATCH', json }),

@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
+import { useCaptcha } from '@/componentes/Captcha';
 import { ErrorApi, mensajeDe, panel } from '@/lib/api';
 import { AceptoTerminos } from '../legal/AceptoTerminos';
 import { Aviso, Boton, Campo } from '../ui';
@@ -61,18 +62,24 @@ export function Registro() {
     staleTime: 30_000,
   });
 
+  const captcha = useCaptcha();
   const registrar = useMutation({
     mutationFn: () =>
-      panel.post<{ clubId: string }>('/registro', {
-        club: {
-          nombre: f.nombre.trim(),
-          slug,
-          telefono: f.telefono.trim(),
-          ...(f.direccion.trim() ? { direccion: f.direccion.trim() } : {}),
+      panel.post<{ clubId: string }>(
+        '/registro',
+        {
+          club: {
+            nombre: f.nombre.trim(),
+            slug,
+            telefono: f.telefono.trim(),
+            ...(f.direccion.trim() ? { direccion: f.direccion.trim() } : {}),
+          },
+          dueno: { nombre: f.dueno.trim(), email: f.email.trim(), contrasena: f.contrasena },
+          aceptaTerminos: true,
         },
-        dueno: { nombre: f.dueno.trim(), email: f.email.trim(), contrasena: f.contrasena },
-        aceptaTerminos: true,
-      }),
+        captcha.cabeceras,
+      ),
+    onError: () => captcha.reiniciar(),
     onSuccess: async ({ clubId }) => {
       await qc.invalidateQueries({ queryKey: ['sesion'] });
       router.replace(`/panel/${clubId}/configuracion`);
@@ -223,7 +230,8 @@ export function Registro() {
           )}
         </Aviso>
       ) : null}
-      <Boton type="submit" grande disabled={registrar.isPending}>
+      {captcha.widget}
+      <Boton type="submit" grande disabled={registrar.isPending || !captcha.listo}>
         {registrar.isPending ? 'Creando tu club…' : 'Registrar mi club'}
       </Boton>
     </form>

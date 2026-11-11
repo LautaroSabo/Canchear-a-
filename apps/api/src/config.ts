@@ -35,6 +35,8 @@ const esquema = z.object({
   DIAS_PRUEBA: z.coerce.number().int().min(0).max(90).default(15),
   /** Cuenta de Mercado Pago de la plataforma, para el cobro automático del abono. */
   MP_ABONO_ACCESS_TOKEN: z.string().optional(),
+  /** Clave secreta de Cloudflare Turnstile (captcha). Sin esto no se pide captcha. */
+  TURNSTILE_SECRET: z.string().optional(),
   /** Clave secreta de los webhooks de esa cuenta (para validar la firma). */
   MP_ABONO_WEBHOOK_SECRET: z.string().optional(),
   /** Adónde avisar cuando se registra un club (por ejemplo, tu Gmail). */
@@ -86,6 +88,7 @@ export interface Config {
   comoPagarAbono: string | null;
   diasPrueba: number;
   mpAbono: { token: string | null; webhookSecret: string | null };
+  turnstileSecret: string | null;
   /** Destinatario de los avisos internos (registro de clubes). */
   avisosEmail: string | null;
   correo: {
@@ -118,6 +121,7 @@ export function cargarConfig(env: NodeJS.ProcessEnv = process.env): Config {
     abonoMensual: e.ABONO_MENSUAL !== undefined ? e.ABONO_MENSUAL * 100 : null,
     comoPagarAbono: e.ABONO_COMO_PAGAR?.trim() || null,
     diasPrueba: e.DIAS_PRUEBA,
+    turnstileSecret: e.TURNSTILE_SECRET?.trim() || null,
     mpAbono: {
       token: e.MP_ABONO_ACCESS_TOKEN?.trim() || null,
       webhookSecret: e.MP_ABONO_WEBHOOK_SECRET?.trim() || null,

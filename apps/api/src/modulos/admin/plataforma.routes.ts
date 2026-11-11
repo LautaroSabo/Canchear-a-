@@ -4,13 +4,16 @@ import {
   type RepoClubs,
   type ServicioAuth,
   type ServicioPlataforma,
+  type VerificadorCaptcha,
 } from '@cancheria/servicios';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import type { Config } from '../../config.ts';
+import { exigirCaptcha } from '../../plugins/captcha.ts';
 import { exigirSesion, setCookieSesion, usuarioDe } from './sesion.ts';
 
 interface Opciones {
+  captcha: VerificadorCaptcha;
   config: Config;
   auth: ServicioAuth;
   clubs: RepoClubs;
@@ -95,23 +98,29 @@ export async function rutasPlataforma(app: FastifyInstance, o: Opciones) {
   );
 
   /** Alta de un club: queda pendiente de aprobación y el dueño entra directo al panel. */
-  app.post('/registro', { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } }, async (req, reply) => {
-    const datos = cuerpoRegistro.parse(req.body);
-    const { clubId } = await o.plataforma.registrar(datos);
-    const r = await o.auth.login(datos.dueno.email, datos.dueno.contrasena, {
-      ip: req.ip,
-      userAgent: req.headers['user-agent'],
-    });
-    // Una cuenta recién creada no tiene verificación en dos pasos.
-    if (r.dosPasos) throw new Error('cuenta nueva con dos pasos');
-    setCookieSesion(reply, r.token, r.expiraEn, o.config);
-    req.log.info({ clubId, slug: datos.club.slug }, 'club nuevo registrado: espera aprobación');
-    // El aviso sale en segundo plano: si el mail falla, el alta igual queda (y se ve en el panel).
-    avisarRegistro(o, datos).catch((err) =>
-      req.log.error({ err, clubId }, 'no se pudo mandar el aviso de registro'),
-    );
-    return reply.status(201).send({ clubId, usuario: r.usuario, clubs: await o.auth.clubsDe(r.usuario.id) });
-  });
+  app.post(
+    '/registro',
+    { config: { rateLimit: { max: 5, timeWindow: '1 minute' } }, preHandler: exigirCaptcha(o.captcha) },
+    async (req, reply) => {
+      const datos = cuerpoRegistro.parse(req.body);
+      const { clubId } = await o.plataforma.registrar(datos);
+      const r = await o.auth.login(datos.dueno.email, datos.dueno.contrasena, {
+        ip: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+      // Una cuenta recién creada no tiene verificación en dos pasos.
+      if (r.dosPasos) throw new Error('cuenta nueva con dos pasos');
+      setCookieSesion(reply, r.token, r.expiraEn, o.config);
+      req.log.info({ clubId, slug: datos.club.slug }, 'club nuevo registrado: espera aprobación');
+      // El aviso sale en segundo plano: si el mail falla, el alta igual queda (y se ve en el panel).
+      avisarRegistro(o, datos).catch((err) =>
+        req.log.error({ err, clubId }, 'no se pudo mandar el aviso de registro'),
+      );
+      return reply
+        .status(201)
+        .send({ clubId, usuario: r.usuario, clubs: await o.auth.clubsDe(r.usuario.id) });
+    },
+  );
 
   /**
    * "Olvidé mi contraseña": si el email tiene cuenta, le manda el link por mail. Responde
@@ -119,7 +128,7 @@ export async function rutasPlataforma(app: FastifyInstance, o: Opciones) {
    */
   app.post(
     '/auth/olvide',
-    { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } },
+    { config: { rateLimit: { max: 5, timeWindow: '1 minute' } }, preHandler: exigirCaptcha(o.captcha) },
     async (req, reply) => {
       const { email } = cuerpoOlvide.parse(req.body);
       const r = await o.auth.crearRestablecimiento(email);

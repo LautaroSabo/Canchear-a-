@@ -4,6 +4,7 @@ export * from './auth.ts';
 export * from './aviso-errores.ts';
 export * from './caja.ts';
 export * from './cantina.ts';
+export * from './captcha.ts';
 export * from './cifrado.ts';
 export * from './clientes.ts';
 export * from './config-club.ts';

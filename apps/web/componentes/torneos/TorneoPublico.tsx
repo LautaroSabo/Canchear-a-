@@ -3,6 +3,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { type FormEvent, useEffect, useState } from 'react';
+import { useCaptcha } from '@/componentes/Captcha';
 import { mensajeDe, pedir } from '@/lib/api';
 import { fechaLarga, fechaLocal, hora } from '@/lib/formato';
 import { useHidratado } from '@/lib/hooks';
@@ -172,6 +173,7 @@ export function TorneoPublico({
 function Inscripcion({ club, vista: v }: { club: { slug: string }; vista: VistaTorneo }) {
   const [listo, setListo] = useState<string | null>(null);
   const hidratado = useHidratado();
+  const captcha = useCaptcha();
   const inscribir = useMutation({
     mutationFn: (d: {
       nombre: string;
@@ -179,7 +181,12 @@ function Inscripcion({ club, vista: v }: { club: { slug: string }; vista: VistaT
       delegadoTelefono: string;
       delegadoEmail?: string;
     }) =>
-      pedir(`/public/clubs/${club.slug}/torneos/${v.torneo.slug}/inscripcion`, { metodo: 'POST', json: d }),
+      pedir(`/public/clubs/${club.slug}/torneos/${v.torneo.slug}/inscripcion`, {
+        metodo: 'POST',
+        json: d,
+        cabeceras: captcha.cabeceras,
+      }),
+    onError: () => captcha.reiniciar(),
     onSuccess: (_r, d) => setListo(d.nombre),
   });
   function enviar(e: FormEvent<HTMLFormElement>) {
@@ -267,7 +274,8 @@ function Inscripcion({ club, vista: v }: { club: { slug: string }; vista: VistaT
                 </a>
                 .
               </p>
-              <Boton type="submit" grande disabled={!hidratado || inscribir.isPending}>
+              {captcha.widget}
+              <Boton type="submit" grande disabled={!hidratado || inscribir.isPending || !captcha.listo}>
                 {inscribir.isPending ? 'Enviando…' : 'Inscribir equipo'}
               </Boton>
             </form>

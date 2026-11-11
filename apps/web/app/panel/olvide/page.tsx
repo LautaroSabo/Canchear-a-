@@ -3,6 +3,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 import { MarcoAcceso } from '@/componentes/acceso/MarcoAcceso';
+import { useCaptcha } from '@/componentes/Captcha';
 import { Aviso, Boton, Campo } from '@/componentes/ui';
 import { mensajeDe, panel } from '@/lib/api';
 import { useHidratado } from '@/lib/hooks';
@@ -10,7 +11,11 @@ import { useHidratado } from '@/lib/hooks';
 export default function Olvide() {
   const [email, setEmail] = useState('');
   const hidratado = useHidratado();
-  const pedir = useMutation({ mutationFn: () => panel.post('/auth/olvide', { email: email.trim() }) });
+  const captcha = useCaptcha();
+  const pedir = useMutation({
+    mutationFn: () => panel.post('/auth/olvide', { email: email.trim() }, captcha.cabeceras),
+    onError: () => captcha.reiniciar(),
+  });
 
   return (
     <MarcoAcceso
@@ -39,7 +44,8 @@ export default function Olvide() {
             required
           />
           {pedir.error ? <Aviso>{mensajeDe(pedir.error)}</Aviso> : null}
-          <Boton type="submit" grande disabled={!hidratado || pedir.isPending}>
+          {captcha.widget}
+          <Boton type="submit" grande disabled={!hidratado || pedir.isPending || !captcha.listo}>
             {pedir.isPending ? 'Enviando…' : 'Mandarme el link'}
           </Boton>
         </form>

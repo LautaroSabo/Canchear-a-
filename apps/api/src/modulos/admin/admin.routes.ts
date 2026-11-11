@@ -25,6 +25,7 @@ import {
   type ServicioReportes,
   type ServicioTorneos,
   type ServicioTurnosFijos,
+  type VerificadorCaptcha,
 } from '@cancheria/servicios';
 import { eq } from 'drizzle-orm';
 import type { FastifyPluginAsync } from 'fastify';
@@ -111,6 +112,7 @@ import {
 import { rutasTorneos } from './torneos.routes.ts';
 
 interface Opciones {
+  captcha: VerificadorCaptcha;
   db: Db;
   config: Config;
   auth: ServicioAuth;

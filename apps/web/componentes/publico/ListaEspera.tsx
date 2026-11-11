@@ -2,6 +2,7 @@
 
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
+import { useCaptcha } from '@/componentes/Captcha';
 import { ErrorApi, pedir } from '@/lib/api';
 import { fechaCorta, nombreTipo, type TipoCancha } from '@/lib/formato';
 import { Aviso, Boton, Campo, Selector } from '../ui';
@@ -28,10 +29,12 @@ export function ListaEspera({
   const [abierta, setAbierta] = useState(false);
   const [f, setF] = useState({ desde: '19:00', hasta: '23:00', nombre: '', telefono: '' });
 
+  const captcha = useCaptcha();
   const anotar = useMutation({
     mutationFn: () =>
       pedir<{ id: string }>(`/public/clubs/${slug}/lista-espera`, {
         metodo: 'POST',
+        cabeceras: captcha.cabeceras,
         json: {
           cliente: { nombre: f.nombre.trim(), telefono: f.telefono.trim() },
           fecha,
@@ -42,6 +45,7 @@ export function ListaEspera({
         },
       }),
     onSuccess: () => setAnotado({ fecha, desde: f.desde, hasta: f.hasta }),
+    onError: () => captcha.reiniciar(),
   });
   // Lo anotado queda fijo aunque después cambie el día elegido arriba.
   const [anotado, setAnotado] = useState<{ fecha: string; desde: string; hasta: string } | null>(null);
@@ -130,7 +134,8 @@ export function ListaEspera({
               </a>
               .
             </p>
-            <Boton type="submit" disabled={anotar.isPending}>
+            {captcha.widget}
+            <Boton type="submit" disabled={anotar.isPending || !captcha.listo}>
               {anotar.isPending ? 'Anotando…' : 'Anotarme'}
             </Boton>
             <Boton variante="fantasma" onClick={() => setAbierta(false)}>
