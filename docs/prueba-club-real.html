@@ -1,0 +1,202 @@
+<title>Prueba con club real</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;800&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: una columna angosta tipo planilla de cancha; cada etapa es un bloque con su número de orden, ítems tildables. */
+:root {
+  --bg: #f3f6f2;
+  --sup: #ffffff;
+  --fg: #172019;
+  --tenue: #5b6a5e;
+  --linea: #d5ddd4;
+  --acento: #1f7a3d;
+  --acento-suave: #e2f0e5;
+  --aviso: #8a5a00;
+  --aviso-suave: #fbf0d9;
+  --display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --texto: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f1511; --sup: #171f19; --fg: #e4ece5; --tenue: #9aab9d; --linea: #2b372e;
+  --acento: #5cc27e; --acento-suave: #1c3424; --aviso: #e9b34f; --aviso-suave: #33290f; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0f1511; --sup: #171f19; --fg: #e4ece5; --tenue: #9aab9d; --linea: #2b372e;
+  --acento: #5cc27e; --acento-suave: #1c3424; --aviso: #e9b34f; --aviso-suave: #33290f; color-scheme: dark }
+
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--texto); }
+.envoltura { max-width: 760px; margin: 0 auto; padding-block: 28px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 22px; }
+h1 { font: 800 clamp(38px, 9vw, 58px)/0.95 var(--display); text-transform: uppercase; margin: 0; text-wrap: balance; letter-spacing: .01em }
+.bajada { color: var(--tenue); margin: 0; max-width: 62ch }
+.progreso { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg);
+  padding-block: 10px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--linea) }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg) }
+.barra { flex: 1; height: 8px; background: var(--linea); border-radius: 4px; overflow: hidden }
+.barra > span { display: block; height: 100%; width: 0; background: var(--acento); transition: width .25s }
+.cuenta { font: 600 15px var(--texto); font-variant-numeric: tabular-nums; white-space: nowrap }
+button { font: 600 13px var(--texto); color: var(--fg); background: transparent; border: 1px solid var(--linea);
+  border-radius: 6px; padding: 6px 10px; cursor: pointer }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px }
+.confirmar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13px }
+.confirmar .si { background: var(--aviso); color: var(--bg); border-color: var(--aviso) }
+
+section { background: var(--sup); border: 1px solid var(--linea); border-radius: 8px; padding: 18px 18px 8px }
+section header { display: flex; gap: 12px; align-items: baseline; margin-bottom: 4px }
+.num { font: 800 30px/1 var(--display); color: var(--acento); font-variant-numeric: tabular-nums; min-width: 1.4em }
+h2 { font: 600 24px/1.1 var(--display); text-transform: uppercase; margin: 0; letter-spacing: .02em }
+.donde { color: var(--tenue); font-size: 13px; margin: 2px 0 6px }
+.lista-hecha h2 { color: var(--acento) }
+ul { list-style: none; margin: 0; padding: 0 }
+li { border-top: 1px solid var(--linea) }
+li:first-child { border-top: 0 }
+label { display: grid; grid-template-columns: 22px 1fr; gap: 12px; padding: 11px 0; cursor: pointer }
+input[type=checkbox] { width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--acento) }
+.item { min-width: 0 }
+.item b { font-weight: 600 }
+.item small { display: block; color: var(--tenue); font-size: 13px; margin-top: 2px }
+input:checked + .item { color: var(--tenue) }
+input:checked + .item b { text-decoration: line-through; text-decoration-color: var(--acento) }
+code { font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--acento-suave); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere }
+.nota { background: var(--aviso-suave); color: var(--fg); border-radius: 8px; padding: 14px 16px; font-size: 14px }
+.nota strong { color: var(--aviso) }
+@media (prefers-reduced-motion: reduce) { .barra > span { transition: none } }
+</style>
+
+<div class="envoltura">
+  <div>
+    <h1>Prueba con un club real</h1>
+  </div>
+  <p class="bajada">Recorrido completo de Canchería antes de salir a vender, en el orden en que lo vive un club. Hacelo con dos celulares: uno como dueño (panel) y otro como jugador, sin sesión iniciada. Usá montos chicos ($500) cuando haya plata real. Lo que tildás queda guardado en este navegador.</p>
+
+  <div class="progreso">
+    <div class="barra" aria-hidden="true"><span id="relleno"></span></div>
+    <span class="cuenta" id="cuenta">0 de 0</span>
+    <div class="confirmar" id="zona-reinicio">
+      <button type="button" id="reiniciar">Empezar de nuevo</button>
+    </div>
+  </div>
+
+  <div class="nota"><strong>Si algo falla:</strong> anotá en qué paso estabas, sacá captura de pantalla y mandámela con la hora aproximada. Con la hora busco el error en Sentry.</div>
+
+  <div id="etapas"></div>
+</div>
+
+<script>
+const ETAPAS = [
+  { t: 'Antes de arrancar', d: 'Tu lado: configuración que hace falta para que todo funcione de verdad', items: [
+    ['Dominio comprado y verificado en Resend', 'Sin esto los emails a jugadores no llegan o caen en spam.'],
+    ['Plataforma: el club no figura suspendido', 'Panel → Plataforma. Si dice suspendido, tocá Reactivar.'],
+    ['Verificación en dos pasos activada en tu cuenta de superadmin', 'Mi cuenta → Verificación en dos pasos. Guardá los códigos de recuperación.'],
+    ['Mercado Pago del club conectado', 'Configuración → Mercado Pago. Con la cuenta real del club, no la tuya.'],
+  ]},
+  { t: 'Armar el club', d: 'Panel → Configuración', items: [
+    ['Datos del club: nombre, dirección, WhatsApp, logo', 'Mirá cómo queda la página pública del club después.'],
+    ['Canchas cargadas como son: tipo, deporte, superficie', 'Si tiene pádel, cargá al menos una de pádel.'],
+    ['Precios por franja horaria (día / noche, fin de semana)', 'Revisá un horario de cada franja en la página pública.'],
+    ['Horarios de apertura y días cerrados', 'Probá que un feriado cerrado no aparezca para reservar.'],
+    ['Seña: porcentaje, datos de transferencia, horas de recordatorio', 'El recordatorio sale por defecto 3 horas antes.'],
+  ]},
+  { t: 'Reserva como jugador', d: 'Celular del jugador, sin sesión, desde el link del club', items: [
+    ['Reservar y pagar la seña con Mercado Pago (plata real)', 'Al volver de MP, el turno tiene que quedar confirmado solo.'],
+    ['Llega el email de confirmación con el QR', 'Fijate que no caiga en spam.'],
+    ['“Pasarle el dato al grupo” abre la página del partido', 'Mandalo por WhatsApp a otra persona: tiene que ver día, hora, cancha y dirección.'],
+    ['Reservar otro turno pagando por transferencia', 'Subí el comprobante desde el celular del jugador.'],
+    ['Aprobar esa transferencia en el panel', 'Panel → Transferencias. El turno pasa a confirmado.'],
+    ['El turno pagado aparece en la Agenda del panel', 'Con el nombre y teléfono del jugador.'],
+  ]},
+  { t: 'El día del partido', d: 'Agenda, Check-in y Reembolsos', items: [
+    ['Llega el recordatorio antes del partido', 'Reservá algo para dentro de 4 o 5 horas y esperá.'],
+    ['Check-in escaneando el QR del jugador', 'Panel → Check-in, con la cámara del celular del dueño.'],
+    ['Cobrar el saldo en la cancha (efectivo)', 'Queda registrado el medio de pago.'],
+    ['Cancelar un turno con seña y devolverla', 'Panel → Reembolsos. Confirmá que la plata vuelva a la cuenta de MP del jugador.'],
+    ['Lista de espera: anotarse en un horario ocupado', 'Después cancelá ese turno: el anotado tiene que recibir el aviso.'],
+  ]},
+  { t: 'Operación de todos los días', d: 'Lo que el club usa a diario', items: [
+    ['Crear un turno fijo semanal', 'Panel → Turnos fijos. Ver que se repita en la agenda las próximas semanas.'],
+    ['Cargar un turno a mano (el que llama por teléfono)', 'Desde la Agenda.'],
+    ['Vender algo en la cantina', 'Panel → Cantina. Ver que baje el stock.'],
+    ['Cierre de caja al final del día', 'Panel → Caja. El efectivo que dice tiene que coincidir con el de la caja real.'],
+    ['Reportes del mes tienen sentido', 'Panel → Reportes. Ocupación y plata cobrada.'],
+    ['Agregar un empleado con su propio usuario', 'Probá que entre y vea solo lo que le corresponde.'],
+  ]},
+  { t: 'Torneo', d: 'Panel → Torneos, con equipos de prueba', items: [
+    ['Crear un torneo con inscripción online', 'Copiá el link de inscripción desde el panel.'],
+    ['Inscribir dos equipos desde el link con email del delegado', 'Antes de sortear: después de sortear la inscripción cierra.'],
+    ['Confirmar los equipos y sortear el fixture', 'Los delegados reciben el email con los horarios.'],
+    ['Mover un partido de horario', 'El delegado recibe el aviso del cambio.'],
+    ['Cargar un resultado y ver la tabla pública', 'En la página pública del torneo, elegir “Mi equipo”.'],
+  ]},
+  { t: 'Panel en el celular', d: 'Celular del dueño', items: [
+    ['Instalar el panel como app', 'Mi cuenta → Instalar. En iPhone: Compartir → Agregar a inicio.'],
+    ['Activar dos pasos en la cuenta del dueño', 'Salir y volver a entrar: tiene que pedir el código.'],
+    ['“Olvidé mi contraseña” llega por email y funciona', 'Desde la pantalla de ingreso.'],
+    ['Imprimir el cartel con QR y escanearlo', 'Panel → Cartel. El QR abre la página de reservas.'],
+  ]},
+  { t: 'Cobro del abono', d: 'Cuando tengas la app de MP de la plataforma configurada', items: [
+    ['Ponerle al club el precio de fundador', 'Plataforma → club → Precio especial: 40% por 12 meses.'],
+    ['El dueño activa el pago automático', 'Mi cuenta → Pagar automáticamente. Ve el plan y el precio con descuento.'],
+    ['Llega el primer cobro y el abono se extiende un mes', 'Mi cuenta muestra la nueva fecha; Plataforma muestra el pago.'],
+    ['Cancelar la suscripción y volver a activarla', 'Que no queden dos débitos.'],
+  ]},
+  { t: 'Detrás de escena', d: 'Al terminar todo lo anterior', items: [
+    ['El backup de esa noche salió bien', 'GitHub → Actions → Backup: tilde verde, con turnos y pagos contados.'],
+    ['Sentry no tiene errores nuevos de la prueba', 'Si hay alguno, mandámelo aunque no hayas visto nada raro.'],
+    ['Borrar los turnos y pagos de prueba', 'O avisame y lo limpio yo, para que los reportes del club arranquen limpios.'],
+  ]},
+];
+
+const CLAVE = 'prueba-club-real:v1';
+let hechos = {};
+try { hechos = JSON.parse(localStorage.getItem(CLAVE) || '{}') || {}; } catch { hechos = {}; }
+const guardar = () => { try { localStorage.setItem(CLAVE, JSON.stringify(hechos)); } catch {} };
+
+const raiz = document.getElementById('etapas');
+raiz.style.cssText = 'display:flex;flex-direction:column;gap:16px';
+let total = 0;
+ETAPAS.forEach((e, i) => {
+  const s = document.createElement('section');
+  s.setAttribute('aria-labelledby', 'et-' + i);
+  s.innerHTML = `<header><span class="num">${i + 1}</span><div><h2 id="et-${i}">${e.t}</h2><p class="donde">${e.d}</p></div></header><ul></ul>`;
+  const ul = s.querySelector('ul');
+  e.items.forEach(([b, small], j) => {
+    total++;
+    const id = `c-${i}-${j}`;
+    const li = document.createElement('li');
+    li.innerHTML = `<label for="${id}"><input type="checkbox" id="${id}"><span class="item"><b>${b}</b><small>${small}</small></span></label>`;
+    const cb = li.querySelector('input');
+    cb.checked = !!hechos[id];
+    cb.addEventListener('change', () => { if (cb.checked) hechos[id] = 1; else delete hechos[id]; guardar(); pintar(); });
+    ul.appendChild(li);
+  });
+  raiz.appendChild(s);
+});
+
+function pintar() {
+  const n = raiz.querySelectorAll('input:checked').length;
+  document.getElementById('cuenta').textContent = `${n} de ${total}`;
+  document.getElementById('relleno').style.width = (100 * n / total) + '%';
+  raiz.querySelectorAll('section').forEach(s => {
+    const cbs = s.querySelectorAll('input');
+    s.classList.toggle('lista-hecha', [...cbs].every(c => c.checked));
+  });
+}
+pintar();
+
+const zona = document.getElementById('zona-reinicio');
+function botonReinicio() {
+  zona.innerHTML = '<button type="button" id="reiniciar">Empezar de nuevo</button>';
+  zona.querySelector('button').onclick = () => {
+    zona.innerHTML = '<span>¿Destildar todo?</span><button type="button" class="si">Sí, destildar</button><button type="button" class="no">No</button>';
+    zona.querySelector('.si').onclick = () => {
+      hechos = {}; guardar();
+      raiz.querySelectorAll('input').forEach(c => c.checked = false);
+      pintar(); botonReinicio();
+    };
+    zona.querySelector('.no').onclick = botonReinicio;
+  };
+}
+botonReinicio();
+</script>
