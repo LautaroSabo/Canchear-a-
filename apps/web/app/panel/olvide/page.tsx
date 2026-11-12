@@ -24,8 +24,9 @@ export default function Olvide() {
     >
       {pedir.isSuccess ? (
         <Aviso tipo="ok">
-          Si hay una cuenta con <strong>{email.trim()}</strong>, te llegó un mail con el link. Revisá también
-          spam. Si no te llega en unos minutos, pedile el link a quien administra Canchería.
+          Si <strong>{email.trim()}</strong> tiene una cuenta en Canchería, te llegó un mail con el link.
+          Revisá también spam. Si no te llega en unos minutos, fijate que sea el email con el que entrás al
+          panel; si sigue sin llegar, pedile el link a quien administra Canchería.
         </Aviso>
       ) : (
         <form
