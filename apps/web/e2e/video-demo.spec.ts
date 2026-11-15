@@ -1,7 +1,7 @@
 // Grabación del video de venta (no es un test: se saltea salvo con VIDEO_DIR).
 // VIDEO_DIR=/ruta/salida npx playwright test video-demo --trace off
 // y después: python3 scripts/video/armar.py /ruta/salida
-import { writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 import { API, DUENIO, elegirUltimoSabado, SLUG, ultimoSabado } from './utilidades';
 
@@ -75,25 +75,40 @@ test('video: reserva del jugador y panel del club', async ({ browser, request })
   });
   const inicioCel = Date.now();
   const marcas: { t: number; texto: string }[] = [];
-  const marca = (texto: string) => marcas.push({ t: (Date.now() - inicioCel) / 1000, texto });
+  // Con voz (scripts/video/voz.py deja duraciones.json en VIDEO_DIR): cada paso dura por lo
+  // menos lo que tarda su frase, así la voz no se pisa con la siguiente.
+  const voz = existsSync(`${SALIDA}/duraciones.json`)
+    ? (JSON.parse(readFileSync(`${SALIDA}/duraciones.json`, 'utf8')).pasos as number[])
+    : [];
+  const ahora = () => (Date.now() - inicioCel) / 1000;
+  const terminarFrase = async () => {
+    const previa = marcas.at(-1);
+    const dur = voz[marcas.length - 1];
+    const hasta = previa && dur ? previa.t + dur + 0.4 : 0;
+    if (ahora() < hasta) await espera((hasta - ahora()) * 1000);
+  };
+  const marca = async (texto: string) => {
+    await terminarFrase();
+    marcas.push({ t: ahora(), texto });
+  };
   await ctxCel.addInitScript(TOQUES);
   const cel = await ctxCel.newPage();
   await cel.route('https://mp.test/**', (r) => r.fulfill({ contentType: 'text/html', body: CHECKOUT }));
 
   await cel.goto(`/${SLUG}`);
   await expect(cel.getByRole('button', { name: /^Cancha 1 \d\d:00/ }).first()).toBeVisible();
-  marca('El jugador entra al link del club');
+  await marca('El jugador entra al link del club');
   await espera(2500);
   await elegirUltimoSabado(cel);
   await espera(1200);
-  marca('Elige día, cancha y horario');
+  await marca('Elige día, cancha y horario');
   await cel.getByRole('button', { name: 'Cancha 1 21:00, $45.000' }).last().scrollIntoViewIfNeeded();
   await espera(800);
   await cel.getByRole('button', { name: 'Cancha 1 21:00, $45.000' }).last().click();
   await espera(1000);
   await cel.getByRole('button', { name: 'Continuar' }).click();
   await espera(800);
-  marca('Deja su nombre y WhatsApp');
+  await marca('Deja su nombre y WhatsApp');
   await cel.getByLabel('Nombre y apellido').pressSequentially('Juan Pérez', { delay: 70 });
   await cel.getByRole('textbox', { name: 'WhatsApp' }).pressSequentially('11 5100-2001', { delay: 60 });
   await cel.getByRole('textbox', { name: /Email/ }).pressSequentially('juan@gmail.com', { delay: 50 });
@@ -104,17 +119,17 @@ test('video: reserva del jugador y panel del club', async ({ browser, request })
   await cel.waitForURL(/\/r\/[0-9a-f]{32}$/);
   const codigo = cel.url().split('/r/')[1];
   await expect(cel.getByRole('heading', { name: 'Falta pagar la seña' })).toBeVisible();
-  marca('El horario queda guardado mientras paga');
+  await marca('El horario queda guardado mientras paga');
   await espera(2500);
   await cel.getByRole('button', { name: /Pagar \$22\.500 con Mercado Pago/ }).click();
   await cel.waitForURL(/mp\.test/);
-  marca('Paga la seña con Mercado Pago');
+  await marca('Paga la seña con Mercado Pago');
   await espera(2000);
   await cel.locator('#pagar').click();
   await espera(600);
+  await marca('Al club le aparece solo, ya pagado');
   const pago = await (await request.post(`${API}/__e2e/mercadopago/pagar`)).json();
   expect(pago.resultado).toBe('CONFIRMADO');
-  marca('Al club le aparece solo, ya pagado');
   await cel.goto(`/r/${codigo}?collection_status=approved`);
   await expect(cel.getByText('¡Turno confirmado!')).toBeVisible();
   await espera(1200);
@@ -123,11 +138,13 @@ test('video: reserva del jugador y panel del club', async ({ browser, request })
     .first()
     .click();
   await espera(2300);
-  marca('Comprobante con QR para entrar a la cancha');
+  await marca('Comprobante con QR para entrar a la cancha');
   await cel.getByRole('img', { name: 'Código QR de la reserva' }).scrollIntoViewIfNeeded();
   await espera(3500);
-  marca('Sin contestar un solo WhatsApp');
-  await espera(3000);
+  await marca('Sin contestar un solo WhatsApp');
+  await espera(1500);
+  await terminarFrase();
+  await espera(1000);
   const fin = (Date.now() - inicioCel) / 1000;
 
   await ctxCel.close();

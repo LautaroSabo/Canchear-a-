@@ -35,7 +35,23 @@ def tarjeta(nombre, l1, l2, dur):
           f"drawtext=fontfile={R}:textfile=txt/t2.txt:fontsize=44:fontcolor=0x5cc27e:x=(w-tw)/2:y=560,"
           f"fade=in:st=0:d=0.4,fade=out:st={dur-0.4}:d=0.4")
     subprocess.run(['ffmpeg','-v','error','-y','-f','lavfi','-i',f'color=c=0x0f1511:s=1920x1080:d={dur}:r=30','-vf',vf,'-c:v','libx264','-pix_fmt','yuv420p','-crf','20',nombre],check=True)
-tarjeta('intro.mp4','Canchería','Así reserva un jugador en tu club',3)
-tarjeta('cierre.mp4','tucancheria.com','Reservas y señas sin contestar mensajes',4)
+# Con voz (scripts/video/voz.py), las tarjetas duran lo que tarda su frase.
+dur = json.load(open('duraciones.json')) if os.path.exists('duraciones.json') else None
+d_intro = max(3, dur['intro'] + 1.0) if dur else 3
+d_cierre = max(4, dur['cierre'] + 1.6) if dur else 4
+tarjeta('intro.mp4','Canchería','Así reserva un jugador en tu club',d_intro)
+tarjeta('cierre.mp4','tucancheria.com','Reservas y señas sin contestar mensajes',d_cierre)
 open('lista.txt','w').write("file 'intro.mp4'\nfile 'medio.mp4'\nfile 'cierre.mp4'\n")
-subprocess.run(['ffmpeg','-v','error','-y','-f','concat','-safe','0','-i','lista.txt','-c','copy','cancheria-demo.mp4'],check=True)
+destino = 'cancheria-demo-sin-voz.mp4' if dur else 'cancheria-demo.mp4'
+subprocess.run(['ffmpeg','-v','error','-y','-f','concat','-safe','0','-i','lista.txt','-c','copy',destino],check=True)
+if dur:
+    # Cada frase en su momento: la intro sobre la tarjeta, cada paso en su marca, el cierre al final.
+    pistas = [('voz/intro.wav', 0.4)]
+    pistas += [(f'voz/paso{i}.wav', d_intro + x['t'] + 0.15) for i, x in enumerate(marcas)]
+    total = float(subprocess.run(['ffprobe','-v','error','-show_entries','format=duration','-of','csv=p=0',destino],capture_output=True,text=True,check=True).stdout)
+    pistas += [('voz/cierre.wav', total - d_cierre + 0.4)]
+    args = ['ffmpeg','-v','error','-y','-i',destino]
+    for ruta, _ in pistas: args += ['-i', ruta]
+    fc = ''.join(f'[{i+1}:a]adelay={int(t*1000)}:all=1[a{i}];' for i, (_, t) in enumerate(pistas))
+    fc += ''.join(f'[a{i}]' for i in range(len(pistas))) + f'amix=inputs={len(pistas)}:normalize=0,loudnorm=I=-16:TP=-1.5,apad[voz]'
+    subprocess.run(args + ['-filter_complex', fc, '-map','0:v','-map','[voz]','-c:v','copy','-c:a','aac','-b:a','160k','-ar','44100','-t',f'{total:.3f}','cancheria-demo.mp4'], check=True)
