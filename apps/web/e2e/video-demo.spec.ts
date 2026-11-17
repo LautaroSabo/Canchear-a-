@@ -19,7 +19,7 @@ addEventListener('pointerdown', (e) => {
   setTimeout(() => d.remove(), 600);
 }, true);`;
 
-const CHECKOUT = `<!doctype html><meta name="viewport" content="width=device-width">
+const CHECKOUT = `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width">
 <body style="margin:0;font-family:system-ui;background:#f5f5f5">
 <div style="background:#ffe600;padding:18px 20px;font-weight:700;font-size:18px">mercado pago</div>
 <div style="padding:24px 20px;display:flex;flex-direction:column;gap:14px">
@@ -97,6 +97,7 @@ test('video: reserva del jugador y panel del club', async ({ browser, request })
 
   await cel.goto(`/${SLUG}`);
   await expect(cel.getByRole('button', { name: /^Cancha 1 \d\d:00/ }).first()).toBeVisible();
+  await expect(cel.getByText('Buscando horarios…')).toHaveCount(0);
   await marca('El jugador entra al link del club');
   await espera(2500);
   await elegirUltimoSabado(cel);
